@@ -198,7 +198,7 @@ test.describe("Elo", () => {
 
   const idOf = async (email: string) => (await prisma.user.findUniqueOrThrow({ where: { email } })).id;
   const ratingOf = (userId: string) =>
-    prisma.rating.findUniqueOrThrow({ where: { userId_mode_difficulty: { userId, mode: "speed-race", difficulty: 2 } } });
+    prisma.rating.findUniqueOrThrow({ where: { userId_game_mode_difficulty: { userId, game: "standard", mode: "speed-race", difficulty: 2 } } });
 
   test("deux comptes neufs : l'Elo bouge en caché pendant le placement", async ({ page, user, request }) => {
     const rival = await signUp(request);

@@ -4,7 +4,8 @@ import { useTranslations } from "next-intl";
 import {
   ALL_OPERATIONS,
   DIFFICULTIES,
-  GAME_MODES,
+  GAMES,
+  GAME_IDS,
   MAX_ROUNDS,
   MAX_TIME,
   MIN_ROUNDS,
@@ -55,9 +56,22 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
   return (
     <div className="panel" id={id}>
       <fieldset className="field" disabled={readOnly}>
+        <legend>{t("settings.game")}</legend>
+        <div className="mode-cards">
+          {/* En solo, seuls les jeux jouables seul sont proposés. */}
+          {GAME_IDS.filter((g) => online || GAMES[g].solo).map((g) => (
+            <button key={g} type="button" className="mode-card" aria-pressed={s.game === g} onClick={() => set({ game: g })}>
+              <strong>{t(`games.${g}.name`)}</strong>
+              <span>{t(`games.${g}.short`)}</span>
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset className="field" disabled={readOnly}>
         <legend>{t("settings.mode")}</legend>
         <div className="mode-cards">
-          {GAME_MODES.map((m) => (
+          {GAMES[s.game].modes.map((m) => (
             <button key={m} type="button" className="mode-card" aria-pressed={s.mode === m} onClick={() => set({ mode: m })}>
               <strong>{t(`modes.${m}.name`)}</strong>
               <span>{t(`modes.${m}.short`)}</span>

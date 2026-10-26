@@ -29,6 +29,7 @@ export async function signUp(api: APIRequestContext, user: TestUser = newUser())
 /** Réglages solo posés dans le navigateur avant le chargement (clé `calculus:solo` de `lib/storage`). */
 export async function presetSolo(page: Page, settings: Partial<GameSettings>) {
   const full: GameSettings = {
+    game: "standard",
     difficulty: 1,
     mode: "speed-race",
     operations: ["add"],

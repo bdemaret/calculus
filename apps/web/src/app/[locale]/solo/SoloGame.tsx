@@ -2,13 +2,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
+  GAMES,
+  GAME_IDS,
   GameEngine,
+  answerOfRecord,
   buildReport,
   defaultSettings,
   randomSeed,
   sanitizeSettings,
   type GameReport,
   type GameSettings,
+  type PlayerAnswer,
   type RoundRecord,
 } from "@calculus/game-core";
 import { Link } from "@/i18n/navigation";
@@ -47,11 +51,13 @@ export function SoloGame({ loggedIn, playerName }: Props) {
 
   const engine = useRef<GameEngine | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const log = useRef<{ value: number | null; timeMs: number }[]>([]);
+  const log = useRef<{ answer: PlayerAnswer | null; timeMs: number }[]>([]);
   const startedAt = useRef(0);
 
   useEffect(() => {
-    setSettings(sanitizeSettings(local.get("solo", defaultSettings(2, "speed-race"))));
+    const saved = sanitizeSettings(local.get("solo", defaultSettings(2, "speed-race")));
+    // Un jeu qui ne se joue qu'en ligne est remplacé par le premier jeu jouable seul.
+    setSettings(GAMES[saved.game].solo ? saved : sanitizeSettings({ ...saved, game: GAME_IDS.find((g) => GAMES[g].solo) }));
     return () => timers.current.forEach(clearTimeout);
   }, []);
 
@@ -124,7 +130,7 @@ export function SoloGame({ loggedIn, playerName }: Props) {
     const rec = e.closeRound();
     if (!rec) return;
     const mine = rec.answers.find((a) => a.playerId === ME);
-    log.current.push({ value: mine?.value ?? null, timeMs: mine?.timeMs ?? rec.timeLimitMs });
+    log.current.push({ answer: mine ? answerOfRecord(mine, e.game.answerKind) : null, timeMs: mine?.timeMs ?? rec.timeLimitMs });
     if (!mine || mine.value === null) sfx.ko();
     setClosed(rec);
     setPhase("result");

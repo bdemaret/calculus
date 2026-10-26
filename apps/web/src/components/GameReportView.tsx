@@ -240,7 +240,9 @@ function Review({ report, meId, online, mode }: { report: GameReport; meId: stri
                         <span>{t("reviewNoAnswer")}</span>
                       </span>
                     );
-                  if (a.value == null)
+                  // Un nombre, ou une expression / un opérateur selon le jeu ; rien si le temps s'est écoulé.
+                  const given = a.value ?? a.text;
+                  if (given == null)
                     return (
                       <span key={pl.playerId} className={`rv-a ko${me}`}>
                         <span className="nm">{who}</span>
@@ -250,7 +252,7 @@ function Review({ report, meId, online, mode }: { report: GameReport; meId: stri
                   return (
                     <span key={pl.playerId} className={`rv-a ${a.correct ? "ok" : "ko"}${me}`}>
                       <span className="nm">{who}</span>
-                      <span className="val">{a.correct ? <>{a.value} ✓</> : <><s>{a.value}</s> ✗</>}</span>
+                      <span className="val">{a.correct ? <>{given} ✓</> : <><s>{given}</s> ✗</>}</span>
                       <span className="t">{formatSeconds(a.timeMs, locale)}</span>
                       {r.scorers.includes(pl.playerId) ? <span className="pt">+1</span> : null}
                     </span>

@@ -7,6 +7,7 @@ import { answerRound, type Move } from "./answer";
 /** Réglages en ligne courts par défaut : 5 manches faciles, pour des parties de quelques secondes. */
 export function onlineSettings(settings: Partial<GameSettings> = {}): GameSettings {
   return {
+    game: "standard",
     difficulty: 1,
     mode: "speed-race",
     operations: ["add"],

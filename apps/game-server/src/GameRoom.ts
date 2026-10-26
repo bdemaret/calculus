@@ -2,8 +2,11 @@ import { Room, ServerError, type Client, type Delayed } from "@colyseus/core";
 import {
   CODE_ALPHABET,
   CODE_LENGTH,
+  ALL_OPERATIONS,
+  GAMES,
   GameEngine,
   JOIN_ERRORS,
+  MAX_EXPRESSION_LENGTH,
   MAX_PLAYERS,
   buildReport,
   randomSeed,
@@ -11,6 +14,8 @@ import {
   type GameReport,
   type GameSettings,
   type LobbyPlayer,
+  type Operation,
+  type PlayerAnswer,
   type RatingChange,
   type RoomPhase,
   type RoomSnapshot,
@@ -56,7 +61,12 @@ interface Member {
   rateCount: number;
 }
 
-const answerSchema = z.object({ value: z.number().int().min(0).max(1_000_000), questionIndex: z.number().int().min(0) });
+/** Une réponse : un nombre, une expression ou un opérateur (la forme attendue par le jeu est vérifiée par le moteur). */
+const answerSchema = z.union([
+  z.object({ questionIndex: z.number().int().min(0), value: z.number().int().min(0).max(1_000_000) }).strict(),
+  z.object({ questionIndex: z.number().int().min(0), expr: z.string().min(1).max(MAX_EXPRESSION_LENGTH) }).strict(),
+  z.object({ questionIndex: z.number().int().min(0), op: z.enum(ALL_OPERATIONS as [Operation, ...Operation[]]) }).strict(),
+]);
 const readySchema = z.object({ ready: z.boolean() });
 const typingSchema = z.object({ value: z.string().max(8).regex(/^\d*$/) });
 const kickSchema = z.object({ playerId: z.string().max(100) });
@@ -111,12 +121,12 @@ export class GameRoom extends Room {
 
     this.on("start", (m) => {
       if (m.id !== this.hostId || this.phase !== "lobby") return;
-      this.startGame();
+      this.startGame(m);
     });
 
     this.on("replay-same", (m) => {
       if (m.id !== this.hostId || this.phase !== "finished") return;
-      this.startGame();
+      this.startGame(m);
     });
 
     this.on("replay-new", (m) => {
@@ -249,9 +259,14 @@ export class GameRoom extends Room {
     this.broadcastSnapshot();
   }
 
-  private startGame() {
-    this.timer?.clear();
+  private startGame(host: Member) {
     // Ceux qui ont quitté pendant la partie précédente ne sont pas repris.
+    const present = [...this.members.values()].filter((m) => m.connected).length;
+    if (present < GAMES[this.settings.game].minPlayers) {
+      host.client.send("error", { code: "not-enough-players" });
+      return;
+    }
+    this.timer?.clear();
     for (const [id, m] of this.members) if (!m.connected) this.members.delete(id);
     if (this.members.size === 0) return;
     const players = [...this.members.values()].map((m) => ({ id: m.id, name: m.name }));
@@ -295,7 +310,8 @@ export class GameRoom extends Room {
       return;
     }
     // Le temps est mesuré ici, par le serveur, à la réception.
-    const res = engine.submit(m.id, parsed.data.value, Math.min(now, round.startedAt + round.timeLimitMs));
+    const { questionIndex: _questionIndex, ...answer } = parsed.data;
+    const res = engine.submit(m.id, answer as PlayerAnswer, Math.min(now, round.startedAt + round.timeLimitMs));
     if (!res.accepted) {
       client.send("answer-refused", { reason: res.reason ?? "refused" });
       return;
@@ -315,6 +331,7 @@ export class GameRoom extends Room {
       index: rec.index,
       text: rec.question.text,
       answer: rec.question.answer,
+      solution: rec.question.solution,
       answers: rec.answers,
       eliminated: rec.eliminated,
       scorers: rec.scorers,
@@ -406,7 +423,7 @@ export class GameRoom extends Room {
       maxPlayers: MAX_PLAYERS,
       roundIndex: round ? round.index : (engine?.roundsPlayed ?? 0),
       totalRounds: engine && this.settings.mode === "speed-race" ? engine.totalRounds : null,
-      question: round && this.phase === "question" ? { index: round.index, text: round.question.text } : null,
+      question: round && this.phase === "question" ? { index: round.index, text: round.question.text, puzzle: round.question.puzzle } : null,
       activePlayerId: round?.activePlayerId ?? null,
       deadline: this.deadline,
       timeLimitMs: round && this.phase === "question" ? round.timeLimitMs : null,

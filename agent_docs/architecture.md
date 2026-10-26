@@ -13,6 +13,12 @@ prototype/        Prototype HTML d'origine (référence historique, ne pas modif
 scripts/lancer.mjs  `pnpm lancer` : .env + Docker + install + migrations + dev
 ```
 
+## Jeux et modes
+
+- **Jeu** (`GameId`, `GameDefinition` dans `packages/game-core/src/games/`) : ce qu'on résout — génération du calcul, vérification de la réponse, forme de la réponse (nombre, expression ou opérateur), solo possible ou non, joueurs minimum.
+- **Mode** (`GameModeId`, `GameModeRules` dans `modes.ts`) : comment on gagne — battle royale ou course de vitesse, communs à tous les jeux.
+- `GameSettings.game` vaut `standard` par défaut : les anciens réglages (navigateur, base) restent valides. Chaque jeu liste ses modes, `sanitizeSettings` remplace un mode non proposé.
+
 ## Dépendances entre paquets
 
 ```

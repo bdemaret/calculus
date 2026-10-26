@@ -1,15 +1,22 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { GameEngine, sanitizeSettings } from "@calculus/game-core";
+import { ALL_OPERATIONS, GAMES, GameEngine, MAX_EXPRESSION_LENGTH, sanitizeSettings, type Operation } from "@calculus/game-core";
 import { saveGame } from "@calculus/db";
 import { getSession } from "@/lib/auth";
+
+/** Réponse d'une manche : un nombre, une expression ou un opérateur ; null si le temps s'est écoulé. */
+const answer = z.union([
+  z.object({ value: z.number().int().min(0).max(1_000_000) }).strict(),
+  z.object({ expr: z.string().min(1).max(MAX_EXPRESSION_LENGTH) }).strict(),
+  z.object({ op: z.enum(ALL_OPERATIONS as [Operation, ...Operation[]]) }).strict(),
+]);
 
 const body = z.object({
   seed: z.string().min(4).max(64),
   settings: z.unknown(),
   startedAt: z.number(),
   answers: z
-    .array(z.object({ value: z.number().int().min(0).max(1_000_000).nullable(), timeMs: z.number().min(0).max(120_000) }))
+    .array(z.object({ answer: answer.nullable(), timeMs: z.number().min(0).max(120_000) }))
     .max(200),
 });
 
@@ -26,6 +33,7 @@ export async function POST(req: Request) {
 
   const { seed, answers, startedAt } = parsed.data;
   const settings = sanitizeSettings(parsed.data.settings);
+  if (!GAMES[settings.game].solo) return NextResponse.json({ error: "bad-request" }, { status: 400 });
   const playerId = session.user.id;
   const engine = new GameEngine(settings, [{ id: playerId, name: session.user.name }], seed);
 
@@ -33,7 +41,7 @@ export async function POST(req: Request) {
   for (const a of answers) {
     const round = engine.startRound(t);
     if (!round) break;
-    if (a.value !== null) engine.submit(playerId, a.value, t + Math.min(a.timeMs, round.timeLimitMs));
+    if (a.answer !== null) engine.submit(playerId, a.answer, t + Math.min(a.timeMs, round.timeLimitMs));
     engine.closeRound();
     t += round.timeLimitMs + 1;
   }

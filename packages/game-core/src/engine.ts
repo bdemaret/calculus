@@ -1,7 +1,7 @@
-import { generateQuestion } from "./generator";
+import { GAMES, answerKindOf, type GameDefinition } from "./games";
 import { MODES, type GameModeRules } from "./modes";
 import { BATTLE_ROYALE_ROUND_CAP } from "./settings";
-import type { GameSettings, PlayerInfo, PlayerState, RoundRecord, Standing } from "./types";
+import type { GameSettings, PlayerAnswer, PlayerInfo, PlayerState, RoundRecord, Standing } from "./types";
 
 export type SubmitRefusal = "no-round" | "unknown-player" | "not-allowed" | "already-answered" | "invalid-value";
 
@@ -24,6 +24,8 @@ export class GameEngine {
   readonly seed: string;
   readonly players: PlayerState[];
   readonly rules: GameModeRules;
+  /** Le jeu (ce qu'on résout) ; `rules` est le mode (comment on gagne). */
+  readonly game: GameDefinition;
   readonly history: RoundRecord[] = [];
   readonly totalRounds: number;
   currentRound: RoundRecord | null = null;
@@ -34,6 +36,7 @@ export class GameEngine {
     this.settings = settings;
     this.seed = seed;
     this.rules = MODES[settings.mode];
+    this.game = GAMES[settings.game];
     this.players = players.map((p) => ({
       id: p.id,
       name: p.name,
@@ -85,10 +88,10 @@ export class GameEngine {
     if (this.currentRound) return this.currentRound;
     if (this.rules.isGameOver(this) || this.eligible().length === 0) return null;
     const index = this.history.length;
-    let question = generateQuestion(this.seed, index, this.settings);
+    let question = this.game.generate(this.seed, index, this.settings);
     const previous = this.history[index - 1];
     if (previous && previous.question.text === question.text) {
-      question = generateQuestion(`${this.seed}:bis`, index, this.settings);
+      question = this.game.generate(`${this.seed}:bis`, index, this.settings);
     }
     this.currentRound = {
       index,
@@ -123,8 +126,12 @@ export class GameEngine {
     return this.rules.canAnswer(this, p);
   }
 
-  /** Enregistre une réponse. Une seule réponse par joueur et par manche. */
-  submit(playerId: string, value: number, now: number): SubmitResult {
+  /**
+   * Enregistre une réponse. Une seule réponse par joueur et par manche.
+   * Un nombre seul vaut `{ value }` (la forme attendue par le calcul standard).
+   */
+  submit(playerId: string, input: PlayerAnswer | number, now: number): SubmitResult {
+    const answer: PlayerAnswer = typeof input === "number" ? { value: input } : input;
     const round = this.currentRound;
     if (!round) return { accepted: false, reason: "no-round", roundCanClose: false };
     const p = this.player(playerId);
@@ -133,11 +140,15 @@ export class GameEngine {
       return { accepted: false, reason: "already-answered", roundCanClose: false };
     }
     if (!this.rules.canAnswer(this, p)) return { accepted: false, reason: "not-allowed", roundCanClose: false };
-    if (!Number.isFinite(value)) return { accepted: false, reason: "invalid-value", roundCanClose: false };
+    if (answerKindOf(answer) !== this.game.answerKind || ("value" in answer && !Number.isFinite(answer.value))) {
+      return { accepted: false, reason: "invalid-value", roundCanClose: false };
+    }
 
     const timeMs = Math.min(round.timeLimitMs, Math.max(0, now - round.startedAt));
-    const correct = value === round.question.answer;
-    round.answers.push({ playerId, value, correct, timeMs });
+    const correct = this.game.check(round.question, answer);
+    const value = "value" in answer ? answer.value : null;
+    const text = "expr" in answer ? answer.expr : "op" in answer ? answer.op : null;
+    round.answers.push({ playerId, value, text, correct, timeMs });
     p.answered += 1;
     if (correct) {
       p.correct += 1;
@@ -164,7 +175,7 @@ export class GameEngine {
           : this.players.filter((p) => p.alive && p.connected);
       for (const p of concerned) {
         if (!round.answers.some((a) => a.playerId === p.id)) {
-          round.answers.push({ playerId: p.id, value: null, correct: false, timeMs: round.timeLimitMs });
+          round.answers.push({ playerId: p.id, value: null, text: null, correct: false, timeMs: round.timeLimitMs });
           p.answered += 1;
           p.streak = 0;
         }

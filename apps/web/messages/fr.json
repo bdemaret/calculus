@@ -10,7 +10,7 @@
     "home": "Retour à l’accueil",
     "tagline": "calcul mental",
     "main": "Navigation principale",
-    "modes": "Modes",
+    "games": "Jeux",
     "dashboard": "Tableau de bord",
     "leaderboard": "Classement",
     "login": "Se connecter",
@@ -51,9 +51,19 @@
       "solo": "Une série de calculs, un point par bonne réponse. Ton temps moyen compte pour ta progression."
     }
   },
-  "modesPage": {
-    "title": "Modes de jeu",
-    "intro": "Chaque partie combine un mode, un niveau de difficulté et les opérations choisies par le créateur du lobby.",
+  "games": {
+    "standard": {
+      "name": "Calcul mental",
+      "short": "Trouve le résultat.",
+      "long": "Un calcul s’affiche, tu tapes son résultat. Du « 7 + 4 » au « 125 × 8 − 36 ÷ 4 » selon le niveau."
+    }
+  },
+  "gamesPage": {
+    "title": "Jeux et modes",
+    "intro": "Choisis un jeu (ce qu’on résout), puis un mode (comment on gagne). Chaque partie combine aussi un niveau de difficulté et les opérations choisies par le créateur du lobby.",
+    "gamesTitle": "Les jeux",
+    "modesTitle": "Les modes",
+    "playableIn": "Se joue en :",
     "turnTitle": "Simultané ou chacun son tour",
     "turnText": "En simultané, tout le monde voit le même calcul en même temps. En « chacun son tour », un seul joueur répond et les autres regardent sa réponse s’écrire en direct. Seul le battle royale élimine.",
     "levelsTitle": "Les cinq niveaux"
@@ -73,6 +83,7 @@
     "paren": "Parenthèses"
   },
   "settings": {
+    "game": "Jeu",
     "mode": "Mode de jeu",
     "difficulty": "Difficulté",
     "example": "par exemple : {calc}",
@@ -150,7 +161,8 @@
     "rules": "Règles de la partie",
     "waitingHost": "L’hôte choisit les règles et lance la partie.",
     "hostHint": "Tu es l’hôte : règle la partie, puis lance-la quand tout le monde est là.",
-    "everyoneReady": "Tout le monde est prêt."
+    "everyoneReady": "Tout le monde est prêt.",
+    "notEnoughPlayers": "Il faut au moins {count} joueurs pour ce jeu."
   },
   "game": {
     "yourAnswer": "Ta réponse",
@@ -365,6 +377,7 @@
   "leaderboard": {
     "title": "Classement",
     "lede": "Les meilleurs Elo de chaque mode et de chaque difficulté. On y apparaît après ses {total} parties de placement.",
+    "gamesLabel": "Jeux du classement",
     "modesLabel": "Modes de jeu",
     "searchLabel": "Chercher un joueur",
     "searchPlaceholder": "Pseudo",

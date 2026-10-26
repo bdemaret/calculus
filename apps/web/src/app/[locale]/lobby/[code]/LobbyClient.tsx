@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { Room } from "colyseus.js";
-import { MAX_PLAYERS, type GameSettings, type RoomSnapshot } from "@calculus/game-core";
+import { GAMES, MAX_PLAYERS, type GameSettings, type RoomSnapshot } from "@calculus/game-core";
 import { Link, useRouter } from "@/i18n/navigation";
 import { CalcLine } from "@/components/CalcLine";
 import { Check } from "@/components/Check";
@@ -182,6 +182,9 @@ function WaitingRoom({
 
   const others = snap.players.filter((p) => !p.isHost);
   const allReady = others.length > 0 && others.every((p) => p.ready);
+  // Certains jeux demandent plusieurs joueurs : le serveur refuse aussi de lancer en dessous.
+  const minPlayers = GAMES[snap.settings.game].minPlayers;
+  const enoughPlayers = snap.players.filter((p) => p.connected).length >= minPlayers;
 
   return (
     <section className="lobby">
@@ -235,7 +238,7 @@ function WaitingRoom({
 
         <div className="actions">
           {isHost ? (
-            <button className="btn" type="button" onClick={() => room.send("start", {})}>
+            <button className="btn" type="button" disabled={!enoughPlayers} onClick={() => room.send("start", {})}>
               {t("lobby.start")}
             </button>
           ) : (
@@ -247,7 +250,15 @@ function WaitingRoom({
             {t("lobby.leave")}
           </button>
         </div>
-        <p className="note">{isHost ? (allReady ? t("lobby.everyoneReady") : t("lobby.hostHint")) : t("lobby.waitingHost")}</p>
+        <p className="note">
+          {!enoughPlayers
+            ? t("lobby.notEnoughPlayers", { count: minPlayers })
+            : isHost
+              ? allReady
+                ? t("lobby.everyoneReady")
+                : t("lobby.hostHint")
+              : t("lobby.waitingHost")}
+        </p>
         {signedIn && snap.players.length < MAX_PLAYERS ? <InviteFriends code={snap.code} presentIds={snap.players.map((p) => p.id)} /> : null}
       </div>
 

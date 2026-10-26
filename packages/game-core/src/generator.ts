@@ -292,6 +292,8 @@ export function generateWithRng(rng: Rng, opts: GenerateOptions, index = 0): Que
       index,
       text: render(built.tokens),
       answer: checked,
+      solution: String(checked),
+      puzzle: { game: "standard" },
       tags: tagsOf(built.tokens),
       difficulty: cfg.level,
     };
@@ -299,7 +301,7 @@ export function generateWithRng(rng: Rng, opts: GenerateOptions, index = 0): Que
   // Filet de sécurité (ne devrait jamais servir).
   const a = randInt(rng, 1, cfg.addMax);
   const b = randInt(rng, 1, cfg.addMax);
-  return { index, text: `${a} + ${b}`, answer: a + b, tags: ["add"], difficulty: cfg.level };
+  return { index, text: `${a} + ${b}`, answer: a + b, solution: String(a + b), puzzle: { game: "standard" }, tags: ["add"], difficulty: cfg.level };
 }
 
 /**

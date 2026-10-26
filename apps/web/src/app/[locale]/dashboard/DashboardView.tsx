@@ -2,7 +2,7 @@
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { DashboardData } from "@calculus/db";
-import { DIFFICULTIES, MODES, PLACEMENT_GAMES, type RatingChange } from "@calculus/game-core";
+import { DIFFICULTIES, GAMES, GAME_IDS, PLACEMENT_GAMES, type RatingChange } from "@calculus/game-core";
 import { Link } from "@/i18n/navigation";
 import { Margin, MarginNote } from "@/components/Margin";
 import { formatPercent, formatSeconds, formatSigned } from "@/lib/format";
@@ -117,7 +117,7 @@ export function DashboardView({ data, name }: { data: DashboardData; name: strin
             <thead>
               <tr>
                 <th>{t("dashboard.date")}</th>
-                <th>{t("settings.mode")}</th>
+                <th>{t("settings.game")}</th>
                 <th>{t("settings.difficulty")}</th>
                 <th>{t("dashboard.result")}</th>
                 <th>{t("report.accuracy")}</th>
@@ -130,7 +130,7 @@ export function DashboardView({ data, name }: { data: DashboardData; name: strin
                 <tr key={g.gameId}>
                   <td>{format.dateTime(new Date(g.endedAt), { dateStyle: "short", timeStyle: "short" })}</td>
                   <td>
-                    {t(`modes.${g.mode}.name`)} · {g.solo ? t("dashboard.solo") : t("dashboard.online")}
+                    {t(`games.${g.game}.name`)} · {t(`modes.${g.mode}.name`)} · {g.solo ? t("dashboard.solo") : t("dashboard.online")}
                   </td>
                   <td>{t(`levels.${g.difficulty}`)}</td>
                   <td>{g.solo ? t("dashboard.scoreOnly", { score: g.score }) : t("dashboard.rankOf", { rank: g.rank, players: g.players })}</td>
@@ -160,10 +160,11 @@ function RatingCell({ change }: { change: RatingChange | null }) {
   return <td className={`elo-delta${d > 0 ? " up" : d < 0 ? " down" : ""}`}>{formatSigned(d, locale)}</td>;
 }
 
-/** Elo par mode (lignes) et par difficulté (colonnes) ; en grisé pendant le placement, « – » sans aucune partie classée. */
+/** Elo par jeu et mode (lignes) et par difficulté (colonnes) ; en grisé pendant le placement, « – » sans aucune partie classée. */
 function RatingsGrid({ ratings }: { ratings: DashboardData["ratings"] }) {
   const t = useTranslations();
-  const byKey = new Map(ratings.map((r) => [`${r.mode}:${r.difficulty}`, r]));
+  const byKey = new Map(ratings.map((r) => [`${r.game}:${r.mode}:${r.difficulty}`, r]));
+  const rows = GAME_IDS.flatMap((game) => GAMES[game].modes.map((mode) => ({ game, mode })));
   return (
     <div className="stack">
       <h3>{t("dashboard.ratingsTitle")}</h3>
@@ -171,18 +172,20 @@ function RatingsGrid({ ratings }: { ratings: DashboardData["ratings"] }) {
         <table className="games elo-grid" data-testid="elo-grid">
           <thead>
             <tr>
-              <th>{t("settings.mode")}</th>
+              <th>{t("settings.game")}</th>
               {DIFFICULTIES.map((d) => (
                 <th key={d}>{t(`levels.${d}`)}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {Object.keys(MODES).map((mode) => (
-              <tr key={mode}>
-                <td>{t(`modes.${mode}.name`)}</td>
+            {rows.map(({ game, mode }) => (
+              <tr key={`${game}:${mode}`}>
+                <td>
+                  {t(`games.${game}.name`)} · {t(`modes.${mode}.name`)}
+                </td>
                 {DIFFICULTIES.map((d) => {
-                  const r = byKey.get(`${mode}:${d}`);
+                  const r = byKey.get(`${game}:${mode}:${d}`);
                   if (r?.rating != null)
                     return (
                       <td key={d}>

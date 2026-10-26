@@ -4,7 +4,7 @@
  */
 import type { RatingChange } from "./elo";
 import type { GameReport } from "./report";
-import type { GameSettings } from "./types";
+import type { GameSettings, PlayerAnswer, Puzzle } from "./types";
 
 export type RoomPhase = "lobby" | "countdown" | "question" | "round-result" | "finished";
 
@@ -30,8 +30,8 @@ export interface RoomSnapshot {
   maxPlayers: number;
   roundIndex: number;
   totalRounds: number | null;
-  /** Calcul en cours (jamais la réponse). */
-  question: { index: number; text: string } | null;
+  /** Calcul en cours (jamais la réponse) : énoncé lisible et données propres au jeu. */
+  question: { index: number; text: string; puzzle: Puzzle } | null;
   activePlayerId: string | null;
   /** Fin de la manche ou du compte à rebours, en heure serveur (ms). */
   deadline: number | null;
@@ -49,7 +49,9 @@ export interface RoundResultPayload {
   index: number;
   text: string;
   answer: number;
-  answers: { playerId: string; value: number | null; correct: boolean; timeMs: number }[];
+  /** Solution de référence lisible. */
+  solution: string;
+  answers: { playerId: string; value: number | null; text: string | null; correct: boolean; timeMs: number }[];
   eliminated: string[];
   scorers: string[];
   spared: boolean;
@@ -59,7 +61,8 @@ export interface RoundResultPayload {
 export interface ClientMessages {
   /** Demande l'état complet de la salle. */
   hello: Record<string, never>;
-  answer: { value: number; questionIndex: number };
+  /** Une réponse, de la forme attendue par le jeu (`GameDefinition.answerKind`). */
+  answer: { questionIndex: number } & PlayerAnswer;
   ready: { ready: boolean };
   settings: Partial<GameSettings>;
   start: Record<string, never>;
@@ -78,8 +81,12 @@ export interface ServerMessages {
   "answer-ack": { correct: boolean; timeMs: number; questionIndex: number };
   "answer-refused": { reason: string };
   typing: { playerId: string; value: string };
-  error: { code: string };
+  error: { code: RoomError };
 }
+
+/** Refus d'une action dans la salle, traduits côté site. */
+export const ROOM_ERRORS = ["not-enough-players"] as const;
+export type RoomError = (typeof ROOM_ERRORS)[number];
 
 /** Contenu du jeton remis par le site pour entrer dans un lobby. */
 export interface GameTokenPayload {

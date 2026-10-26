@@ -101,8 +101,10 @@ model Game {
   solo        Boolean      @default(false)
   hostId      String?
   host        User?        @relation("GameHost", fields: [hostId], references: [id], onDelete: SetNull)
-  /// Paramètres complets (difficulté, mode, opérations…) au format JSON
+  /// Paramètres complets (jeu, difficulté, mode, opérations…) au format JSON
   settings    Json
+  /// Jeu (ce qu'on résout : standard, …) ; les parties d'avant les jeux sont en « standard »
+  game        String       @default("standard")
   mode        String
   difficulty  Int
   turnStyle   String
@@ -114,6 +116,7 @@ model Game {
   questions   Question[]
 
   @@index([endedAt])
+  @@index([game, mode, difficulty])
   @@map("game")
 }
 
@@ -139,7 +142,7 @@ model GamePlayer {
   ratingBefore Int?
   /// Variation d'Elo due à cette partie
   ratingDelta  Int?
-  /// Parties classées jouées dans ce mode et cette difficulté, celle-ci comprise (≤ 5 : placement, Elo caché)
+  /// Parties classées jouées dans ce jeu, ce mode et cette difficulté, celle-ci comprise (≤ 5 : placement, Elo caché)
   ratingGames  Int?
   answers      Answer[]
 
@@ -156,14 +159,22 @@ model Question {
   position   Int
   text       String
   answer     Int
+  /// Solution de référence lisible (null pour les parties d'avant les jeux : la réponse)
+  solution   String?
+  /// Données propres au jeu (plaques, trou…), sans la solution ; null pour les parties d'avant les jeux
+  puzzle     Json?
   /// Opérations présentes : add, sub, mul, div, paren
   tags       String[]
   difficulty Int
   timeLimitMs Int
   activePlayerKey String?
+  /// Joueur à qui ce calcul était destiné, quand chacun a le sien (la bombe) ; vide sinon
+  forPlayerKey    String @default("")
+  /// Joueur qui a construit ce calcul (la bombe), sinon null
+  authorPlayerKey String?
   answers    Answer[]
 
-  @@unique([gameId, position])
+  @@unique([gameId, position, forPlayerKey])
   @@map("question")
 }
 
@@ -173,8 +184,10 @@ model Answer {
   question   Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
   playerId   String
   player     GamePlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  /// Null si le temps s'est écoulé
+  /// Nombre saisi ; null si le temps s'est écoulé ou si la réponse n'est pas un nombre
   value      Int?
+  /// Expression ou opérateur saisi, quand la réponse n'est pas un nombre
+  text       String?
   correct    Boolean
   timeMs     Int
 
@@ -225,19 +238,20 @@ model GameInvite {
   @@map("game_invite")
 }
 
-/// Elo d'un joueur, propre à chaque mode et à chaque difficulté (1000 au départ, caché pendant les 5 parties de placement).
+/// Elo d'un joueur, propre à chaque jeu, chaque mode et chaque difficulté (1000 au départ, caché pendant les 5 parties de placement).
 model Rating {
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game       String   @default("standard")
   mode       String
   difficulty Int
   rating     Int
-  /// Parties classées jouées dans ce mode et cette difficulté
+  /// Parties classées jouées dans ce jeu, ce mode et cette difficulté
   games      Int      @default(0)
   updatedAt  DateTime @updatedAt
 
-  @@id([userId, mode, difficulty])
-  @@index([mode, difficulty, rating])
+  @@id([userId, game, mode, difficulty])
+  @@index([game, mode, difficulty, rating])
   @@map("rating")
 }
 

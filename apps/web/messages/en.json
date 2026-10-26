@@ -10,7 +10,7 @@
     "home": "Back to home",
     "tagline": "mental math",
     "main": "Main navigation",
-    "modes": "Modes",
+    "games": "Games",
     "dashboard": "Dashboard",
     "leaderboard": "Leaderboard",
     "login": "Log in",
@@ -51,9 +51,19 @@
       "solo": "A series of calculations, one point per correct answer. Your average time tracks your progress."
     }
   },
-  "modesPage": {
-    "title": "Game modes",
-    "intro": "Every game combines a mode, a difficulty level and the operations picked by the lobby’s host.",
+  "games": {
+    "standard": {
+      "name": "Mental math",
+      "short": "Find the result.",
+      "long": "A calculation appears, you type its result. From “7 + 4” to “125 × 8 − 36 ÷ 4” depending on the level."
+    }
+  },
+  "gamesPage": {
+    "title": "Games and modes",
+    "intro": "Pick a game (what you solve), then a mode (how you win). Every game also combines a difficulty level and the operations picked by the lobby’s host.",
+    "gamesTitle": "Games",
+    "modesTitle": "Modes",
+    "playableIn": "Playable in:",
     "turnTitle": "All at once or taking turns",
     "turnText": "All at once: everyone sees the same calculation at the same time. Taking turns: one player answers while the others watch the answer being typed live. Only battle royale eliminates players.",
     "levelsTitle": "The five levels"
@@ -73,6 +83,7 @@
     "paren": "Parentheses"
   },
   "settings": {
+    "game": "Game",
     "mode": "Game mode",
     "difficulty": "Difficulty",
     "example": "for example: {calc}",
@@ -150,7 +161,8 @@
     "rules": "Game rules",
     "waitingHost": "The host sets the rules and starts the game.",
     "hostHint": "You’re the host: set up the game, then start it when everyone is here.",
-    "everyoneReady": "Everyone is ready."
+    "everyoneReady": "Everyone is ready.",
+    "notEnoughPlayers": "This game needs at least {count} players."
   },
   "game": {
     "yourAnswer": "Your answer",
@@ -365,6 +377,7 @@
   "leaderboard": {
     "title": "Leaderboard",
     "lede": "The best Elo ratings in each mode and difficulty. Players appear after their {total} placement games.",
+    "gamesLabel": "Leaderboard games",
     "modesLabel": "Game modes",
     "searchLabel": "Find a player",
     "searchPlaceholder": "Username",

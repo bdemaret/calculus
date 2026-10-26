@@ -1,5 +1,6 @@
+import { GAME_IDS, GAMES } from "./games";
 import { ALL_OPERATIONS, LEVELS } from "./levels";
-import type { Difficulty, GameModeId, GameSettings, Operation, TurnStyle } from "./types";
+import type { Difficulty, GameId, GameModeId, GameSettings, Operation, TurnStyle } from "./types";
 
 export const MAX_PLAYERS = 12;
 export const MIN_ROUNDS = 5;
@@ -12,9 +13,10 @@ export const BATTLE_ROYALE_ROUND_CAP = 100;
 export const GAME_MODES: GameModeId[] = ["battle-royale", "speed-race"];
 export const TURN_STYLES: TurnStyle[] = ["simultaneous", "turns"];
 
-export function defaultSettings(difficulty: Difficulty = 2, mode: GameModeId = "speed-race"): GameSettings {
+export function defaultSettings(difficulty: Difficulty = 2, mode: GameModeId = "speed-race", game: GameId = "standard"): GameSettings {
   const cfg = LEVELS[difficulty];
   return {
+    game,
     difficulty,
     mode,
     operations: [...cfg.defaultOperations],
@@ -34,13 +36,18 @@ const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(mi
 export function sanitizeSettings(input: unknown): GameSettings {
   const raw = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   const difficulty = ([1, 2, 3, 4, 5].includes(Number(raw.difficulty)) ? Number(raw.difficulty) : 2) as Difficulty;
+  const game = GAME_IDS.includes(raw.game as GameId) ? (raw.game as GameId) : GAME_IDS[0]!;
   const base = defaultSettings(difficulty);
-  const mode = GAME_MODES.includes(raw.mode as GameModeId) ? (raw.mode as GameModeId) : base.mode;
+  // Un mode que ce jeu ne propose pas est remplacé par son mode par défaut.
+  const allowed = GAMES[game].modes;
+  const wanted = GAME_MODES.includes(raw.mode as GameModeId) ? (raw.mode as GameModeId) : base.mode;
+  const mode = allowed.includes(wanted) ? wanted : allowed[0]!;
   const turnStyle = TURN_STYLES.includes(raw.turnStyle as TurnStyle) ? (raw.turnStyle as TurnStyle) : base.turnStyle;
   const ops = Array.isArray(raw.operations)
     ? [...new Set(raw.operations.filter((o): o is Operation => ALL_OPERATIONS.includes(o as Operation)))]
     : base.operations;
   return {
+    game,
     difficulty,
     mode,
     turnStyle,

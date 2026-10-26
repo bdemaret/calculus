@@ -1,6 +1,8 @@
 # Calculus
 
-Site de calcul mental en solo ou jusqu'à 12 joueurs en ligne (battle royale, course de vitesse), 5 niveaux, comptes avec statistiques, en français et en anglais.
+Site de calcul mental en solo ou jusqu'à 12 joueurs en ligne, 5 niveaux, comptes avec statistiques, en français et en anglais.
+
+Vocabulaire : un **jeu** (`GameId`) dit ce qu'on résout (aujourd'hui `standard`, le calcul mental ; d'autres arrivent, voir `plans/nouveaux-jeux.md`), un **mode** (`GameModeId`) dit comment on gagne (battle royale, course de vitesse). Chaque jeu déclare ses modes ; l'Elo et le classement sont propres à jeu × mode × difficulté.
 
 Monorepo pnpm + Turborepo, TypeScript strict :
 - `apps/web` : Next.js 15 (App Router, next-intl, Better Auth, Tailwind 4)
@@ -22,7 +24,7 @@ pnpm db:migrate  # après toute modification de schema.prisma
 ## Règles à ne jamais enfreindre
 
 - **game-core reste pur et déterministe** : un calcul ne dépend que de `(seed, index, settings)`, le temps est passé en paramètre. Pas de `Math.random()`, `Date.now()`, réseau ou DOM dedans.
-- **Le serveur décide** : en ligne, la bonne réponse n'est jamais envoyée avant la fin de la manche ; en solo, `/api/solo-results` rejoue la partie à partir de la graine. Ne jamais faire confiance au client.
+- **Le serveur décide** : en ligne, la bonne réponse (ni la solution) n'est jamais envoyée avant la fin de la manche ; en solo, `/api/solo-results` rejoue la partie à partir de la graine. Ne jamais faire confiance au client.
 - **Toute entrée externe est validée** (Zod, `sanitizeSettings`), et chaque message Colyseus passe par le rate limit.
 - **Aucun texte UI en dur** : clés dans `apps/web/messages/fr.json` **et** `en.json`. Navigation via `@/i18n/navigation`.
 - Code commenté en français, identifiants en anglais. Pas de commit/push sans demande.

@@ -32,10 +32,12 @@ export interface RoundReview {
   round: number;
   text: string;
   answer: number;
+  /** Solution de référence lisible. */
+  solution: string;
   /** Joueur dont c'était le tour (mode « chacun son tour »), sinon null. */
   activePlayerId: string | null;
-  /** Réponses dans l'ordre d'arrivée ; value vaut null quand le temps s'est écoulé. */
-  answers: { playerId: string; value: number | null; correct: boolean; timeMs: number }[];
+  /** Réponses dans l'ordre d'arrivée ; value et text valent null quand le temps s'est écoulé. */
+  answers: { playerId: string; value: number | null; text: string | null; correct: boolean; timeMs: number }[];
   /** Joueurs ayant marqué le point sur cette manche. */
   scorers: string[];
   /** Vrai si tous les survivants se sont trompés et que personne n'est sorti. */
@@ -73,8 +75,9 @@ export function buildReport(standings: Standing[], history: RoundRecord[]): Game
     round: r.index + 1,
     text: r.question.text,
     answer: r.question.answer,
+    solution: r.question.solution,
     activePlayerId: r.activePlayerId,
-    answers: r.answers.map((a) => ({ playerId: a.playerId, value: a.value, correct: a.correct, timeMs: a.timeMs })),
+    answers: r.answers.map((a) => ({ playerId: a.playerId, value: a.value, text: a.text, correct: a.correct, timeMs: a.timeMs })),
     scorers: [...r.scorers],
     spared: r.spared,
   }));

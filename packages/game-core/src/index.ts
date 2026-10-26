@@ -3,6 +3,8 @@ export * from "./rng";
 export * from "./levels";
 export * from "./settings";
 export * from "./generator";
+export * from "./expression";
+export * from "./games";
 export * from "./modes";
 export * from "./engine";
 export * from "./report";
