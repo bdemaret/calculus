@@ -474,7 +474,7 @@
           "body": [
             [
               "Ton pseudo, ton Elo, ta place au classement, ton nombre de parties et ton pourcentage de victoires sont publics.",
-              "Les résultats d’une partie en ligne sont visibles par les joueurs qui y ont participé.",
+              "Les résultats d’une partie en ligne (pseudos, scores, réponses) sont visibles par toute personne qui a le lien de son rapport, partagé avec les joueurs de la partie.",
               "Ton adresse e-mail n’est jamais affichée. Un joueur qui la connaît déjà peut s’en servir pour t’envoyer une demande d’ami."
             ]
           ]

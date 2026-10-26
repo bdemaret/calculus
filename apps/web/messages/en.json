@@ -475,7 +475,7 @@
           "body": [
             [
               "Your username, Elo, leaderboard position, number of games and win rate are public.",
-              "Results of an online game are visible to the players who took part.",
+              "Results of an online game (usernames, scores, answers) are visible to anyone with the link to its report, which is shared with the game’s players.",
               "Your email address is never displayed. A player who already knows it can use it to send you a friend request."
             ]
           ]
