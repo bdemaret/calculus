@@ -26,6 +26,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   stats         UserStats?
+  ratings       Rating[]
   gamesCreated  Game[]       @relation("GameHost")
   gamePlayers   GamePlayer[]
   friendsSent     Friendship[] @relation("FriendRequester")
@@ -124,6 +125,12 @@ model GamePlayer {
   correct      Int
   correctTimeMs Int
   bestStreak   Int
+  /// Elo avant la partie (null si la partie n'est pas classée : solo, invité, moins de deux comptes)
+  ratingBefore Int?
+  /// Variation d'Elo due à cette partie
+  ratingDelta  Int?
+  /// Parties classées jouées dans ce mode et cette difficulté, celle-ci comprise (≤ 5 : placement, Elo caché)
+  ratingGames  Int?
   answers      Answer[]
 
   @@unique([gameId, playerKey])
@@ -206,6 +213,22 @@ model GameInvite {
   @@unique([fromId, toId])
   @@index([toId, expiresAt])
   @@map("game_invite")
+}
+
+/// Elo d'un joueur, propre à chaque mode et à chaque difficulté (1000 au départ, caché pendant les 5 parties de placement).
+model Rating {
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode       String
+  difficulty Int
+  rating     Int
+  /// Parties classées jouées dans ce mode et cette difficulté
+  games      Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@id([userId, mode, difficulty])
+  @@index([mode, difficulty, rating])
+  @@map("rating")
 }
 
 /// Agrégats recalculés à chaque fin de partie, pour un dashboard rapide.

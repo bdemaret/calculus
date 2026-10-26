@@ -1,6 +1,11 @@
 import { gamesOf } from "../../fixtures/db";
 import { t } from "../../fixtures/i18n";
 import { expect, test } from "../../fixtures/online";
+import { signUp, type TestUser } from "../../fixtures/test";
+import type { APIRequestContext, Page } from "@playwright/test";
+import { PLACEMENT_GAMES } from "@calculus/game-core";
+import { Bot } from "../../fixtures/bot";
+import { prisma } from "@calculus/db";
 import { answerBox } from "../../pages/answer";
 import { LobbyPage } from "../../pages/LobbyPage";
 
@@ -159,12 +164,79 @@ test.describe("enregistrement", () => {
     expect(played?.game.code).toBe(code);
     expect(played?.rank).toBe(1);
     expect(played?.score).toBe(5);
+    // Adversaire invité : partie non classée.
+    expect(played?.ratingDelta).toBeNull();
 
     await page.goto("/fr/dashboard");
     await expect(page.getByRole("cell", { name: t("dashboard.rankOf", { rank: 1, players: 2 }) })).toBeVisible();
     await page.getByRole("link", { name: t("dashboard.view") }).click();
     await expect(page.getByTestId("report-verdict")).toHaveText(t("report.first"));
     await expect(page.locator("ol.ranking li")).toHaveCount(2);
+  });
+});
+
+test.describe("Elo", () => {
+  /** Alice (la page, connectée) affronte un bot connecté à un autre compte, et gagne les 5 manches. */
+  async function playRated(page: Page, request: APIRequestContext, rival: TestUser) {
+    const { token } = (await (await request.post("/api/game-token", { data: {} })).json()) as { token: string };
+    const alice = new LobbyPage(page);
+    await alice.preset(null, { mode: "speed-race", rounds: 5, difficulty: 2 });
+    const code = await alice.create();
+    const bot = await Bot.join(code, rival.name, token);
+    try {
+      await expect(alice.slot(rival.name)).toBeVisible();
+      await alice.start();
+      for (let i = 0; i < 5; i++) await alice.play("right");
+      await expect(alice.verdict).toHaveText(t("report.first"));
+      await expect(page.getByTestId("report-elo")).toBeVisible();
+      await bot.waitFor((s) => s.ratings != null);
+      return { alice, bot, ratings: bot.snapshot!.ratings! };
+    } finally {
+      await bot.leave();
+    }
+  }
+
+  const idOf = async (email: string) => (await prisma.user.findUniqueOrThrow({ where: { email } })).id;
+  const ratingOf = (userId: string) =>
+    prisma.rating.findUniqueOrThrow({ where: { userId_mode_difficulty: { userId, mode: "speed-race", difficulty: 2 } } });
+
+  test("deux comptes neufs : l'Elo bouge en caché pendant le placement", async ({ page, user, request }) => {
+    const rival = await signUp(request);
+    const { ratings } = await playRated(page, request, rival);
+
+    await expect(page.getByTestId("report-elo")).toHaveText(t("report.placement", { played: 1, total: PLACEMENT_GAMES }));
+    // Aucun Elo caché dans ce que reçoivent les joueurs.
+    expect(Object.values(ratings)).toEqual([
+      { status: "placement", played: 1 },
+      { status: "placement", played: 1 },
+    ]);
+    expect(await ratingOf(await idOf(user.email))).toMatchObject({ rating: 1016, games: 1 });
+    expect(await ratingOf(await idOf(rival.email))).toMatchObject({ rating: 984, games: 1 });
+
+    await page.goto("/fr/dashboard");
+    await expect(page.getByTestId("elo-grid")).toContainText(t("report.placementShort", { played: 1, total: PLACEMENT_GAMES }));
+    await expect(page.getByTestId("elo-grid")).not.toContainText("1016");
+  });
+
+  test("fin du placement contre un joueur classé : l'Elo est dévoilé, le classé ne gagne rien", async ({ page, user, request }) => {
+    const rival = await signUp(request);
+    const [aliceId, rivalId] = await Promise.all([idOf(user.email), idOf(rival.email)]);
+    await prisma.rating.createMany({
+      data: [
+        { userId: aliceId, mode: "speed-race", difficulty: 2, rating: 1000, games: PLACEMENT_GAMES - 1 },
+        { userId: rivalId, mode: "speed-race", difficulty: 2, rating: 1000, games: PLACEMENT_GAMES },
+      ],
+    });
+    const { bot, ratings } = await playRated(page, request, rival);
+
+    await expect(page.getByTestId("report-elo")).toHaveText(t("report.ratingRevealed", { rating: 1016 }));
+    expect(ratings[bot.playerId!]).toEqual({ status: "rated", before: 1000, after: 1000 });
+    expect(await ratingOf(aliceId)).toMatchObject({ rating: 1016, games: PLACEMENT_GAMES });
+    expect(await ratingOf(rivalId)).toMatchObject({ rating: 1000, games: PLACEMENT_GAMES + 1 });
+
+    await page.goto("/fr/dashboard");
+    await expect(page.getByTestId("elo-grid")).toContainText("1016");
+    await expect(page.getByRole("cell", { name: t("report.ratingShort", { rating: 1016 }) })).toBeVisible();
   });
 });
 

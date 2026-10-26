@@ -450,6 +450,7 @@ function Finished({ room, snap, me, isHost, onLeave }: { room: Room; snap: RoomS
         online
         mode={snap.settings.mode}
         timePerQuestion={snap.settings.timePerQuestion}
+        ratings={snap.ratings}
         actions={
           <>
             <div className="actions">

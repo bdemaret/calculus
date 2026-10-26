@@ -49,8 +49,9 @@ export class Bot {
     return ((await res.json()) as { token: string }).token;
   }
 
-  static async join(code: string, name: string): Promise<Bot> {
-    const room = await new Client(GAME_HTTP_URL.replace("http", "ws")).joinById(code, { token: await Bot.token(name) });
+  /** `token` : un jeton déjà obtenu (par exemple celui d'un compte connecté) ; sinon un jeton invité. */
+  static async join(code: string, name: string, token?: string): Promise<Bot> {
+    const room = await new Client(GAME_HTTP_URL.replace("http", "ws")).joinById(code, { token: token ?? (await Bot.token(name)) });
     return new Bot(name, room);
   }
 

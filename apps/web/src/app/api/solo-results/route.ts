@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     t += round.timeLimitMs + 1;
   }
 
-  const id = await saveGame({
+  const { id } = await saveGame({
     code: null,
     solo: true,
     hostUserId: playerId,

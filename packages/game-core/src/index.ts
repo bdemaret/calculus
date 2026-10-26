@@ -6,4 +6,5 @@ export * from "./generator";
 export * from "./modes";
 export * from "./engine";
 export * from "./report";
+export * from "./elo";
 export * from "./protocol";

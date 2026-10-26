@@ -221,7 +221,13 @@
     "reviewYou": "You",
     "reviewYourAnswer": "Your answer",
     "reviewNoAnswer": "no answer",
-    "reviewTimeout": "time's up"
+    "reviewTimeout": "time's up",
+    "rating": "Elo: {before} → {after}",
+    "ratingShort": "Elo {rating}",
+    "placement": "Placement: {played}/{total}. Your Elo will show after {total} games.",
+    "placementShort": "placement {played}/{total}",
+    "ratingRevealed": "Placement done: your Elo is {rating}.",
+    "ratingNew": "new"
   },
   "auth": {
     "loginTitle": "Log in",
@@ -338,6 +344,10 @@
     "online": "online",
     "rankOf": "{rank} of {players}",
     "scoreOnly": "{score} pts",
-    "view": "View report"
+    "view": "View report",
+    "ratingsTitle": "Your Elo",
+    "ratingsLegend": "Your Elo shows after {total} placement games, separately for each mode and difficulty. Only online games against other signed-up players change it.",
+    "elo": "Elo",
+    "ratingGames": "{count, plural, one {# game} other {# games}}"
   }
 }

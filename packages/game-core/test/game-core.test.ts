@@ -3,6 +3,9 @@ import {
   DIFFICULTIES,
   GameEngine,
   buildReport,
+  PLACEMENT_GAMES,
+  computeRatingChanges,
+  describeRatingChange,
   defaultSettings,
   evaluateText,
   generateQuestion,
@@ -222,5 +225,53 @@ describe("rapport : revoir les calculs", () => {
     expect(first.answer).toBe(engine.history[0]!.question.answer);
     expect(first.answers.map((x) => [x.playerId, x.correct])).toEqual([["b", false], ["a", true]]);
     expect(first.scorers).toEqual(["a"]);
+  });
+});
+
+describe("Elo", () => {
+  const e = (id: string, rating: number, rank: number, provisional = false) => ({ id, rating, rank, provisional });
+
+  it("ne change rien sans adversaire", () => {
+    expect(computeRatingChanges([])).toEqual({});
+    expect(computeRatingChanges([e("a", 1000, 1)])).toEqual({ a: 0 });
+  });
+
+  it("duel à égalité d'Elo : ±16, ex aequo : 0", () => {
+    expect(computeRatingChanges([e("a", 1000, 1), e("b", 1000, 2)])).toEqual({ a: 16, b: -16 });
+    expect(computeRatingChanges([e("a", 1000, 1), e("b", 1000, 1)])).toEqual({ a: 0, b: 0 });
+  });
+
+  it("battre un plus fort rapporte plus que battre un plus faible", () => {
+    const upset = computeRatingChanges([e("a", 1000, 1), e("b", 1200, 2)]);
+    const expected = computeRatingChanges([e("a", 1200, 1), e("b", 1000, 2)]);
+    expect(upset.a!).toBeGreaterThan(16);
+    expect(expected.a!).toBeLessThan(16);
+    expect(upset.a! + upset.b!).toBe(0);
+  });
+
+  it("à plusieurs, le gain suit le classement et reste borné par K", () => {
+    const d = computeRatingChanges([1, 2, 3, 4].map((rank) => e(`p${rank}`, 1000, rank)));
+    expect(d.p1!).toBe(16);
+    expect(d.p1!).toBeGreaterThan(d.p2!);
+    expect(d.p2!).toBeGreaterThan(d.p3!);
+    expect(d.p4!).toBe(-16);
+  });
+
+  it("un joueur en placement bouge mais ne donne ni ne prend rien aux joueurs classés", () => {
+    // Le classé bat le nouveau : rien pour le classé, le nouveau perd.
+    expect(computeRatingChanges([e("pro", 1000, 1), e("new", 1000, 2, true)])).toEqual({ pro: 0, new: -16 });
+    // Le classé ne compte que les autres classés.
+    const d = computeRatingChanges([e("new", 1000, 1, true), e("a", 1000, 2), e("b", 1000, 3)]);
+    expect(d.a).toBe(16);
+    expect(d.b).toBe(-16);
+    expect(d.new).toBe(16);
+    // Deux joueurs en placement s'affrontent normalement.
+    expect(computeRatingChanges([e("x", 1000, 1, true), e("y", 1000, 2, true)])).toEqual({ x: 16, y: -16 });
+  });
+
+  it("l'Elo reste caché pendant le placement, puis est dévoilé", () => {
+    expect(describeRatingChange(1000, 1016, 1)).toEqual({ status: "placement", played: 1 });
+    expect(describeRatingChange(1040, 1056, PLACEMENT_GAMES)).toEqual({ status: "revealed", after: 1056 });
+    expect(describeRatingChange(1056, 1040, PLACEMENT_GAMES + 1)).toEqual({ status: "rated", before: 1056, after: 1040 });
   });
 });

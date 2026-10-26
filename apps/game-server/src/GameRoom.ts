@@ -11,6 +11,7 @@ import {
   type GameReport,
   type GameSettings,
   type LobbyPlayer,
+  type RatingChange,
   type RoomPhase,
   type RoomSnapshot,
   type RoundResultPayload,
@@ -75,6 +76,7 @@ export class GameRoom extends Room {
   private deadline: number | null = null;
   private lastRound: RoundResultPayload | null = null;
   private report: GameReport | null = null;
+  private ratings: Record<string, RatingChange> | null = null;
   private gameNumber = 0;
   private timer: Delayed | null = null;
 
@@ -247,6 +249,7 @@ export class GameRoom extends Room {
     this.engine = new GameEngine(this.settings, players, randomSeed());
     this.gameNumber += 1;
     this.report = null;
+    this.ratings = null;
     this.lastRound = null;
     this.startedAt = Date.now();
     this.phase = "countdown";
@@ -324,12 +327,18 @@ export class GameRoom extends Room {
     this.report = buildReport(engine.standings(), engine.history);
     this.broadcastSnapshot();
     const hostIsGuest = this.guestById.get(this.hostId) ?? true;
+    const gameNumber = this.gameNumber;
     void persistGame({
       code: this.code,
       engine,
       startedAt: new Date(this.startedAt),
       hostUserId: hostIsGuest ? null : this.hostId,
       guestById: this.guestById,
+    }).then((ratings) => {
+      // Ignoré si une autre partie a déjà commencé ou si la salle est revenue au lobby entre-temps.
+      if (!ratings || Object.keys(ratings).length === 0 || this.phase !== "finished" || this.gameNumber !== gameNumber) return;
+      this.ratings = ratings;
+      this.broadcastSnapshot();
     });
   }
 
@@ -339,6 +348,7 @@ export class GameRoom extends Room {
     for (const m of this.members.values()) m.ready = false;
     this.engine = null;
     this.report = null;
+    this.ratings = null;
     this.lastRound = null;
     this.deadline = null;
     this.phase = "lobby";
@@ -395,6 +405,7 @@ export class GameRoom extends Room {
       serverNow: Date.now(),
       lastRound: this.phase === "round-result" || this.phase === "finished" ? this.lastRound : null,
       report: this.report,
+      ratings: this.ratings,
       gameNumber: this.gameNumber,
     };
   }

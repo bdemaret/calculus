@@ -2,6 +2,7 @@
  * Messages échangés entre le navigateur et le serveur de jeu.
  * Partagés ici pour que les deux côtés parlent exactement la même langue.
  */
+import type { RatingChange } from "./elo";
 import type { GameReport } from "./report";
 import type { GameSettings } from "./types";
 
@@ -39,6 +40,8 @@ export interface RoomSnapshot {
   serverNow: number;
   lastRound: RoundResultPayload | null;
   report: GameReport | null;
+  /** Effet sur l'Elo des comptes, par id de joueur (jamais l'Elo caché d'un joueur en placement). Arrive peu après la fin, une fois la partie enregistrée. */
+  ratings: Record<string, RatingChange> | null;
   gameNumber: number;
 }
 

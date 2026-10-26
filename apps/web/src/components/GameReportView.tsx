@@ -1,8 +1,8 @@
 "use client";
 import { useState, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import type { GameModeId, GameReport, PlayerReport, RoundReview } from "@calculus/game-core";
-import { formatPercent, formatSeconds } from "@/lib/format";
+import { PLACEMENT_GAMES, type GameModeId, type GameReport, type PlayerReport, type RatingChange, type RoundReview } from "@calculus/game-core";
+import { formatPercent, formatSeconds, formatSigned } from "@/lib/format";
 
 interface Props {
   report: GameReport;
@@ -10,11 +10,13 @@ interface Props {
   online: boolean;
   mode: GameModeId;
   timePerQuestion: number;
+  /** Effet sur l'Elo par id de joueur (parties en ligne classées uniquement). */
+  ratings?: Record<string, RatingChange> | null;
   actions?: ReactNode;
 }
 
 /** Rapport de fin de partie : verdict, classement, statistiques, graphique de progression. */
-export function GameReportView({ report, meId, online, mode, timePerQuestion, actions }: Props) {
+export function GameReportView({ report, meId, online, mode, timePerQuestion, ratings, actions }: Props) {
   const t = useTranslations("report");
   const tOps = useTranslations("ops");
   const locale = useLocale();
@@ -23,6 +25,7 @@ export function GameReportView({ report, meId, online, mode, timePerQuestion, ac
   const mine: PlayerReport | undefined = report.players.find((x) => x.playerId === meId) ?? (online ? undefined : report.players[0]);
   const winner = report.players[0];
   const unit = mode === "speed-race" ? t("pts") : t("correctUnit");
+  const myRating = mine ? ratings?.[mine.playerId] : undefined;
 
   let big: string;
   let sub: string;
@@ -54,6 +57,19 @@ export function GameReportView({ report, meId, online, mode, timePerQuestion, ac
         <p className="lede" style={{ margin: 0 }}>
           {sub}
         </p>
+        {myRating ? (
+          <p className="elo-line" data-testid="report-elo">
+            {myRating.status === "rated" ? (
+              <>
+                {t("rating", { before: myRating.before, after: myRating.after })} <EloDelta change={myRating} />
+              </>
+            ) : myRating.status === "revealed" ? (
+              t("ratingRevealed", { rating: myRating.after })
+            ) : (
+              t("placement", { played: myRating.played, total: PLACEMENT_GAMES })
+            )}
+          </p>
+        ) : null}
       </div>
 
       {/* Les actions juste sous le verdict, pour rejouer sans avoir à faire défiler le détail. */}
@@ -70,6 +86,7 @@ export function GameReportView({ report, meId, online, mode, timePerQuestion, ac
                   {pl.answered ? t("successRate", { pct: p(pl.accuracy) }) : t("noAnswer")}
                   {pl.avgCorrectMs != null ? " · " + t("avgShort", { time: s(pl.avgCorrectMs) }) : ""}
                   {mode === "battle-royale" && !pl.alive && pl.eliminatedAt != null ? " · " + t("outAt", { n: pl.eliminatedAt + 1 }) : ""}
+                  {ratings?.[pl.playerId] ? <> · <RatingShort change={ratings[pl.playerId]!} /></> : null}
                 </span>
               </span>
               <span className="sc">
@@ -138,6 +155,25 @@ export function GameReportView({ report, meId, online, mode, timePerQuestion, ac
       {report.review?.length ? <Review report={report} meId={mine?.playerId ?? null} online={online} mode={mode} /> : null}
     </section>
   );
+}
+
+/** Elo d'un joueur dans le classement : « Elo 1016 (+16) », « Elo 1032 (nouveau) » ou « placement 2/5 ». */
+function RatingShort({ change }: { change: RatingChange }) {
+  const t = useTranslations("report");
+  if (change.status === "placement") return <>{t("placementShort", { played: change.played, total: PLACEMENT_GAMES })}</>;
+  if (change.status === "revealed") return <>{t("ratingShort", { rating: change.after })} ({t("ratingNew")})</>;
+  return (
+    <>
+      {t("ratingShort", { rating: change.after })} <EloDelta change={change} />
+    </>
+  );
+}
+
+/** Variation d'Elo colorée : vert si elle monte, rouge si elle baisse. */
+export function EloDelta({ change }: { change: { before: number; after: number } }) {
+  const locale = useLocale();
+  const d = change.after - change.before;
+  return <span className={`elo-delta${d > 0 ? " up" : d < 0 ? " down" : ""}`}>({formatSigned(d, locale)})</span>;
 }
 
 /** Revoir les calculs : chaque manche, la bonne réponse et ce que chaque joueur a répondu. */

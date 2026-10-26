@@ -2,9 +2,10 @@
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { DashboardData } from "@calculus/db";
+import { DIFFICULTIES, MODES, PLACEMENT_GAMES, type RatingChange } from "@calculus/game-core";
 import { Link } from "@/i18n/navigation";
 import { Margin, MarginNote } from "@/components/Margin";
-import { formatPercent, formatSeconds } from "@/lib/format";
+import { formatPercent, formatSeconds, formatSigned } from "@/lib/format";
 
 export function DashboardView({ data, name }: { data: DashboardData; name: string }) {
   const t = useTranslations();
@@ -67,6 +68,8 @@ export function DashboardView({ data, name }: { data: DashboardData; name: strin
         </div>
       </div>
 
+      {data.ratings.length ? <RatingsGrid ratings={data.ratings} /> : null}
+
       <div className="two">
         <div className="stack">
           <h3>{t("dashboard.progressTitle")}</h3>
@@ -118,6 +121,7 @@ export function DashboardView({ data, name }: { data: DashboardData; name: strin
                 <th>{t("settings.difficulty")}</th>
                 <th>{t("dashboard.result")}</th>
                 <th>{t("report.accuracy")}</th>
+                <th>{t("dashboard.elo")}</th>
                 <th />
               </tr>
             </thead>
@@ -131,6 +135,7 @@ export function DashboardView({ data, name }: { data: DashboardData; name: strin
                   <td>{t(`levels.${g.difficulty}`)}</td>
                   <td>{g.solo ? t("dashboard.scoreOnly", { score: g.score }) : t("dashboard.rankOf", { rank: g.rank, players: g.players })}</td>
                   <td>{pc(g.accuracy)}</td>
+                  <RatingCell change={g.rating} />
                   <td>
                     <Link href={`/report/${g.gameId}`}>{t("dashboard.view")}</Link>
                   </td>
@@ -141,5 +146,62 @@ export function DashboardView({ data, name }: { data: DashboardData; name: strin
         </div>
       </div>
     </section>
+  );
+}
+
+/** Effet d'une partie sur l'Elo : variation colorée, Elo dévoilé ou avancée du placement. */
+function RatingCell({ change }: { change: RatingChange | null }) {
+  const t = useTranslations();
+  const locale = useLocale();
+  if (!change) return <td className="muted">–</td>;
+  if (change.status === "placement") return <td className="muted">{t("report.placementShort", { played: change.played, total: PLACEMENT_GAMES })}</td>;
+  if (change.status === "revealed") return <td>{t("report.ratingShort", { rating: change.after })}</td>;
+  const d = change.after - change.before;
+  return <td className={`elo-delta${d > 0 ? " up" : d < 0 ? " down" : ""}`}>{formatSigned(d, locale)}</td>;
+}
+
+/** Elo par mode (lignes) et par difficulté (colonnes) ; en grisé pendant le placement, « – » sans aucune partie classée. */
+function RatingsGrid({ ratings }: { ratings: DashboardData["ratings"] }) {
+  const t = useTranslations();
+  const byKey = new Map(ratings.map((r) => [`${r.mode}:${r.difficulty}`, r]));
+  return (
+    <div className="stack">
+      <h3>{t("dashboard.ratingsTitle")}</h3>
+      <div className="scroll-x">
+        <table className="games elo-grid" data-testid="elo-grid">
+          <thead>
+            <tr>
+              <th>{t("settings.mode")}</th>
+              {DIFFICULTIES.map((d) => (
+                <th key={d}>{t(`levels.${d}`)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Object.keys(MODES).map((mode) => (
+              <tr key={mode}>
+                <td>{t(`modes.${mode}.name`)}</td>
+                {DIFFICULTIES.map((d) => {
+                  const r = byKey.get(`${mode}:${d}`);
+                  if (r?.rating != null)
+                    return (
+                      <td key={d}>
+                        <strong>{r.rating}</strong>
+                        <span className="g">{t("dashboard.ratingGames", { count: r.games })}</span>
+                      </td>
+                    );
+                  return (
+                    <td key={d} className="unrated">
+                      {r ? t("report.placementShort", { played: r.games, total: PLACEMENT_GAMES }) : "–"}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="callout">{t("dashboard.ratingsLegend", { total: PLACEMENT_GAMES })}</p>
+    </div>
   );
 }

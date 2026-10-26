@@ -7,7 +7,7 @@ Serveur Colyseus 0.16 (`@colyseus/core` + `ws-transport`), lancé avec `tsx` (pa
 | `src/index.ts` | Serveur HTTP + définition de la salle `"game"` |
 | `src/GameRoom.ts` | Une salle = un lobby persistant d'une partie à l'autre |
 | `src/token.ts` | `verifyGameToken` : vérifie le JWT émis par le site |
-| `src/persist.ts` | `persistGame` → `saveGame` de `@calculus/db` (erreurs loguées, jamais propagées) |
+| `src/persist.ts` | `persistGame` → `saveGame` de `@calculus/db` (erreurs loguées, jamais propagées), renvoie les changements d'Elo |
 
 ## GameRoom
 
@@ -17,6 +17,7 @@ Serveur Colyseus 0.16 (`@colyseus/core` + `ws-transport`), lancé avec `tsx` (pa
 - **État envoyé** : un `RoomSnapshot` complet (`broadcastSnapshot()`) après chaque changement, plutôt que le state synchronisé de Colyseus.
 - **Hôte** : si l'hôte part, la main passe au membre arrivé le plus tôt (`members` est une `Map` ordonnée par arrivée).
 - **Reconnexion** : 30 s (`RECONNECT_SECONDS`).
+- **Elo** : une fois la partie enregistrée, `finish()` place les changements d'Elo dans `RoomSnapshot.ratings` et rediffuse (sauf si une autre partie a commencé entre-temps).
 - **Rejouer** : `replay-same` relance avec les mêmes réglages ; `replay-new` ramène au lobby.
 - Timers : toujours via `this.clock.setTimeout` (stockés dans `this.timer`), jamais `setTimeout` global.
 

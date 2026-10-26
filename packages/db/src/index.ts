@@ -1,10 +1,15 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import {
+  INITIAL_RATING,
+  PLACEMENT_GAMES,
   buildReport,
+  computeRatingChanges,
+  describeRatingChange,
   type GameReport,
   type GameSettings,
   type OpTag,
   type PlayerState,
+  type RatingChange,
   type RoundRecord,
   type Standing,
 } from "@calculus/game-core";
@@ -36,14 +41,56 @@ export interface SaveGameInput {
   userIds: Record<string, string | null>;
 }
 
-/** Enregistre la partie, ses calculs, les réponses, puis met à jour les statistiques. Renvoie l'id de la partie. */
-export async function saveGame(input: SaveGameInput): Promise<string> {
+export interface SavedGame {
+  id: string;
+  /** Effet sur l'Elo de chaque joueur, par clé de joueur (vide si la partie n'est pas classée). Jamais l'Elo caché d'un joueur en placement. */
+  ratings: Record<string, RatingChange>;
+}
+
+/**
+ * Enregistre la partie, ses calculs, les réponses, puis met à jour les statistiques et l'Elo.
+ * Seules les parties en ligne entre au moins deux comptes sont classées : les invités n'ont pas d'Elo
+ * et ne comptent pas comme adversaires (sinon on pourrait gagner de l'Elo contre ses propres invités).
+ * Les comptes en placement n'en donnent pas non plus aux joueurs classés (voir `computeRatingChanges`).
+ */
+export async function saveGame(input: SaveGameInput): Promise<SavedGame> {
   const gameId = randomUUID();
   const playerRowId = new Map<string, string>();
   for (const s of input.standings) playerRowId.set(s.player.id, randomUUID());
   const multiplayer = input.standings.length > 1;
+  const { mode, difficulty } = input.settings;
+  const ratings: Record<string, RatingChange> = {};
+  /** Elo avant, variation et parties jouées après celle-ci, pour chaque joueur classé (valeurs internes). */
+  const stored = new Map<string, { before: number; delta: number; games: number }>();
 
   await prisma.$transaction(async (tx) => {
+    // Elo : calculé avant de créer les joueurs, pour garder « avant / variation » sur chaque ligne.
+    const rated = input.solo ? [] : input.standings.filter((s) => input.userIds[s.player.id]);
+    if (rated.length >= 2) {
+      const rows = await tx.rating.findMany({
+        where: { mode, difficulty, userId: { in: rated.map((s) => input.userIds[s.player.id]!) } },
+      });
+      const current = new Map(rows.map((r) => [r.userId, r]));
+      const entries = rated.map((s) => {
+        const row = current.get(input.userIds[s.player.id]!);
+        const games = row?.games ?? 0;
+        return { id: s.player.id, rating: row?.rating ?? INITIAL_RATING, rank: s.rank, provisional: games < PLACEMENT_GAMES, games };
+      });
+      const deltas = computeRatingChanges(entries);
+      for (const e of entries) {
+        const delta = deltas[e.id] ?? 0;
+        stored.set(e.id, { before: e.rating, delta, games: e.games + 1 });
+        ratings[e.id] = describeRatingChange(e.rating, e.rating + delta, e.games + 1);
+        const userId = input.userIds[e.id]!;
+        // Incrément plutôt qu'écriture : deux parties qui se terminent en même temps ne s'écrasent pas.
+        await tx.rating.upsert({
+          where: { userId_mode_difficulty: { userId, mode, difficulty } },
+          create: { userId, mode, difficulty, rating: INITIAL_RATING + delta, games: 1 },
+          update: { rating: { increment: delta }, games: { increment: 1 } },
+        });
+      }
+    }
+
     await tx.game.create({
       data: {
         id: gameId,
@@ -76,6 +123,9 @@ export async function saveGame(input: SaveGameInput): Promise<string> {
         correct: player.correct,
         correctTimeMs: Math.round(player.correctTimeMs),
         bestStreak: player.bestStreak,
+        ratingBefore: stored.get(player.id)?.before ?? null,
+        ratingDelta: stored.get(player.id)?.delta ?? null,
+        ratingGames: stored.get(player.id)?.games ?? null,
       })),
     });
 
@@ -146,7 +196,7 @@ export async function saveGame(input: SaveGameInput): Promise<string> {
     }
   });
 
-  return gameId;
+  return { id: gameId, ratings };
 }
 
 /* ------------------------------------------------------------------ */
@@ -162,6 +212,8 @@ export interface StoredGameReport {
   report: GameReport;
   /** Clé de joueur de chaque compte présent (pour retrouver « moi »). */
   playerKeyByUser: Record<string, string>;
+  /** Effet sur l'Elo des joueurs classés, par clé de joueur (sans l'Elo caché des joueurs en placement). */
+  ratings: Record<string, RatingChange>;
 }
 
 export async function loadGameReport(id: string): Promise<StoredGameReport | null> {
@@ -213,6 +265,10 @@ export async function loadGameReport(id: string): Promise<StoredGameReport | nul
 
   const playerKeyByUser: Record<string, string> = {};
   for (const p of game.players) if (p.userId) playerKeyByUser[p.userId] = p.playerKey;
+  const ratings: Record<string, RatingChange> = {};
+  for (const p of game.players)
+    if (p.ratingBefore != null && p.ratingDelta != null && p.ratingGames != null)
+      ratings[p.playerKey] = describeRatingChange(p.ratingBefore, p.ratingBefore + p.ratingDelta, p.ratingGames);
 
   return {
     id: game.id,
@@ -222,6 +278,7 @@ export async function loadGameReport(id: string): Promise<StoredGameReport | nul
     endedAt: game.endedAt,
     report: buildReport(standings, history),
     playerKeyByUser,
+    ratings,
   };
 }
 
@@ -253,12 +310,16 @@ export interface DashboardData {
     score: number;
     accuracy: number;
     avgCorrectMs: number | null;
+    /** Effet sur l'Elo (null si la partie n'était pas classée) */
+    rating: RatingChange | null;
   }[];
+  /** Elo par mode et par difficulté, là où le joueur a déjà joué une partie classée ; `rating` null pendant le placement. */
+  ratings: { mode: string; difficulty: number; rating: number | null; games: number }[];
   byOperation: { tag: OpTag; attempts: number; correct: number; avgCorrectMs: number | null }[];
 }
 
 export async function getDashboard(userId: string): Promise<DashboardData> {
-  const [s, recentRows, answers] = await Promise.all([
+  const [s, recentRows, answers, ratingRows] = await Promise.all([
     prisma.userStats.findUnique({ where: { userId } }),
     prisma.gamePlayer.findMany({
       where: { userId },
@@ -271,6 +332,11 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       orderBy: { player: { game: { endedAt: "desc" } } },
       take: 3000,
       select: { correct: true, timeMs: true, question: { select: { tags: true } } },
+    }),
+    prisma.rating.findMany({
+      where: { userId },
+      orderBy: [{ mode: "asc" }, { difficulty: "asc" }],
+      select: { mode: true, difficulty: true, rating: true, games: true },
     }),
   ]);
 
@@ -313,7 +379,13 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       score: r.score,
       accuracy: r.answered ? r.correct / r.answered : 0,
       avgCorrectMs: r.correct ? Math.round(r.correctTimeMs / r.correct) : null,
+      rating:
+        r.ratingBefore != null && r.ratingDelta != null && r.ratingGames != null
+          ? describeRatingChange(r.ratingBefore, r.ratingBefore + r.ratingDelta, r.ratingGames)
+          : null,
     })),
+    // L'Elo caché ne quitte jamais la base.
+    ratings: ratingRows.map((r) => ({ ...r, rating: r.games >= PLACEMENT_GAMES ? r.rating : null })),
     byOperation: [...ops.values()].map((o) => ({
       tag: o.tag,
       attempts: o.attempts,

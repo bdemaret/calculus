@@ -277,6 +277,12 @@ p { margin: 0; }
 .chart { width: 100%; height: auto; display: block; }
 .chart text { fill: var(--muted); font-size: 11px; font-family: var(--font-display); }
 .callout { font-size: 15px; color: var(--muted); }
+.elo-line { flex-basis: 100%; margin: 0; font-weight: 650; font-variant-numeric: tabular-nums; }
+.elo-delta { font-weight: 700; font-variant-numeric: tabular-nums; }
+.elo-delta.up { color: var(--ok); }
+.elo-delta.down { color: var(--ko); }
+.elo-grid td.unrated { color: var(--muted); }
+.elo-grid .g { display: block; color: var(--muted); font-size: 12px; }
 .callout b { color: var(--text); font-size: 22px; font-weight: 750; display: block; font-variant-numeric: tabular-nums; }
 
 /* Revoir les calculs : chaque manche corrigée comme une copie */

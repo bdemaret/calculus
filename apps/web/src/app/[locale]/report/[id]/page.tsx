@@ -26,6 +26,7 @@ export default async function ReportPage({ params }: { params: Promise<{ locale:
       online={!stored.solo}
       mode={stored.settings.mode}
       timePerQuestion={stored.settings.timePerQuestion}
+      ratings={stored.ratings}
       actions={
         <div className="actions">
           <Link className="btn" href={stored.solo ? "/solo" : "/online"}>
