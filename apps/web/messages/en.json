@@ -259,6 +259,7 @@
     "invalidEmail": "This email address isn’t valid.",
     "invalidToken": "This link has expired or was already used. Ask for a new one.",
     "nameRequired": "Pick a nickname.",
+    "tooManyRequests": "Too many attempts. Wait a moment, then try again.",
     "generic": "Something failed. Try again."
   },
   "profile": {

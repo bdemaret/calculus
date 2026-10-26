@@ -4,7 +4,7 @@ Prisma 6 + PostgreSQL. Schéma : `packages/db/prisma/schema.prisma`. Client et r
 
 ## Modèles
 
-- **Comptes (gérés par Better Auth, ne pas renommer les champs)** : `User`, `Session`, `Account`, `Verification`. Tables en minuscules via `@@map`.
+- **Comptes (gérés par Better Auth, ne pas renommer les champs)** : `User`, `Session`, `Account`, `Verification`, `RateLimit` (compteurs du rate limit, partagés entre instances serverless). Tables en minuscules via `@@map`.
 - **Parties** : `Game` (réglages JSON + colonnes dénormalisées `mode`, `difficulty`, `turnStyle`, `seed`) → `GamePlayer` (`playerKey` = id utilisé en jeu, `userId` null pour un invité) → `Question` (`tags` : `add|sub|mul|div|paren`) → `Answer` (`value` null si temps écoulé).
 - **Elo** : `Rating` (clé `userId` + `mode` + `difficulty`, `rating` et `games`), créé à la première partie classée. `GamePlayer.ratingBefore` / `ratingDelta` / `ratingGames` gardent l'effet de chaque partie (null si non classée). Pendant les 5 parties de placement, l'Elo bouge mais reste caché : `saveGame`, `loadGameReport` et `getDashboard` ne renvoient que des `RatingChange` (via `describeRatingChange`) et `rating: null`, jamais la valeur cachée. Une partie est classée si elle est en ligne et compte au moins deux comptes inscrits ; les invités sont ignorés (ni Elo, ni adversaires).
 - **`UserStats`** : agrégats incrémentés par `saveGame` dans la même transaction, pour un dashboard rapide.

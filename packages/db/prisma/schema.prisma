@@ -82,6 +82,16 @@ model Verification {
   @@map("verification")
 }
 
+/// Compteurs du rate limit de Better Auth (connexion, inscription, mot de passe oublié…), partagés entre instances.
+model RateLimit {
+  id          String @id
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+
+  @@map("rate_limit")
+}
+
 /* ---------- Parties ---------- */
 
 model Game {

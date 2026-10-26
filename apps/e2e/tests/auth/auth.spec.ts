@@ -1,3 +1,4 @@
+import { WEB_URL } from "../../env";
 import { resetTokenFor } from "../../fixtures/db";
 import { t } from "../../fixtures/i18n";
 import { expect, newUser, signUp, test } from "../../fixtures/test";
@@ -112,5 +113,20 @@ test.describe("profil", () => {
     await expect(page.getByText(t("profile.inputSaved"))).toBeVisible();
     await page.reload();
     await expect(voice).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("le pseudo est nettoyé et validé par le serveur, pas seulement par le formulaire", async ({ request }) => {
+    const user = newUser();
+    const empty = await request.post("/api/auth/sign-up/email", { data: { ...user, name: "  <> " } });
+    expect(empty.status()).toBe(400);
+    expect(await empty.json()).toMatchObject({ code: "INVALID_NAME" });
+
+    const res = await request.post("/api/auth/sign-up/email", { data: { ...user, name: "  Zoé    <Lune>  qui a un pseudo bien trop long" } });
+    expect(res.ok(), await res.text()).toBe(true);
+    expect(((await res.json()) as { user: { name: string } }).user.name).toBe("Zoé Lune qui a un ps");
+
+    // Requête avec cookie de session : Better Auth exige l'en-tête Origin (protection CSRF).
+    const update = await request.post("/api/auth/update-user", { data: { name: "<<>>" }, headers: { origin: WEB_URL } });
+    expect(update.status()).toBe(400);
   });
 });
