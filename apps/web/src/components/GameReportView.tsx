@@ -270,10 +270,12 @@ function Review({ report, meId, online, game, mode }: { report: GameReport; meId
                       </span>
                     );
                   return (
-                    <span key={pl.playerId} className={`rv-a ${a.correct ? "ok" : "ko"}${me}`}>
+                    <span key={pl.playerId} className={`rv-a ${a.correct || a.closest ? "ok" : "ko"}${me}`}>
                       <span className="nm">{who}</span>
                       {bombLine}
-                      <span className="val">{a.correct ? <>{given} ✓</> : <><s>{given}</s> ✗</>}</span>
+                      <span className="val">
+                        {a.correct ? <>{given} ✓</> : a.closest ? <>{given} ≈ {t("reviewClosest")}</> : <><s>{given}</s> ✗</>}
+                      </span>
                       <span className="t">{formatSeconds(a.timeMs, locale)}</span>
                       {r.scorers.includes(pl.playerId) ? <span className="pt">+1</span> : null}
                     </span>

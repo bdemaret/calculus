@@ -60,7 +60,7 @@
     "right-count": {
       "name": "Right on target",
       "short": "Every tile, right on target.",
-      "long": "Some tiles and a target: combine all the tiles, each exactly once, with the operations and brackets to hit the target exactly. There is always a solution."
+      "long": "Some tiles and a target: combine all the tiles, each exactly once, to hit the target exactly. Each step you add becomes a new tile. There is always a solution; with several players, if nobody finds it, the closest scores when time runs out."
     },
     "missing": {
       "name": "Missing number",
@@ -255,7 +255,15 @@
         "unknown-player": "Unknown player.",
         "invalid-value": "Invalid calculation."
       }
-    }
+    },
+    "steps": "Intermediate steps",
+    "commitStep": "Add the step",
+    "stepHint": "Add a step with “=”: its result becomes a new tile.",
+    "invalidStep": "This step doesn’t work: available numbers only, no negative result, exact divisions.",
+    "gap": "{gap} away from the target.",
+    "closestHint": "{gap} away from the target. Submit to propose it: if nobody finds it, the closest scores.",
+    "proposed": "Proposed: {value}. The closest scores if nobody finds it.",
+    "closest": "the closest"
   },
   "report": {
     "pageTitle": "Game report",
@@ -307,7 +315,8 @@
     "placementShort": "placement {played}/{total}",
     "ratingRevealed": "Placement done: your Elo is {rating}.",
     "ratingNew": "new",
-    "deletedPlayer": "Deleted account"
+    "deletedPlayer": "Deleted account",
+    "reviewClosest": "closest"
   },
   "auth": {
     "loginTitle": "Log in",

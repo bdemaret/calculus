@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import { OPERATION_SYMBOL, evaluateStrict, fitsTiles, numbersOf, parseExpression, type Operation, type Puzzle } from "@calculus/game-core";
+import { OPERATION_SYMBOL, commitStep, encodeSteps, parseExpression, readSteps, undoStep, type Operation, type Puzzle } from "@calculus/game-core";
 import { cleanInput } from "@/lib/answer";
 import { useTouch } from "@/lib/useTouch";
 
@@ -53,7 +53,7 @@ interface TileExpressionProps {
 
 /**
  * Saisie d'une expression avec des plaques : plaques à toucher (barrées une fois utilisées), opérateurs
- * permis, parenthèses, total en direct. Sert au bon compte et à la construction des bombes.
+ * permis, parenthèses, total en direct. Sert à la construction des bombes.
  */
 export function TileExpression(props: TileExpressionProps) {
   const { tiles, operations, parentheses, header, value, onChange, onSubmit, total, ready, hint, disabled, status, shake, autoFocus = true, focusKey } = props;
@@ -143,21 +143,17 @@ export function TileExpression(props: TileExpressionProps) {
   );
 }
 
-/** Total d'une saisie en cours (plaques au plus une fois), null si elle est incomplète ou invalide. */
-function partialTotal(puzzle: RightCount, value: string): number | null {
-  const tree = value.trim() ? parseExpression(value) : null;
-  if (!tree || !fitsTiles(numbersOf(tree), puzzle.tiles)) return null;
-  const v = evaluateStrict(tree, puzzle.operations);
-  return Number.isNaN(v) ? null : v;
-}
-
 interface Props {
   /** Énoncé complet (« 75 50 3 6 8 2 → 412 »), gardé dans data-calc pour les tests. */
   text: string;
   puzzle: RightCount;
+  /** La saisie en étapes (« 75 + 2;77 × 6;… », voir `readSteps`). */
   value: string;
   onChange: (v: string) => void;
-  onSubmit: () => void;
+  /** Envoie l'expression complète, qui enchaîne toutes les étapes. */
+  onSubmit: (expr: string) => void;
+  /** On peut proposer un total qui ne tombe pas pile : le plus proche marque si personne ne trouve. */
+  allowClosest?: boolean;
   disabled?: boolean;
   status?: "right" | "wrong" | null;
   shake?: boolean;
@@ -165,31 +161,137 @@ interface Props {
 }
 
 /**
- * Le bon compte : la cible, puis la saisie avec les plaques. On ne peut valider que quand toutes
- * les plaques sont utilisées et que le total tombe pile sur la cible ; le serveur revérifie tout.
+ * Le bon compte, en étapes : on pose un calcul (« 75 + 2 = 77 »), son résultat devient une nouvelle plaque,
+ * et ainsi de suite jusqu'à n'avoir plus qu'un nombre. On peut aussi tout écrire d'un coup, avec des parenthèses.
+ * On valide quand toutes les plaques sont utilisées et que le total tombe pile (ou, à plusieurs, pour proposer
+ * le plus proche) ; le serveur revérifie tout.
  */
-export function ExpressionBuilder({ text, puzzle, ...rest }: Props) {
+export function ExpressionBuilder({ text, puzzle, value, onChange, onSubmit, allowClosest = false, disabled, status, shake, autoFocus = true }: Props) {
   const t = useTranslations("game");
-  const total = partialTotal(puzzle, rest.value);
-  const allUsed = usedTiles(puzzle.tiles, rest.value).every(Boolean);
+  const touch = useTouch();
+  const input = useRef<HTMLInputElement>(null);
+  const { target } = puzzle;
+  const state = readSteps(puzzle.tiles, puzzle.operations, value);
+  const { steps, tiles, line, lineValue, canCommit, complete } = state;
+
+  useEffect(() => {
+    if (!disabled && autoFocus && !touch) input.current?.focus({ preventScroll: true });
+  }, [text, disabled, autoFocus, touch]);
+
+  const texts = steps.map((s) => s.text);
+  const setLine = (v: string) => onChange(encodeSteps(texts, cleanInput(v, "expr", 0)));
+  const ready = !!complete && (complete.value === target || allowClosest);
+  const submit = () => {
+    if (ready && complete && !disabled) onSubmit(complete.expr);
+  };
+  const commit = () => {
+    if (canCommit && !disabled) onChange(commitStep(state));
+  };
+  const undo = () => onChange(undoStep(state));
+
+  const last = line.trimEnd().slice(-1);
+  const afterOperand = /[\d)]/.test(last);
+  const open = (line.match(/\(/g) ?? []).length - (line.match(/\)/g) ?? []).length;
+  const shownTotal = lineValue ?? (line.trim() === "" ? complete?.value : null);
+  const gap = complete ? Math.abs(complete.value - target) : null;
+
+  // Une seule indication à la fois : la plus utile pour avancer.
+  let hint: string | null = null;
+  const tree = line.trim() ? parseExpression(line.trim()) : null;
+  if (gap !== null && gap > 0) hint = allowClosest ? t("closestHint", { gap }) : t("gap", { gap });
+  else if (!complete && (lineValue === target || (line.trim() === "" && steps.at(-1)?.value === target))) hint = t("useAllTiles");
+  else if (tree?.kind === "op" && lineValue === null) hint = t("invalidStep");
+  else if (steps.length === 0 && line.trim() === "") hint = t("stepHint");
+
   return (
-    <TileExpression
-      {...rest}
-      tiles={puzzle.tiles}
-      operations={puzzle.operations}
-      parentheses
-      focusKey={text}
-      total={total}
-      ready={allUsed && total === puzzle.target}
-      hint={total === puzzle.target && !allUsed ? t("useAllTiles") : null}
-      header={
-        <p className="count-target">
-          <span className="count-label">{t("target")}</span>
-          <span className="calc" data-testid="calc-text" data-calc={text} data-ops={puzzle.operations.join(" ")}>
-            {puzzle.target}
-          </span>
-        </p>
-      }
-    />
+    <div className={`count-board${shake ? " shake" : ""}`}>
+      <p className="count-target">
+        <span className="count-label">{t("target")}</span>
+        <span className="calc" data-testid="calc-text" data-calc={text} data-ops={puzzle.operations.join(" ")}>
+          {target}
+        </span>
+      </p>
+      {steps.length > 0 ? (
+        <ol className="count-steps" aria-label={t("steps")}>
+          {steps.map((s, i) => (
+            <li key={i}>
+              {s.text} <span className="eq">=</span> <b>{s.value}</b>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      <div className="tiles" role="group" aria-label={t("tiles")}>
+        {tiles.map((tile, i) => (
+          <button
+            key={`${i}:${tile.value}:${tile.step ?? "t"}`}
+            type="button"
+            className={`tile${tile.step !== null ? " made" : ""}`}
+            disabled={disabled || tile.used || afterOperand}
+            aria-pressed={tile.used}
+            onClick={() => setLine(append(line, String(tile.value)))}
+          >
+            {tile.value}
+          </button>
+        ))}
+      </div>
+      <form
+        className="game-row"
+        autoComplete="off"
+        onSubmit={(e) => {
+          e.preventDefault();
+          // Entrée : valide un compte juste ; sinon pose le calcul en cours comme étape. Une proposition
+          // qui ne tombe pas pile demande une deuxième Entrée, une fois le total affiché comme étape.
+          if (complete?.value === target || !canCommit) submit();
+          else commit();
+        }}
+      >
+        <input
+          ref={input}
+          className={`answer expr-input${status ? " " + status : ""}`}
+          value={line}
+          onChange={(e) => setLine(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "=") {
+              e.preventDefault();
+              commit();
+            } else if (e.key === "Backspace" && line === "" && steps.length > 0) {
+              e.preventDefault();
+              undo();
+            }
+          }}
+          disabled={disabled}
+          readOnly={touch}
+          inputMode={touch ? "none" : "text"}
+          spellCheck={false}
+          aria-label={t("yourAnswer")}
+        />
+        <span className="count-total" aria-live="polite">
+          <span className="eq">=</span> {shownTotal ?? "…"}
+        </span>
+      </form>
+      {hint && !disabled ? <p className="hint">{hint}</p> : null}
+      <div className="keypad expr-pad">
+        {puzzle.operations.map((op) => (
+          <button key={op} type="button" disabled={disabled || !afterOperand} onClick={() => setLine(append(line, OPERATION_SYMBOL[op]))} aria-label={t(`operator.${op}`)}>
+            {OPERATION_SYMBOL[op]}
+          </button>
+        ))}
+        <button type="button" disabled={disabled || afterOperand} onClick={() => setLine(append(line, "("))} aria-label={t("openParen")}>
+          (
+        </button>
+        <button type="button" disabled={disabled || !afterOperand || open <= 0} onClick={() => setLine(append(line, ")"))} aria-label={t("closeParen")}>
+          )
+        </button>
+        <button type="button" disabled={disabled || value === ""} onClick={undo} aria-label={t("delete")}>
+          ⌫
+        </button>
+        <button type="button" disabled={disabled || !canCommit} onClick={commit} aria-label={t("commitStep")}>
+          =
+        </button>
+        <button type="button" className="ok-key" disabled={disabled || !ready} onClick={submit} aria-label={t("submit")}>
+          OK
+        </button>
+      </div>
+    </div>
   );
 }

@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { Room } from "colyseus.js";
-import { GAMES, MAX_PLAYERS, type GameSettings, type RoomSnapshot } from "@calculus/game-core";
+import { GAMES, MAX_PLAYERS, readSteps, type GameSettings, type PlayerAnswer, type RoomSnapshot } from "@calculus/game-core";
 import { Link, useRouter } from "@/i18n/navigation";
 import { CalcLine } from "@/components/CalcLine";
 import { BombAssign, BombBuild, BombPairList, BombResults } from "@/components/BombStage";
@@ -292,6 +292,8 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
   const turns = snap.settings.turnStyle === "turns";
   const myTurn = !turns || snap.activePlayerId === me;
   const eliminates = snap.settings.mode === "battle-royale";
+  // Le bon compte à plusieurs, en simultané : un total qui ne tombe pas pile peut être proposé (le plus proche marque).
+  const closestOn = snap.settings.game === "right-count" && !turns && snap.players.length > 1;
   const canAnswer = snap.phase === "question" && !!question && !!meP && (!eliminates || meP.alive) && myTurn && !meP.answeredThisRound && sentFor !== question.index;
 
   // Nouveau calcul : on efface la réponse.
@@ -312,9 +314,9 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
     if (ack && ack.questionIndex !== lastAckIndex.current) {
       lastAckIndex.current = ack.questionIndex;
       if (ack.correct) sfx.ok();
-      else sfx.ko();
+      else if (!closestOn) sfx.ko();
     }
-  }, [state.lastAck]);
+  }, [state.lastAck, closestOn]);
   useEffect(() => {
     const key = `${snap.phase}:${snap.roundIndex}`;
     if (key === lastPhase.current) return;
@@ -324,9 +326,10 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
     if (snap.phase === "round-result" && me && snap.lastRound?.eliminated.includes(me)) sfx.out();
   }, [snap.phase, snap.roundIndex, snap.lastRound, me]);
 
-  const submit = () => {
+  /** `given` : la réponse déjà formée (l'expression complète du bon compte), sinon lue dans la saisie. */
+  const submit = (given?: PlayerAnswer) => {
     if (!canAnswer || !question) return;
-    const answer = answerFromInput(value, answerKindOfPuzzle(question.puzzle));
+    const answer = given ?? answerFromInput(value, answerKindOfPuzzle(question.puzzle));
     if (!answer) return;
     setSentFor(question.index);
     room.send("answer", { ...answer, questionIndex: question.index });
@@ -338,6 +341,7 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
   };
 
   const ack = state.lastAck && question && state.lastAck.questionIndex === question.index ? state.lastAck : null;
+  const proposal = closestOn && ack && !ack.correct && question?.puzzle.game === "right-count" ? readSteps(question.puzzle.tiles, question.puzzle.operations, value).complete : null;
   const last = snap.phase === "round-result" ? snap.lastRound : null;
   const myLast = last?.answers.find((a) => a.playerId === me);
   const nameOf = (id: string) => snap.players.find((p) => p.id === id)?.name ?? "?";
@@ -363,7 +367,7 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
   const chips: ChipPlayer[] = snap.players.map((p) => {
     const a = last?.answers.find((x) => x.playerId === p.id);
     let st: ChipPlayer["state"] = null;
-    if (a) st = a.correct ? "right" : "wrong";
+    if (a) st = a.correct || a.closest ? "right" : "wrong";
     else if (p.answeredThisRound) st = p.id === me && ack ? (ack.correct ? "right" : "wrong") : "answered";
     return { id: p.id, name: p.name, score: p.score, alive: p.alive, connected: p.connected, state: st, active: p.id === snap.activePlayerId };
   });
@@ -377,11 +381,11 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
     onChange: onType,
     onSubmit: submit,
     disabled: !canAnswer,
-    status: (ack ? (ack.correct ? "right" : "wrong") : myLast ? (myLast.correct ? "right" : "wrong") : lastActive ? (lastActive.correct ? "right" : "wrong") : null) as
+    status: (proposal ? null : ack ? (ack.correct ? "right" : "wrong") : myLast ? (myLast.correct || myLast.closest ? "right" : "wrong") : lastActive ? (lastActive.correct ? "right" : "wrong") : null) as
       | "right"
       | "wrong"
       | null,
-    shake: !!ack && !ack.correct,
+    shake: !!ack && !ack.correct && !proposal,
   };
   const countLeft = localDeadline ? Math.max(1, Math.ceil((localDeadline - now) / 1000)) : 3;
 
@@ -409,7 +413,7 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
       ) : bomb && snap.phase === "question" && !question ? (
         <BombPairList snap={snap} />
       ) : displayedText && displayedPuzzle?.game === "right-count" ? (
-        <ExpressionBuilder text={displayedText} puzzle={displayedPuzzle} {...lineProps} />
+        <ExpressionBuilder text={displayedText} puzzle={displayedPuzzle} {...lineProps} onSubmit={(expr) => submit({ expr })} allowClosest={closestOn} />
       ) : displayedText ? (
         <CalcLine text={displayedText} puzzle={displayedPuzzle} {...lineProps} />
       ) : null}
@@ -419,6 +423,8 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
             <span className="ok">
               <Check /> {formatSeconds(ack.timeMs, locale)}
             </span>
+          ) : proposal ? (
+            <span>{t("game.proposed", { value: proposal.value })}</span>
           ) : (
             <span className="ko">{t("game.no")}</span>
           )
@@ -428,6 +434,10 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
             {myLast?.correct ? (
               <span className="ok">
                 <Check /> {formatSeconds(myLast.timeMs, locale)}
+              </span>
+            ) : myLast?.closest ? (
+              <span className="ok">
+                ≈ {t("game.closest")} : {lastSolution}
               </span>
             ) : myLast ? (
               <span className="ko">

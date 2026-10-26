@@ -40,4 +40,4 @@ Gestionnaire de paquets : **pnpm 10** uniquement (`corepack enable`). Node ≥ 2
 
 - Mode entraînement ciblé sur les points faibles
 - Classements publics
-- Bon compte « au plus proche » (comme l'émission), bombe en solo contre l'ordinateur (écartés du premier jet des nouveaux jeux, voir `plans/nouveaux-jeux.md`)
+- Bombe en solo contre l'ordinateur (écartés du premier jet des nouveaux jeux, voir `plans/nouveaux-jeux.md`)

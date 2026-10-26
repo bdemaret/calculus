@@ -1,4 +1,4 @@
-import { GAMES, answerKindOf, assignBombs, bombValue, defuseQuestion, fallbackBomb, type BombError, type GameDefinition } from "./games";
+import { GAMES, answerKindOf, assignBombs, closestAnswers, bombValue, defuseQuestion, fallbackBomb, type BombError, type GameDefinition } from "./games";
 import { OPERATION_SYMBOL } from "./generator";
 import { MODES, type GameModeRules } from "./modes";
 import { BATTLE_ROYALE_ROUND_CAP } from "./settings";
@@ -267,6 +267,10 @@ export class GameEngine {
           p.streak = 0;
         }
       }
+    }
+    // Le bon compte : personne n'a trouvé, les plus proches l'emportent (il faut être plusieurs à chercher).
+    if (this.settings.turnStyle === "simultaneous" && this.players.length > 1) {
+      for (const a of closestAnswers(this.game, round.question, round.answers)) a.closest = true;
     }
     this.rules.resolveRound(this, round);
     this.game.resolveExtras?.(this, round);

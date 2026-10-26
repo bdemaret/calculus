@@ -1,5 +1,5 @@
 import { BATTLE_ROYALE_ROUND_CAP } from "./settings";
-import type { GameModeId, PlayerState, RoundRecord } from "./types";
+import type { AnswerRecord, GameModeId, PlayerState, RoundRecord } from "./types";
 import type { GameEngine } from "./engine";
 
 /**
@@ -26,6 +26,8 @@ export interface GameModeRules {
 
 const answered = (round: RoundRecord, id: string) => round.answers.some((a) => a.playerId === id);
 const answerOf = (round: RoundRecord, id: string) => round.answers.find((a) => a.playerId === id);
+/** La réponse l'emporte : juste, ou la plus proche quand personne n'a trouvé (le bon compte). */
+const wins = (a: AnswerRecord | undefined) => !!a && (a.correct || !!a.closest);
 const byTime = (a: PlayerState, b: PlayerState) => a.correctTimeMs - b.correctTimeMs;
 
 export const battleRoyale: GameModeRules = {
@@ -47,8 +49,8 @@ export const battleRoyale: GameModeRules = {
       engine.settings.turnStyle === "turns"
         ? engine.players.filter((p) => p.id === round.activePlayerId)
         : engine.players.filter((p) => p.alive);
-    const failed = concerned.filter((p) => !answerOf(round, p.id)?.correct);
-    for (const p of concerned) if (answerOf(round, p.id)?.correct) p.score += 1;
+    const failed = concerned.filter((p) => !wins(answerOf(round, p.id)));
+    for (const p of concerned) if (wins(answerOf(round, p.id))) p.score += 1;
 
     const multiplayer = engine.players.length > 1;
     const everyoneFailed = failed.length === concerned.length && failed.length > 1;
@@ -96,8 +98,9 @@ export const speedRace: GameModeRules = {
     return engine.players.filter((p) => p.connected).every((p) => answered(round, p.id));
   },
   resolveRound(engine, round) {
-    // Les réponses sont enregistrées dans l'ordre d'arrivée : la première juste gagne le point.
-    const winner = round.answers.find((a) => a.correct);
+    // Les réponses sont enregistrées dans l'ordre d'arrivée : la première juste gagne le point,
+    // sinon la première des plus proches (le bon compte).
+    const winner = round.answers.find((a) => a.correct) ?? round.answers.find((a) => a.closest);
     if (!winner) return;
     const p = engine.players.find((x) => x.id === winner.playerId);
     if (p) {

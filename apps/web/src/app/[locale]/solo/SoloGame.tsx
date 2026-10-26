@@ -115,10 +115,11 @@ export function SoloGame({ loggedIn, playerName }: Props) {
     setPhase("question");
   }
 
-  function submit() {
+  /** `given` : la réponse déjà formée (l'expression complète du bon compte), sinon lue dans la saisie. */
+  function submit(given?: PlayerAnswer) {
     const e = engine.current;
     if (!e || !e.currentRound) return;
-    const answer = answerFromInput(value, e.game.answerKind(e.currentRound.question));
+    const answer = given ?? answerFromInput(value, e.game.answerKind(e.currentRound.question));
     if (!answer) return;
     const res = e.submit(ME, answer, Date.now());
     if (!res.accepted) return;
@@ -256,7 +257,7 @@ export function SoloGame({ loggedIn, playerName }: Props) {
           puzzle={shown.question.puzzle}
           value={value}
           onChange={setValue}
-          onSubmit={submit}
+          onSubmit={(expr) => submit({ expr })}
           disabled={phase !== "question"}
           status={feedback ? (feedback.correct ? "right" : "wrong") : null}
           shake={feedback ? !feedback.correct : false}
@@ -267,7 +268,7 @@ export function SoloGame({ loggedIn, playerName }: Props) {
           puzzle={shown.question.puzzle}
           value={value}
           onChange={setValue}
-          onSubmit={submit}
+          onSubmit={() => submit()}
           disabled={phase !== "question"}
           status={feedback ? (feedback.correct ? "right" : "wrong") : null}
           shake={feedback ? !feedback.correct : false}

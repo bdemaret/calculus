@@ -5,8 +5,10 @@ import {
   INITIAL_RATING,
   PLACEMENT_GAMES,
   buildReport,
+  closestAnswers,
   computeRatingChanges,
   describeRatingChange,
+  type AnswerRecord,
   type GameId,
   type GameReport,
   type GameSettings,
@@ -278,10 +280,14 @@ export async function loadGameReport(id: string): Promise<StoredGameReport | nul
     const q = rows[0]!;
     const answers = rows
       .flatMap((row) => row.answers)
-      .map((a) => ({ playerId: keyByRow.get(a.playerId) ?? "?", value: a.value, text: a.text, correct: a.correct, timeMs: a.timeMs }))
+      .map((a): AnswerRecord => ({ playerId: keyByRow.get(a.playerId) ?? "?", value: a.value, text: a.text, correct: a.correct, timeMs: a.timeMs }))
       .sort((a, b) => a.timeMs - b.timeMs);
-    // Course de vitesse : le point revient à la première bonne réponse arrivée.
-    const first = settings.mode === "speed-race" ? answers.find((a) => a.correct) : undefined;
+    // Le bon compte : personne n'a trouvé, les plus proches l'emportent (recalculé, comme pendant la partie).
+    if (!q.activePlayerKey && game.players.length > 1) {
+      for (const a of closestAnswers(GAMES[settings.game], toQuestion(q), answers)) a.closest = true;
+    }
+    // Course de vitesse : le point revient à la première bonne réponse arrivée, sinon à la plus proche.
+    const first = settings.mode === "speed-race" ? (answers.find((a) => a.correct) ?? answers.find((a) => a.closest)) : undefined;
     const draw = q.puzzle as Puzzle | null;
     const personal = q.forPlayerKey
       ? Object.fromEntries(rows.map((row) => [row.forPlayerKey, { question: toQuestion(row), authorId: row.authorPlayerKey ?? "?" }]))

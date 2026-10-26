@@ -60,7 +60,7 @@
     "right-count": {
       "name": "Le bon compte",
       "short": "Toutes les plaques, pile sur la cible.",
-      "long": "Des plaques et une cible : combine toutes les plaques, chacune exactement une fois, avec les opérations et des parenthèses pour tomber pile sur la cible. Il y a toujours une solution."
+      "long": "Des plaques et une cible : combine toutes les plaques, chacune exactement une fois, pour tomber pile sur la cible. Chaque calcul posé devient une nouvelle plaque. Il y a toujours une solution ; à plusieurs, si personne ne trouve, le plus proche marque à la fin du temps."
     },
     "missing": {
       "name": "Nombre manquant",
@@ -255,7 +255,15 @@
         "unknown-player": "Joueur inconnu.",
         "invalid-value": "Calcul invalide."
       }
-    }
+    },
+    "steps": "Calculs intermédiaires",
+    "commitStep": "Poser le calcul",
+    "stepHint": "Pose un calcul avec « = » : son résultat devient une nouvelle plaque.",
+    "invalidStep": "Ce calcul ne marche pas : nombres disponibles seulement, pas de résultat négatif, divisions justes.",
+    "gap": "À {gap} du compte.",
+    "closestHint": "À {gap} du compte. Valide pour le proposer : si personne ne trouve, le plus proche marque.",
+    "proposed": "Proposé : {value}. Le plus proche marque si personne ne trouve.",
+    "closest": "le plus proche"
   },
   "report": {
     "pageTitle": "Rapport de partie",
@@ -307,7 +315,8 @@
     "placementShort": "placement {played}/{total}",
     "ratingRevealed": "Placement terminé : ton Elo est de {rating}.",
     "ratingNew": "nouveau",
-    "deletedPlayer": "Compte supprimé"
+    "deletedPlayer": "Compte supprimé",
+    "reviewClosest": "le plus proche"
   },
   "auth": {
     "loginTitle": "Se connecter",

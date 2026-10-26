@@ -33,6 +33,11 @@ export interface GameDefinition {
   isValid?(question: Question, answer: PlayerAnswer): boolean;
   /** La réponse est-elle juste ? Appelé seulement avec une réponse de la forme `answerKind(question)`. */
   check(question: Question, answer: PlayerAnswer): boolean;
+  /**
+   * Écart d'une réponse recevable à la cible (null si elle ne compte pas). Présent : si personne n'a trouvé,
+   * les plus proches l'emportent quand même (en simultané, à plusieurs).
+   */
+  distance?(question: Question, answer: PlayerAnswer): number | null;
   /** Points propres au jeu, après ceux du mode (la bombe : l'auteur d'une bombe qui explose). */
   resolveExtras?(engine: GameEngine, round: RoundRecord): void;
 }
@@ -54,4 +59,22 @@ export function answerKindOf(answer: PlayerAnswer): AnswerKind {
   if ("value" in answer) return "number";
   if ("expr" in answer) return "expr";
   return "op";
+}
+
+/** Les réponses les plus proches de la cible quand personne n'a trouvé (vide si le jeu ne le prévoit pas). */
+export function closestAnswers(game: GameDefinition, question: Question, answers: readonly AnswerRecord[]): AnswerRecord[] {
+  if (!game.distance || answers.some((a) => a.correct)) return [];
+  const kind = game.answerKind(question);
+  let best = Infinity;
+  let out: AnswerRecord[] = [];
+  for (const a of answers) {
+    const answer = answerOfRecord(a, kind);
+    const d = answer ? game.distance(question, answer) : null;
+    if (d === null) continue;
+    if (d < best) {
+      best = d;
+      out = [a];
+    } else if (d === best) out.push(a);
+  }
+  return out;
 }

@@ -79,7 +79,10 @@ export function evaluateRightCount(puzzle: RightCountPuzzle, expr: string): numb
   return Number.isNaN(value) ? null : value;
 }
 
-/** Le bon compte : atteindre la cible en utilisant toutes les plaques, chacune exactement une fois. */
+/**
+ * Le bon compte : atteindre la cible en utilisant toutes les plaques, chacune exactement une fois.
+ * Si personne ne tombe pile, la proposition la plus proche marque à la fin du temps.
+ */
 export const rightCountGame: GameDefinition = {
   id: "right-count",
   modes: ["battle-royale", "speed-race"],
@@ -111,4 +114,9 @@ export const rightCountGame: GameDefinition = {
   // Une expression mal formée, qui oublie ou invente une plaque, est refusée sans consommer l'essai.
   isValid: (q, answer) => q.puzzle.game === "right-count" && "expr" in answer && evaluateRightCount(q.puzzle, answer.expr) !== null,
   check: (q, answer) => q.puzzle.game === "right-count" && "expr" in answer && evaluateRightCount(q.puzzle, answer.expr) === q.puzzle.target,
+  distance(q, answer) {
+    if (q.puzzle.game !== "right-count" || !("expr" in answer)) return null;
+    const value = evaluateRightCount(q.puzzle, answer.expr);
+    return value === null ? null : Math.abs(value - q.puzzle.target);
+  },
 };

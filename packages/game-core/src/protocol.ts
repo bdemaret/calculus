@@ -65,7 +65,8 @@ export interface RoundResultPayload {
   solution: string;
   /** Données du calcul, pour le réafficher pendant le résultat de la manche. */
   puzzle: Puzzle;
-  answers: { playerId: string; value: number | null; text: string | null; correct: boolean; timeMs: number }[];
+  /** `closest` : le bon compte, personne n'a trouvé et cette proposition est la plus proche. */
+  answers: { playerId: string; value: number | null; text: string | null; correct: boolean; timeMs: number; closest?: boolean }[];
   /** La bombe : chaque bombe, son auteur, son désamorceur et sa valeur. */
   bombs?: (BombPair & { text: string; answer: number; fallback: boolean })[];
   eliminated: string[];

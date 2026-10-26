@@ -109,6 +109,8 @@ export interface AnswerRecord {
   text: string | null;
   correct: boolean;
   timeMs: number;
+  /** Le bon compte : personne n'a trouvé et cette proposition est la plus proche de la cible (elle marque quand même). */
+  closest?: boolean;
 }
 
 export interface RoundRecord {

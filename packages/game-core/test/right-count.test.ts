@@ -12,6 +12,10 @@ import {
   sanitizeSettings,
   solveTiles,
   usesAllTiles,
+  commitStep,
+  readSteps,
+  undoStep,
+  type GameSettings,
   type Operation,
   type Question,
 } from "../src";
@@ -107,5 +111,126 @@ describe("le bon compte", () => {
     expect(sanitizeSettings({ game: "right-count", timePerQuestion: 500 }).timePerQuestion).toBe(rightCountGame.timeRange.max);
     expect(sanitizeSettings({ game: "right-count", timePerQuestion: 5 }).timePerQuestion).toBe(rightCountGame.timeRange.min);
     expect(sanitizeSettings({ game: "standard", timePerQuestion: 500 }).timePerQuestion).toBe(60);
+  });
+});
+
+/** Une partie à plusieurs, et des expressions de valeur connue pour son premier tirage. */
+function closestSetup(settings: Partial<GameSettings>, players = 3) {
+  const g = new GameEngine(
+    { ...defaultSettings(3, "speed-race", "right-count"), ...settings },
+    Array.from({ length: players }, (_, i) => ({ id: `p${i}`, name: `J${i}` })),
+    "bc-proche",
+  );
+  const r = g.startRound(0)!;
+  const { tiles, target, operations } = puzzleOf(r.question);
+  const solved = solveTiles(tiles, operations, 100_000);
+  // Valeurs atteignables autres que la cible, de la plus proche à la plus lointaine.
+  const near = solved.values.filter((v) => v !== target).sort((a, b) => Math.abs(a - target) - Math.abs(b - target));
+  const expr = (v: number) => solved.solution(v)!;
+  return { g, r, target, near, expr };
+}
+
+describe("le bon compte : le plus proche", () => {
+  it("course de vitesse : personne ne trouve, le plus proche marque", () => {
+    const { g, near, expr } = closestSetup({});
+    const far = near[near.length - 1]!;
+    expect(g.submit("p0", { expr: expr(far) }, 10)).toMatchObject({ accepted: true, correct: false, roundCanClose: false });
+    expect(g.submit("p1", { expr: expr(near[0]!) }, 20)).toMatchObject({ accepted: true, correct: false });
+    const rec = g.closeRound()!;
+    expect(rec.scorers).toEqual(["p1"]);
+    expect(rec.answers.find((a) => a.playerId === "p1")?.closest).toBe(true);
+    expect(rec.answers.find((a) => a.playerId === "p0")?.closest).toBeUndefined();
+    expect(g.player("p1")).toMatchObject({ score: 1, correct: 0 });
+  });
+
+  it("à égalité d'écart, la première proposition arrivée marque ; une réponse juste passe avant tout", () => {
+    const a = closestSetup({});
+    a.g.submit("p2", { expr: a.expr(a.near[0]!) }, 10);
+    a.g.submit("p0", { expr: a.expr(a.near[0]!) }, 20);
+    expect(a.g.closeRound()!.scorers).toEqual(["p2"]);
+
+    const b = closestSetup({});
+    b.g.submit("p0", { expr: b.expr(b.near[0]!) }, 10);
+    b.g.submit("p1", { expr: b.r.question.solution }, 20);
+    const rec = b.g.closeRound()!;
+    expect(rec.scorers).toEqual(["p1"]);
+    expect(rec.answers.some((x) => x.closest)).toBe(false);
+  });
+
+  it("battle royale : personne ne trouve, les plus proches restent en vie", () => {
+    const { g, near, expr } = closestSetup({ mode: "battle-royale" });
+    g.submit("p0", { expr: expr(near[0]!) }, 10);
+    g.submit("p1", { expr: expr(near[near.length - 1]!) }, 10);
+    const rec = g.closeRound()!;
+    expect(rec.spared).toBe(false);
+    expect(rec.eliminated.sort()).toEqual(["p1", "p2"]);
+    expect(g.player("p0")?.alive).toBe(true);
+  });
+
+  it("ne joue ni seul, ni en « chacun son tour »", () => {
+    const solo = closestSetup({}, 1);
+    solo.g.submit("p0", { expr: solo.expr(solo.near[0]!) }, 10);
+    expect(solo.g.closeRound()!.scorers).toEqual([]);
+
+    const turns = closestSetup({ turnStyle: "turns" }, 2);
+    turns.g.submit("p0", { expr: turns.expr(turns.near[0]!) }, 10);
+    expect(turns.g.closeRound()!.scorers).toEqual([]);
+  });
+});
+
+describe("le bon compte : saisie en étapes", () => {
+  const tiles = [75, 50, 3, 6, 8, 2];
+  const ops: Operation[] = ["add", "sub", "mul", "div"];
+  const read = (input: string) => readSteps(tiles, ops, input);
+
+  it("chaque étape devient un nombre disponible, l'expression complète les enchaîne", () => {
+    const s = read("75 + 2;77 × 6;50 − 8;462 − 42;");
+    expect(s.steps.map((x) => x.value)).toEqual([77, 462, 42, 420]);
+    expect(s.tiles).toEqual([
+      { value: 3, step: null, used: false },
+      { value: 420, step: 3, used: false },
+    ]);
+    expect(s.complete).toBeNull();
+    const done = read("75 + 2;77 × 6;50 − 8;462 − 42;420 ÷ 3");
+    expect(done.lineValue).toBe(140);
+    expect(done.complete).toEqual({ expr: "((75 + 2) × 6 − (50 − 8)) ÷ 3", value: 140 });
+    // L'expression complète respecte les règles : toutes les plaques, une fois chacune.
+    const q = { ...rightCountGame.generate("x", 0, defaultSettings(3, "speed-race", "right-count")), puzzle: { game: "right-count" as const, tiles, target: 140, operations: ops } };
+    expect(rightCountGame.check(q, { expr: done.complete!.expr })).toBe(true);
+  });
+
+  it("une dernière étape qui prend tout donne l'expression complète", () => {
+    expect(read("75 + 50 + 3 + 6 + 8 + 2;").complete).toEqual({ expr: "75 + 50 + 3 + 6 + 8 + 2", value: 144 });
+    // Toute l'expression d'un coup, sans étape : complète aussi.
+    expect(read("75 + 50 + 3 + 6 + 8 + 2").complete?.value).toBe(144);
+  });
+
+  it("refuse les étapes hors des règles et les nombres indisponibles", () => {
+    expect(read("3 − 6").canCommit).toBe(false);
+    expect(read("75 ÷ 2").canCommit).toBe(false);
+    expect(read("75").canCommit).toBe(false);
+    expect(read("75 + 75").lineValue).toBeNull();
+    expect(read("9 + 1").lineValue).toBeNull();
+    // Une étape enregistrée illisible est ignorée.
+    expect(read("75 + 75;3 + 6;").steps.map((x) => x.text)).toEqual(["3 + 6"]);
+    expect(readSteps(tiles, ["add"], "75 × 2").lineValue).toBeNull();
+  });
+
+  it("marque les nombres pris par la ligne en cours, même incomplète", () => {
+    expect(read("6 + 2;8 ×").tiles.filter((x) => x.used).map((x) => x.value)).toEqual([8]);
+    // Un résultat d'étape égal à une plaque : la plaque du tirage est prise d'abord.
+    const twin = read("6 + 2;8");
+    expect(twin.tiles.filter((x) => x.value === 8).map((x) => x.used)).toEqual([true, false]);
+  });
+
+  it("pose et défait les étapes", () => {
+    const one = commitStep(read("75+2"));
+    expect(one).toBe("75 + 2;");
+    expect(commitStep(read("75 −"))).toBe("75 −");
+    expect(undoStep(read("75 + 2;77 × 6"))).toBe("75 + 2;77 ×");
+    // Ligne vide : la dernière étape revient dans la ligne.
+    expect(undoStep(read("75 + 2;77 × 6;"))).toBe("75 + 2;77 × 6");
+    expect(undoStep(read("75 + 2;"))).toBe("75 + 2");
+    expect(undoStep(read(""))).toBe("");
   });
 });

@@ -7,6 +7,7 @@ import {
   GameEngine,
   JOIN_ERRORS,
   MAX_EXPRESSION_LENGTH,
+  MAX_STEPS_LENGTH,
   MAX_PLAYERS,
   buildReport,
   randomSeed,
@@ -71,8 +72,8 @@ const answerSchema = z.union([
   z.object({ questionIndex: z.number().int().min(0), op: z.enum(ALL_OPERATIONS as [Operation, ...Operation[]]) }).strict(),
 ]);
 const readySchema = z.object({ ready: z.boolean() });
-/** Saisie visible : des chiffres, un opérateur (nombre manquant) ou une expression (bon compte). */
-const typingSchema = z.object({ value: z.string().max(MAX_EXPRESSION_LENGTH).regex(/^[0-9+\-−×÷*x/:() ]*$/) });
+/** Saisie visible : des chiffres, un opérateur (nombre manquant) ou des étapes séparées par « ; » (bon compte). */
+const typingSchema = z.object({ value: z.string().max(MAX_STEPS_LENGTH).regex(/^[0-9+\-−×÷*x/:() ;]*$/) });
 const kickSchema = z.object({ playerId: z.string().max(100) });
 const bombSchema = z.object({ roundIndex: z.number().int().min(0), expr: z.string().min(1).max(MAX_EXPRESSION_LENGTH) });
 

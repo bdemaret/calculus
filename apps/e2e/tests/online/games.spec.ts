@@ -6,6 +6,7 @@ import type { APIRequestContext, Page } from "@playwright/test";
 import { PLACEMENT_GAMES } from "@calculus/game-core";
 import { Bot } from "../../fixtures/bot";
 import { prisma } from "@calculus/db";
+import { expectedAnswer } from "../../fixtures/oracle";
 import { answerBox } from "../../pages/answer";
 import { LobbyPage } from "../../pages/LobbyPage";
 
@@ -87,6 +88,28 @@ test.describe("nombre manquant en ligne", () => {
 });
 
 test.describe("le bon compte en ligne", () => {
+  test("course de vitesse : personne ne trouve, la proposition la plus proche marque à la fin du temps", async ({ host, bots }) => {
+    const alice = await host("Alice", { game: "right-count", mode: "speed-race", operations: ["add", "sub"], difficulty: 1, timePerQuestion: 20, rounds: 5 });
+    const code = await alice.create();
+    // Le bot ne répond pas : Alice est seule à proposer, donc la plus proche.
+    await bots(code, ["Bot"]);
+    await expect(alice.slot("Bot")).toBeVisible();
+    await alice.start();
+
+    const page = alice.page;
+    const box = answerBox(page);
+    await expect(box).toBeEnabled({ timeout: 20_000 });
+    const q = await expectedAnswer(page);
+    // Un total qui ne tombe pas pile : posé comme étape, puis proposé par une deuxième Entrée.
+    await box.fill(q.wrong);
+    await box.press("Enter");
+    await expect(page.locator(".hint")).toBeVisible();
+    await box.press("Enter");
+    await expect(box).toBeDisabled();
+    await expect(alice.result).toContainText(t("game.closest"), { timeout: 30_000 });
+    await expect(page.locator(".grade").first()).toHaveText("1");
+  });
+
   test("battle royale : une expression fausse élimine, le dernier en vie gagne", async ({ host, bots }) => {
     const alice = await host("Alice", { game: "right-count", mode: "battle-royale", operations: ["add", "sub", "mul"], difficulty: 2, timePerQuestion: 60 });
     const code = await alice.create();
