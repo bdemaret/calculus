@@ -5,6 +5,7 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { Header } from "@/components/Header";
+import { themeInitScript } from "@/lib/theme";
 import "../globals.css";
 
 // Polices chargées directement depuis Google Fonts par le navigateur.
@@ -27,8 +28,10 @@ export default async function LocaleLayout({ children, params }: { children: Rea
   setRequestLocale(locale);
 
   return (
-    <html lang={locale}>
+    // suppressHydrationWarning : data-theme est posé par le script avant l'hydratation.
+    <html lang={locale} suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link rel="stylesheet" href={FONTS_URL} />

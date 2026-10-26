@@ -29,6 +29,7 @@ messages/fr.json, en.json    Traductions
 - **Routes API** : valider le corps avec Zod (`safeParse`), répondre `{ error: "code" }` avec le bon statut HTTP.
 - **Accès base** : uniquement via `@calculus/db` (fonctions exportées ou `prisma`), jamais côté client.
 - **Style** : réutiliser les variables CSS de `globals.css` (`--ink`, `--paper`, `--hl`, `--margin-red`, `--font-display`, `--font-hand`…) plutôt que des couleurs en dur. Polices : Bricolage Grotesque + Caveat (Google Fonts, chargées dans `[locale]/layout.tsx`).
+- **Thème clair / sombre** : les jetons sombres de `globals.css` s'appliquent selon `prefers-color-scheme`, ou via `data-theme="light|dark"` sur `<html>` quand le joueur choisit avec le bouton de `HeaderTools` (stocké dans `localStorage` `calculus:theme`, posé avant le rendu par `themeInitScript` de `@/lib/theme`). Toute nouvelle couleur doit être un jeton défini dans **les deux** blocs sombres (media query et `:root[data-theme="dark"]`), jamais une couleur en dur.
 - **Tactile** : `useTouch` décide entre saisie clavier et `Keypad` à l'écran.
 - **Dictée** : réglage de compte `User.voiceInput` (champ additionnel Better Auth, modifiable depuis le profil). `CalcLine` lance `useVoiceInput` (Web Speech API, pas de Firefox) qui remplit la case via `parseSpokenNumber` ; la validation reste à la touche Entrée (ou OK sur le pavé).
 

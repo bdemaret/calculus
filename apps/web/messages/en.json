@@ -13,6 +13,8 @@
     "modes": "Modes",
     "dashboard": "Dashboard",
     "login": "Log in",
+    "themeDark": "Switch to dark theme",
+    "themeLight": "Switch to light theme",
     "sound": "Sound",
     "soundOn": "Turn sound on",
     "soundOff": "Mute",

@@ -35,7 +35,10 @@
   /* Ombre dure « autocollant » sous ce qui se clique. */
   --sticker: 0 4px 0 var(--ink-deep);
   --sticker-hover: 0 7px 0 var(--ink-deep);
+  color-scheme: light;
 }
+/* Thème sombre « tableau noir » : suit le système, sauf choix explicite via data-theme sur <html>
+   (posé avant le premier rendu par le script de [locale]/layout.tsx). Les deux blocs doivent rester identiques. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --paper: #17231e; --surface: #1e2c26; --line: rgba(226,238,232,.055); --line-strong: rgba(226,238,232,.12);
@@ -98,6 +101,7 @@ button, input { font: inherit; color: inherit; }
 .icon-btn { background: transparent; border: 1.5px solid var(--line-strong); border-radius: 999px; height: 38px; min-width: 38px; padding: 0 12px; cursor: pointer; color: var(--muted); font-size: 15px; }
 .icon-btn:hover { color: var(--ink); border-color: var(--ink); }
 .icon-btn[aria-pressed="false"] { text-decoration: line-through; }
+.icon-btn svg { width: 18px; height: 18px; display: block; margin-inline: auto; }
 
 /* Boutons */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: var(--radius); padding: 13px 22px; font-weight: 700; font-size: 17px; cursor: pointer; border: 2px solid var(--ink-deep); background: var(--ink); color: var(--on-ink); box-shadow: var(--sticker); transition: background .12s, transform .12s, box-shadow .12s; }

@@ -13,6 +13,8 @@
     "modes": "Modes",
     "dashboard": "Tableau de bord",
     "login": "Se connecter",
+    "themeDark": "Passer en thème sombre",
+    "themeLight": "Passer en thème clair",
     "sound": "Son",
     "soundOn": "Activer le son",
     "soundOff": "Couper le son",
