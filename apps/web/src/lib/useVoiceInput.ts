@@ -77,7 +77,10 @@ export function useVoiceInput({ enabled, locale, resetKey, onNumber }: Options):
       if (!active) return;
       rec = new Ctor();
       rec.lang = locale === "fr" ? "fr-FR" : "en-US";
-      rec.continuous = true;
+      // Un énoncé par écoute, relancée aussitôt (onend) : en écoute continue, Chrome met
+      // « neuf… neuf » dans le même texte et le formate en « 99 », impossible à distinguer
+      // d'un vrai 99. Ainsi, une réponse répétée remplace la précédente.
+      rec.continuous = false;
       rec.interimResults = true;
       rec.maxAlternatives = 1;
       rec.onresult = (e) => {
@@ -96,7 +99,7 @@ export function useVoiceInput({ enabled, locale, resetKey, onNumber }: Options):
           setState("denied");
         }
       };
-      // Le navigateur coupe l'écoute après un silence : on la relance tant que le calcul est affiché.
+      // L'écoute s'arrête après chaque énoncé ou après un silence : on la relance tant que le calcul est affiché.
       rec.onend = () => {
         if (active) listen();
       };
