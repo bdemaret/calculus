@@ -1,7 +1,10 @@
 import { createServer } from "node:http";
 import { Server } from "@colyseus/core";
 import { WebSocketTransport } from "@colyseus/ws-transport";
-import { GameRoom } from "./GameRoom";
+import { PRESENCE_ROOM } from "@calculus/game-core";
+import { GameRoom, liveRooms } from "./GameRoom";
+import { PresenceRoom } from "./PresenceRoom";
+import { verifyAdminToken } from "./token";
 import { publicLobbies } from "./publicLobbies";
 
 // GAME_SERVER_PORT en local ; PORT est fourni automatiquement par les hébergeurs (Railway…).
@@ -30,6 +33,19 @@ const httpServer = createServer((req, res) => {
     res.end(JSON.stringify(publicLobbies.list(Date.now())));
     return;
   }
+  // Parties en cours, pour le panel administrateur du site (appel de serveur à serveur, jeton signé).
+  if (req.url === "/admin/rooms" && req.method === "GET") {
+    void verifyAdminToken(req.headers.authorization).then((ok) => {
+      if (!ok) {
+        res.writeHead(401, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "unauthorized" }));
+        return;
+      }
+      res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
+      res.end(JSON.stringify({ rooms: [...liveRooms].map((r) => r.adminSummary()), serverNow: Date.now() }));
+    });
+    return;
+  }
   res.writeHead(404);
   res.end();
 });
@@ -39,6 +55,7 @@ const gameServer = new Server({
 });
 
 gameServer.define("game", GameRoom);
+gameServer.define(PRESENCE_ROOM, PresenceRoom);
 // Arrêt : on ne recrée plus de lobby public pendant la fermeture des salles.
 gameServer.onBeforeShutdown(() => publicLobbies.stop());
 

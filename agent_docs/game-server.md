@@ -4,9 +4,10 @@ Serveur Colyseus 0.16 (`@colyseus/core` + `ws-transport`), lancé avec `tsx` (pa
 
 | Fichier | Rôle |
 | --- | --- |
-| `src/index.ts` | Serveur HTTP (`/health`, `/lobbies`) + définition de la salle `"game"` |
+| `src/index.ts` | Serveur HTTP (`/health`, `/lobbies`) + définition de la salle `"game"` + `GET /admin/rooms` (parties en cours pour le panel admin du site, `Authorization: Bearer <jwt>` vérifié par `verifyAdminToken`) |
 | `src/GameRoom.ts` | Une salle = un lobby persistant d'une partie à l'autre |
 | `src/publicLobbies.ts` | Registre des lobbys publics de l'accueil (`publicLobbies`) et `PUBLIC_LOBBY_KEY` |
+| `src/PresenceRoom.ts` | Salle `"presence"` (`PRESENCE_ROOM`) : chaque onglet du site la rejoint sans jeton ; diffuse `online` { count } (total de toutes les salles de présence) au plus toutes les 2 s, n'accepte aucun message |
 | `src/token.ts` | `verifyGameToken` : vérifie le JWT émis par le site |
 | `src/persist.ts` | `persistGame` → `saveGame` de `@calculus/db` (erreurs loguées, jamais propagées), renvoie les changements d'Elo |
 
@@ -21,6 +22,7 @@ Serveur Colyseus 0.16 (`@colyseus/core` + `ws-transport`), lancé avec `tsx` (pa
 - **Hôte** : si l'hôte part, la main passe au membre arrivé le plus tôt (`members` est une `Map` ordonnée par arrivée).
 - **Reconnexion** : 30 s (`RECONNECT_SECONDS`).
 - **Elo** : une fois la partie enregistrée, `finish()` place les changements d'Elo dans `RoomSnapshot.ratings` et rediffuse (sauf si une autre partie a commencé entre-temps).
+- **Administration** : chaque salle s'inscrit dans `liveRooms` (retirée dans `onDispose`) ; `adminSummary()` résume la salle à partir du snapshot (code, phase, réglages, joueurs, calcul affiché), jamais la réponse.
 - **Rejouer** : `replay-same` relance avec les mêmes réglages ; `replay-new` ramène au lobby.
 - **Lobbys publics** : `publicLobbies` (démarré après `listen`) garde `PUBLIC_LOBBY_COUNT` salles créées par `matchMaker.createRoom("game", { publicKey: PUBLIC_LOBBY_KEY, settings })`. La clé est un UUID tiré au démarrage : un navigateur ne peut pas créer de lobby public. Une salle publique n'a pas d'hôte (`hostId` vide, donc `settings` / `start` / `kick` / `replay-*` sont sans effet), garde `autoDispose = false` pendant l'attente et publie sa fiche (`publishLobby`) à chaque arrivée ou départ. Elle se lance dès qu'elle est pleine ou au bout de `PUBLIC_LOBBY_DURATION_MS` (`autoStart`) ; sans joueur connecté à ce moment, elle est fermée. Dans les deux cas, `release` la retire de la liste et un nouveau lobby tiré au hasard la remplace. `GET /lobbies` renvoie la liste (`PublicLobbyList`, CORS ouvert : données publiques, sans cookie).
 - Timers : toujours via `this.clock.setTimeout` (stockés dans `this.timer`), jamais `setTimeout` global.

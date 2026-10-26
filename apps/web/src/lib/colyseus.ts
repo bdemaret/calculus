@@ -1,6 +1,6 @@
 "use client";
 import { Client, type Room } from "colyseus.js";
-import { JOIN_ERRORS, type GameSettings, type PublicLobbyList, type RoomSnapshot } from "@calculus/game-core";
+import { JOIN_ERRORS, PRESENCE_ROOM, type GameSettings, type PublicLobbyList, type RoomSnapshot } from "@calculus/game-core";
 
 /**
  * Connexion au serveur de jeu. La salle en cours est gardée ici pour survivre
@@ -184,4 +184,73 @@ export function leaveLobby() {
   const room = current;
   current = null;
   room?.leave(true);
+}
+
+/* Présence : nombre de visiteurs connectés au site. */
+
+/** Délai avant de retenter la connexion à la salle de présence, en ms. */
+const PRESENCE_RETRY_MS = 15000;
+
+const presence = {
+  count: null as number | null,
+  listeners: new Set<() => void>(),
+  room: null as Room | null,
+  connecting: false,
+  retry: null as ReturnType<typeof setTimeout> | null,
+};
+
+function setOnline(count: number | null) {
+  presence.count = count;
+  presence.listeners.forEach((l) => l());
+}
+
+async function connectPresence() {
+  presence.retry = null;
+  presence.connecting = true;
+  let room: Room;
+  try {
+    room = await getClient().joinOrCreate(PRESENCE_ROOM);
+  } catch {
+    presence.connecting = false;
+    schedulePresence();
+    return;
+  }
+  presence.connecting = false;
+  // Plus personne n'écoute depuis le début de la connexion : on repart aussitôt.
+  if (presence.listeners.size === 0) {
+    void room.leave(true);
+    return;
+  }
+  presence.room = room;
+  room.onMessage("online", (m: { count: number }) => setOnline(m.count));
+  room.onLeave(() => {
+    if (presence.room !== room) return;
+    presence.room = null;
+    setOnline(null);
+    schedulePresence();
+  });
+}
+
+function schedulePresence() {
+  if (presence.listeners.size > 0 && !presence.retry) presence.retry = setTimeout(connectPresence, PRESENCE_RETRY_MS);
+}
+
+/** Écoute le nombre de visiteurs connectés ; la connexion est partagée et fermée sans écouteur. */
+export function subscribeOnline(listener: () => void): () => void {
+  presence.listeners.add(listener);
+  if (!presence.room && !presence.connecting && !presence.retry) void connectPresence();
+  return () => {
+    presence.listeners.delete(listener);
+    if (presence.listeners.size > 0) return;
+    if (presence.retry) clearTimeout(presence.retry);
+    presence.retry = null;
+    presence.count = null;
+    const room = presence.room;
+    presence.room = null;
+    void room?.leave(true);
+  };
+}
+
+export function readOnline(): number | null {
+  return presence.count;
 }

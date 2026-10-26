@@ -84,7 +84,12 @@ export interface ServerMessages {
   "answer-refused": { reason: string };
   typing: { playerId: string; value: string };
   error: { code: string };
+  /** Salle de présence : nombre de visiteurs connectés au site. */
+  online: { count: number };
 }
+
+/** Nom de la salle de présence, rejointe par chaque onglet ouvert sur le site. */
+export const PRESENCE_ROOM = "presence";
 
 /** Contenu du jeton remis par le site pour entrer dans un lobby. */
 export interface GameTokenPayload {
@@ -92,6 +97,23 @@ export interface GameTokenPayload {
   sub: string;
   name: string;
   guest: boolean;
+}
+
+/** Partie en cours vue par le panel administrateur (route `/admin/rooms` du serveur de jeu). */
+export interface AdminRoomSummary {
+  code: string;
+  phase: RoomPhase;
+  mode: GameSettings["mode"];
+  difficulty: GameSettings["difficulty"];
+  /** Ouverture du lobby et début de la partie en cours (ms epoch, null au lobby). */
+  createdAt: number;
+  startedAt: number | null;
+  gameNumber: number;
+  roundIndex: number;
+  totalRounds: number | null;
+  /** Calcul affiché (jamais la réponse). */
+  question: string | null;
+  players: { id: string; name: string; isHost: boolean; isGuest: boolean; connected: boolean; score: number; alive: boolean }[];
 }
 
 /** Codes d'erreur renvoyés à la connexion, traduits côté site. */

@@ -89,6 +89,8 @@ button, input { font: inherit; color: inherit; }
   font-family: var(--font-hand);
   color: var(--margin-red);
   text-align: right;
+  display: flex;
+  flex-direction: column;
 }
 .content { padding-left: 28px; padding-block: 0 64px; min-width: 0; max-width: 1080px; }
 
@@ -197,7 +199,7 @@ p { margin: 0; }
   .home { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .home-main { display: contents; }
   .home .hero { order: 1; }
-  .home .choices { order: 2; }
+  .home .choices, .home .feedback-cta { order: 2; }
   .public-lobbies { order: 3; position: static; margin-top: 40px; max-width: 760px; }
   .lobby-cards { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
   .home .modes { order: 4; }
@@ -284,6 +286,11 @@ p { margin: 0; }
 
 .margin-note { display: block; font-size: 26px; font-weight: 700; line-height: 1; margin-bottom: 18px; animation: pop .28s ease-out; }
 .margin-note small { display: block; font-size: 17px; opacity: .85; }
+/* Joueurs connectés : collé en bas de la marge, visible pendant le défilement. */
+.margin-online { position: sticky; bottom: 24px; margin-top: auto; padding-top: 18px; line-height: 1; }
+.margin-online-count { display: block; font-size: 24px; font-weight: 700; }
+.margin-online-count::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 5px; vertical-align: middle; border-radius: 50%; background: currentColor; }
+.margin-online small { display: block; font-size: 15px; opacity: .85; }
 .grade { display: inline-grid; place-items: center; width: 60px; height: 60px; border: 2.5px solid var(--margin-red); border-radius: 50%; font-size: 30px; font-weight: 700; transform: rotate(-6deg); box-shadow: inset 0 0 0 3px var(--paper), inset 0 0 0 4.5px var(--margin-red); animation: stamp .4s cubic-bezier(.3, 1.6, .5, 1); }
 @keyframes stamp { from { transform: rotate(-6deg) scale(1.6); opacity: 0; } to { transform: rotate(-6deg) scale(1); opacity: 1; } }
 
@@ -369,6 +376,8 @@ p { margin: 0; }
   .stat:nth-child(n+3) { border-top: 1.5px solid var(--line); }
   .margin-note { font-size: 20px; }
   .margin-note small { font-size: 14px; }
+  .margin-online-count { font-size: 18px; }
+  .margin-online small { display: none; }
   .grade { width: 36px; height: 36px; font-size: 18px; }
   .bar-row { grid-template-columns: 96px minmax(0, 1fr) 42px; }
   .code-boxes span { font-size: 22px; }
@@ -421,9 +430,14 @@ a { color: var(--ink); }
 .board-tabs a[aria-current="page"] { color: var(--text); border-bottom-color: var(--ink); }
 .seg a { border: 1.5px solid var(--line-strong); background: var(--paper); border-radius: 10px; padding: 9px 14px; font-weight: 600; min-width: 48px; text-align: center; text-decoration: none; color: var(--text); }
 .seg a[aria-current="page"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
-.board .rk { width: 64px; font-weight: 700; }
+.board .rk { width: 64px; font-weight: 700; white-space: nowrap; }
 .board tr.me td { background: color-mix(in srgb, var(--hl) 35%, var(--surface)); }
 .board tr#board-me { scroll-margin-top: 80px; }
+.board .player-link { color: inherit; font-weight: 650; text-decoration: none; }
+.board .player-link:hover, .board .player-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+.player-head { display: flex; align-items: center; gap: 14px; }
+.player-head .avatar { width: 48px; height: 48px; font-size: 22px; }
+.player-head h2 { overflow-wrap: anywhere; }
 /* Suppression de compte */
 .danger-zone { border: 1.5px solid var(--ko); border-radius: 14px; padding: 18px; }
 .btn.danger { background: var(--ko); border-color: var(--ko); color: var(--paper); box-shadow: none; }
@@ -440,3 +454,32 @@ a { color: var(--ink); }
 .site-footer { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 64px; padding-top: 16px; border-top: 1.5px solid var(--line-strong); font-size: 14px; color: var(--muted); }
 .site-footer a { color: var(--muted); }
 .site-footer a:hover { color: var(--ink); }
+/* Retours des joueurs */
+.feedback-cta { margin-top: 24px; }
+.auth textarea.text-input { resize: vertical; min-height: 140px; font-size: 17px; line-height: 1.4; }
+.small { font-size: 14px; font-weight: 500; }
+.hp { position: absolute; left: -10000px; width: 1px; height: 1px; opacity: 0; }
+/* Panel administrateur */
+.admin { display: grid; gap: 24px; padding-top: 8px; max-width: 1000px; }
+.stat-link { text-decoration: none; color: inherit; }
+.stat-link:hover .k { color: var(--ink); text-decoration: underline; }
+.spark { display: flex; align-items: flex-end; gap: 3px; height: 120px; padding: 12px; border: 1.5px solid var(--line-strong); border-radius: 14px; background: var(--surface); }
+.spark-bar { flex: 1; min-height: 2px; background: var(--ink); border-radius: 3px 3px 0 0; }
+.admin-rooms, .feedback-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.admin-room, .feedback-item { gap: 12px; padding: 16px 18px; }
+.admin-room-head, .feedback-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.admin-code { font-size: 22px; letter-spacing: .12em; font-variant-numeric: tabular-nums; }
+.admin-phase { font-size: 13px; font-weight: 700; padding: 2px 10px; border-radius: 999px; border: 1.5px solid var(--line-strong); background: var(--paper); }
+.admin-phase.question, .admin-phase.round-result, .admin-phase.countdown, .admin-phase.bug { border-color: var(--ink); background: var(--ink); color: var(--on-ink); }
+.admin-phase.idea { border-color: var(--ok); color: var(--ok); }
+.admin-room-meta { font-size: 15px; }
+.admin-question { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.tag-mini { font-size: 12px; font-weight: 700; color: var(--muted); border: 1px solid var(--line-strong); border-radius: 999px; padding: 0 7px; margin-left: 6px; }
+.tag-mini.ko { color: var(--ko); border-color: var(--ko); }
+.feedback-item.resolved { opacity: .6; }
+.feedback-message { white-space: pre-wrap; overflow-wrap: anywhere; }
+.btn.small { padding: 7px 14px; font-size: 15px; }
+.admin-facts { margin: 0; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px 24px; }
+.admin-facts dt { color: var(--muted); font-size: 13px; }
+.admin-facts dd { margin: 0; font-weight: 650; overflow-wrap: anywhere; }
+.admin-id { font-family: ui-monospace, monospace; font-size: 13px; font-weight: 500; }

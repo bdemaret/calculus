@@ -14,6 +14,7 @@ import {
   type Standing,
 } from "@calculus/game-core";
 import { randomUUID } from "node:crypto";
+import { FEEDBACK_GUESTS_PER_HOUR, FEEDBACK_PER_USER_PER_HOUR, type FeedbackKindName } from "./feedback";
 
 export { Prisma };
 export type { PrismaClient };
@@ -495,6 +496,57 @@ export async function searchLeaderboard(mode: string, difficulty: number, query:
   return rows.map((r, i) => toEntry(r, ranks[i]!, wins));
 }
 
+/** Classement d'un joueur dans un mode et une difficulté où il a fini son placement. */
+export interface PlayerRanking {
+  mode: string;
+  difficulty: number;
+  rank: number;
+  /** Joueurs classés dans ce mode et cette difficulté */
+  total: number;
+  rating: number;
+  games: number;
+  wins: number;
+}
+
+export interface PlayerProfile {
+  id: string;
+  name: string;
+  /** Uniquement là où le placement est terminé : l'Elo caché ne quitte jamais la base. */
+  rankings: PlayerRanking[];
+  /** Lien avec le joueur connecté, null pour un visiteur */
+  friendship: FriendshipState | null;
+}
+
+/**
+ * Profil public d'un joueur, ouvert depuis le classement. Ne montre que ce que le classement rend déjà public
+ * (pseudo, Elo, place, parties, % de victoires), jamais l'e-mail ni les statistiques privées.
+ */
+export async function getPlayerProfile(userId: string, viewerId?: string): Promise<PlayerProfile | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      ratings: { where: { games: { gte: PLACEMENT_GAMES } }, orderBy: [{ mode: "asc" }, { difficulty: "asc" }] },
+    },
+  });
+  if (!user) return null;
+  const [rankings, friendship] = await Promise.all([
+    Promise.all(
+      user.ratings.map(async (r) => {
+        const [rank, total, wins] = await Promise.all([
+          rankOf(r.mode, r.difficulty, r.rating),
+          prisma.rating.count({ where: rankedWhere(r.mode, r.difficulty) }),
+          winsOf(r.mode, r.difficulty, [userId]),
+        ]);
+        return { mode: r.mode, difficulty: r.difficulty, rank, total, rating: r.rating, games: r.games, wins: wins.get(userId) ?? 0 };
+      }),
+    ),
+    viewerId ? friendshipState(viewerId, userId) : null,
+  ]);
+  return { id: user.id, name: user.name, rankings, friendship };
+}
+
 /* ------------------------------------------------------------------ */
 /* Amis                                                                 */
 /* ------------------------------------------------------------------ */
@@ -574,7 +626,17 @@ export async function sendFriendRequest(fromId: string, handle: string): Promise
   });
   if (matches.length === 0) return { status: "not-found" };
   if (matches.length > 1) return { status: "ambiguous" };
-  const target = matches[0]!;
+  return requestFriendship(fromId, matches[0]!);
+}
+
+/** Envoie une demande d'ami à un joueur désigné par son id (depuis son profil public). */
+export async function sendFriendRequestTo(fromId: string, targetId: string): Promise<FriendRequestResult> {
+  const target = await prisma.user.findUnique({ where: { id: targetId }, select: { id: true, name: true } });
+  if (!target) return { status: "not-found" };
+  return requestFriendship(fromId, target);
+}
+
+async function requestFriendship(fromId: string, target: { id: string; name: string }): Promise<FriendRequestResult> {
   if (target.id === fromId) return { status: "self" };
 
   const existing = await prisma.friendship.findFirst({
@@ -633,6 +695,25 @@ export async function removeFriendship(userId: string, otherId: string): Promise
       },
     }),
   ]);
+}
+
+/** Lien entre le joueur connecté et un autre : `outgoing` = demande envoyée, `incoming` = demande reçue. */
+export type FriendshipState = "self" | "none" | "outgoing" | "incoming" | "friends";
+
+async function friendshipState(viewerId: string, otherId: string): Promise<FriendshipState> {
+  if (viewerId === otherId) return "self";
+  const row = await prisma.friendship.findFirst({
+    where: {
+      OR: [
+        { requesterId: viewerId, addresseeId: otherId },
+        { requesterId: otherId, addresseeId: viewerId },
+      ],
+    },
+    select: { requesterId: true, status: true },
+  });
+  if (!row) return "none";
+  if (row.status === "accepted") return "friends";
+  return row.requesterId === viewerId ? "outgoing" : "incoming";
 }
 
 async function areFriends(a: string, b: string): Promise<boolean> {
@@ -698,4 +779,207 @@ export async function eraseUserGames(userId: string): Promise<void> {
     prisma.game.deleteMany({ where: { solo: true, players: { some: { userId } } } }),
     prisma.gamePlayer.updateMany({ where: { userId }, data: { displayName: "" } }),
   ]);
+}
+
+/* ------------------------------------------------------------------ */
+/* Retours des joueurs                                                  */
+/* ------------------------------------------------------------------ */
+
+export * from "./feedback";
+
+export interface FeedbackInput {
+  userId: string | null;
+  kind: FeedbackKindName;
+  message: string;
+  contact: string | null;
+  page: string | null;
+  locale: string;
+}
+
+/** Enregistre un retour, sauf si la limite horaire est atteinte (renvoie false). */
+export async function createFeedback(input: FeedbackInput, now: Date): Promise<boolean> {
+  const since = new Date(now.getTime() - 60 * 60 * 1000);
+  const recent = await prisma.feedback.count({ where: { userId: input.userId, createdAt: { gte: since } } });
+  if (recent >= (input.userId ? FEEDBACK_PER_USER_PER_HOUR : FEEDBACK_GUESTS_PER_HOUR)) return false;
+  await prisma.feedback.create({ data: input });
+  return true;
+}
+
+/* ------------------------------------------------------------------ */
+/* Panel administrateur                                                 */
+/* ------------------------------------------------------------------ */
+
+export const ADMIN_PAGE_SIZE = 50;
+
+export interface AdminOverview {
+  users: number;
+  usersLast7Days: number;
+  usersLast30Days: number;
+  games: number;
+  onlineGames: number;
+  gamesLast24Hours: number;
+  openFeedback: number;
+  /** Inscriptions par jour sur les 30 derniers jours (date ISO AAAA-MM-JJ, du plus ancien au plus récent). */
+  signups: { day: string; count: number }[];
+}
+
+export async function getAdminOverview(now: Date): Promise<AdminOverview> {
+  const day = 24 * 60 * 60 * 1000;
+  const since30 = new Date(now.getTime() - 30 * day);
+  const [users, usersLast7Days, recentUsers, games, onlineGames, gamesLast24Hours, openFeedback] = await Promise.all([
+    prisma.user.count(),
+    prisma.user.count({ where: { createdAt: { gte: new Date(now.getTime() - 7 * day) } } }),
+    prisma.user.findMany({ where: { createdAt: { gte: since30 } }, select: { createdAt: true } }),
+    prisma.game.count(),
+    prisma.game.count({ where: { solo: false } }),
+    prisma.game.count({ where: { endedAt: { gte: new Date(now.getTime() - day) } } }),
+    prisma.feedback.count({ where: { resolved: false } }),
+  ]);
+  const byDay = new Map<string, number>();
+  for (let i = 29; i >= 0; i--) byDay.set(new Date(now.getTime() - i * day).toISOString().slice(0, 10), 0);
+  for (const u of recentUsers) {
+    const key = u.createdAt.toISOString().slice(0, 10);
+    if (byDay.has(key)) byDay.set(key, (byDay.get(key) ?? 0) + 1);
+  }
+  return {
+    users,
+    usersLast7Days,
+    usersLast30Days: recentUsers.length,
+    games,
+    onlineGames,
+    gamesLast24Hours,
+    openFeedback,
+    signups: [...byDay].map(([d, count]) => ({ day: d, count })),
+  };
+}
+
+export interface AdminUserRow {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  gamesPlayed: number;
+  lastGameAt: string | null;
+}
+
+/** Comptes, du plus récent au plus ancien, filtrés par pseudo ou e-mail (insensible à la casse). */
+export async function listUsers(query: string, page: number): Promise<{ users: AdminUserRow[]; total: number }> {
+  const q = query.trim();
+  const where: Prisma.UserWhereInput = q
+    ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }] }
+    : {};
+  const [rows, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: page * ADMIN_PAGE_SIZE,
+      take: ADMIN_PAGE_SIZE,
+      select: { id: true, name: true, email: true, createdAt: true, stats: { select: { gamesPlayed: true, updatedAt: true } } },
+    }),
+    prisma.user.count({ where }),
+  ]);
+  return {
+    total,
+    users: rows.map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      createdAt: u.createdAt.toISOString(),
+      gamesPlayed: u.stats?.gamesPlayed ?? 0,
+      // `UserStats` est mis à jour à chaque fin de partie : sa date est celle de la dernière partie.
+      lastGameAt: u.stats ? u.stats.updatedAt.toISOString() : null,
+    })),
+  };
+}
+
+export interface AdminUserDetail {
+  id: string;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  createdAt: string;
+  /** Dernière activité connue (session la plus récente) */
+  lastSeenAt: string | null;
+  friends: number;
+  feedbacks: number;
+}
+
+export async function getAdminUser(id: string): Promise<AdminUserDetail | null> {
+  const u = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      emailVerified: true,
+      createdAt: true,
+      sessions: { orderBy: { updatedAt: "desc" }, take: 1, select: { updatedAt: true } },
+      _count: { select: { feedbacks: true } },
+    },
+  });
+  if (!u) return null;
+  const friends = await prisma.friendship.count({
+    where: { status: "accepted", OR: [{ requesterId: id }, { addresseeId: id }] },
+  });
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    emailVerified: u.emailVerified,
+    createdAt: u.createdAt.toISOString(),
+    lastSeenAt: u.sessions[0]?.updatedAt.toISOString() ?? null,
+    friends,
+    feedbacks: u._count.feedbacks,
+  };
+}
+
+export interface AdminFeedback {
+  id: string;
+  kind: FeedbackKindName;
+  message: string;
+  contact: string | null;
+  page: string | null;
+  locale: string;
+  resolved: boolean;
+  createdAt: string;
+  user: { id: string; name: string; email: string } | null;
+}
+
+/** Retours, du plus récent au plus ancien ; `resolved` filtre sur l'état (undefined = tous). */
+export async function listFeedback(resolved: boolean | undefined, page: number): Promise<{ items: AdminFeedback[]; total: number }> {
+  const where: Prisma.FeedbackWhereInput = resolved === undefined ? {} : { resolved };
+  const [rows, total] = await Promise.all([
+    prisma.feedback.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: page * ADMIN_PAGE_SIZE,
+      take: ADMIN_PAGE_SIZE,
+      include: { user: { select: { id: true, name: true, email: true } } },
+    }),
+    prisma.feedback.count({ where }),
+  ]);
+  return {
+    total,
+    items: rows.map((f) => ({
+      id: f.id,
+      kind: f.kind,
+      message: f.message,
+      contact: f.contact,
+      page: f.page,
+      locale: f.locale,
+      resolved: f.resolved,
+      createdAt: f.createdAt.toISOString(),
+      user: f.user,
+    })),
+  };
+}
+
+export async function setFeedbackResolved(id: string, resolved: boolean): Promise<boolean> {
+  const { count } = await prisma.feedback.updateMany({ where: { id }, data: { resolved } });
+  return count > 0;
+}
+
+export async function deleteFeedback(id: string): Promise<boolean> {
+  const { count } = await prisma.feedback.deleteMany({ where: { id } });
+  return count > 0;
 }

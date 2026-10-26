@@ -33,6 +33,7 @@ model User {
   friendsReceived Friendship[] @relation("FriendAddressee")
   invitesSent     GameInvite[] @relation("InviteFrom")
   invitesReceived GameInvite[] @relation("InviteTo")
+  feedbacks       Feedback[]
 
   @@map("user")
 }
@@ -257,4 +258,34 @@ model UserStats {
   updatedAt         DateTime @updatedAt
 
   @@map("user_stats")
+}
+
+/* ---------- Retours des joueurs ---------- */
+
+enum FeedbackKind {
+  bug
+  idea
+  other
+}
+
+/// Retour envoyé depuis la page « Faire un retour » (connecté ou invité), lu dans le panel administrateur.
+model Feedback {
+  id        String       @id @default(cuid())
+  /// Null pour un invité, ou si le compte a été supprimé
+  userId    String?
+  user      User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  kind      FeedbackKind
+  message   String
+  /// E-mail laissé par un invité pour être recontacté (facultatif)
+  contact   String?
+  /// Page d'où vient le retour (chemin seulement) et langue du site
+  page      String?
+  locale    String
+  /// Traité par un administrateur
+  resolved  Boolean      @default(false)
+  createdAt DateTime     @default(now())
+
+  @@index([resolved, createdAt])
+  @@index([userId, createdAt])
+  @@map("feedback")
 }

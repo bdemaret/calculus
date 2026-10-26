@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import { isAdminEmail } from "@/lib/admin";
 import { getSession } from "@/lib/auth";
 import { HeaderTools } from "./HeaderTools";
 import { InviteNotice } from "./InviteNotice";
@@ -23,6 +24,11 @@ export async function Header() {
           </Link>
           {session ? (
             <>
+              {isAdminEmail(session.user.email) ? (
+                <Link className="nav-link" href="/admin">
+                  {t("admin")}
+                </Link>
+              ) : null}
               <Link className="nav-link" href="/dashboard">
                 {t("dashboard")}
               </Link>
