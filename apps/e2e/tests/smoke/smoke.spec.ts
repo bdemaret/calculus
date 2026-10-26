@@ -22,10 +22,30 @@ test("le calcul de l'accueil se joue", async ({ page }) => {
   await page.goto("/fr");
   const input = page.getByRole("textbox", { name: t("game.yourAnswer") });
   await expect(input).toBeEnabled();
-  const { answer } = await expectedAnswer(page);
-  await input.fill(String(answer + 1));
+  const { answer, wrong } = await expectedAnswer(page);
+  await input.fill(wrong);
   await input.press("Enter");
   await expect(page.getByText(t("home.wrong", { answer }))).toBeVisible();
+});
+
+test("la page Jeux présente les quatre jeux, l'ancienne page Modes y mène", async ({ page }) => {
+  await page.goto("/fr/modes");
+  await expect(page).toHaveURL(/\/fr\/games$/);
+  for (const g of ["standard", "right-count", "missing", "bomb"]) {
+    await expect(page.getByRole("heading", { name: new RegExp(t(`games.${g}.name`)) })).toBeVisible();
+  }
+  await page.goto("/fr");
+  await expect(page.getByRole("heading", { name: t("home.gamesTitle") })).toBeVisible();
+  await page.getByRole("link", { name: t("home.allRules") }).click();
+  await expect(page).toHaveURL(/\/fr\/games$/);
+});
+
+test("les anciennes adresses du classement mènent au calcul mental", async ({ page }) => {
+  await page.goto("/fr/leaderboard/speed-race?difficulty=3");
+  await expect(page).toHaveURL(/\/fr\/leaderboard\/standard\/speed-race\?difficulty=3$/);
+  await page.goto("/fr/leaderboard/right-count");
+  await expect(page).toHaveURL(/\/fr\/leaderboard\/right-count\/battle-royale$/);
+  expect((await page.goto("/fr/leaderboard/bomb/speed-race"))?.status()).toBe(404);
 });
 
 test("le serveur de jeu répond sur /health", async ({ request }) => {
@@ -34,7 +54,7 @@ test("le serveur de jeu répond sur /health", async ({ request }) => {
   expect(await res.text()).toBe("ok");
 });
 
-for (const path of ["/fr", "/fr/modes", "/fr/solo", "/fr/online", "/fr/login", "/fr/signup", "/fr/forgot-password", "/fr/leaderboard/battle-royale", "/fr/legal", "/fr/privacy", "/fr/terms", "/en/privacy", "/en/solo"]) {
+for (const path of ["/fr", "/fr/games", "/fr/solo", "/fr/online", "/fr/login", "/fr/signup", "/fr/forgot-password", "/fr/leaderboard/standard/battle-royale", "/fr/legal", "/fr/privacy", "/fr/terms", "/en/privacy", "/en/solo", "/en/games"]) {
   test(`aucune erreur JavaScript sur ${path}`, async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));

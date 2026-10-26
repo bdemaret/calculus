@@ -2,22 +2,28 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
+  GAMES,
+  GAME_IDS,
   GameEngine,
+  answerOfRecord,
   buildReport,
   defaultSettings,
   randomSeed,
   sanitizeSettings,
   type GameReport,
   type GameSettings,
+  type PlayerAnswer,
   type RoundRecord,
 } from "@calculus/game-core";
 import { Link } from "@/i18n/navigation";
 import { CalcLine } from "@/components/CalcLine";
 import { Check } from "@/components/Check";
+import { ExpressionBuilder } from "@/components/ExpressionBuilder";
 import { GameReportView } from "@/components/GameReportView";
 import { Margin, MarginNote } from "@/components/Margin";
 import { SettingsForm } from "@/components/SettingsForm";
 import { TimerBar } from "@/components/TimerBar";
+import { answerFromInput } from "@/lib/answer";
 import { formatSeconds } from "@/lib/format";
 import { celebrate, sfx } from "@/lib/sound";
 import { local } from "@/lib/storage";
@@ -47,11 +53,13 @@ export function SoloGame({ loggedIn, playerName }: Props) {
 
   const engine = useRef<GameEngine | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const log = useRef<{ value: number | null; timeMs: number }[]>([]);
+  const log = useRef<{ answer: PlayerAnswer | null; timeMs: number }[]>([]);
   const startedAt = useRef(0);
 
   useEffect(() => {
-    setSettings(sanitizeSettings(local.get("solo", defaultSettings(2, "speed-race"))));
+    const saved = sanitizeSettings(local.get("solo", defaultSettings(2, "speed-race")));
+    // Un jeu qui ne se joue qu'en ligne est remplacé par le premier jeu jouable seul.
+    setSettings(GAMES[saved.game].solo ? saved : sanitizeSettings({ ...saved, game: GAME_IDS.find((g) => GAMES[g].solo) }));
     return () => timers.current.forEach(clearTimeout);
   }, []);
 
@@ -109,8 +117,10 @@ export function SoloGame({ loggedIn, playerName }: Props) {
 
   function submit() {
     const e = engine.current;
-    if (!e || !e.currentRound || value === "") return;
-    const res = e.submit(ME, Number(value), Date.now());
+    if (!e || !e.currentRound) return;
+    const answer = answerFromInput(value, e.game.answerKind(e.currentRound.question));
+    if (!answer) return;
+    const res = e.submit(ME, answer, Date.now());
     if (!res.accepted) return;
     setFeedback({ correct: !!res.correct, timeMs: res.timeMs ?? 0 });
     if (res.correct) sfx.ok();
@@ -124,7 +134,7 @@ export function SoloGame({ loggedIn, playerName }: Props) {
     const rec = e.closeRound();
     if (!rec) return;
     const mine = rec.answers.find((a) => a.playerId === ME);
-    log.current.push({ value: mine?.value ?? null, timeMs: mine?.timeMs ?? rec.timeLimitMs });
+    log.current.push({ answer: mine ? answerOfRecord(mine, e.game.answerKind(rec.question)) : null, timeMs: mine?.timeMs ?? rec.timeLimitMs });
     if (!mine || mine.value === null) sfx.ko();
     setClosed(rec);
     setPhase("result");
@@ -193,6 +203,7 @@ export function SoloGame({ loggedIn, playerName }: Props) {
           report={report}
           meId={ME}
           online={false}
+          game={e.settings.game}
           mode={e.settings.mode}
           timePerQuestion={e.settings.timePerQuestion}
           actions={
@@ -239,9 +250,21 @@ export function SoloGame({ loggedIn, playerName }: Props) {
             {count}
           </span>
         </div>
+      ) : shown && shown.question.puzzle.game === "right-count" ? (
+        <ExpressionBuilder
+          text={shown.question.text}
+          puzzle={shown.question.puzzle}
+          value={value}
+          onChange={setValue}
+          onSubmit={submit}
+          disabled={phase !== "question"}
+          status={feedback ? (feedback.correct ? "right" : "wrong") : null}
+          shake={feedback ? !feedback.correct : false}
+        />
       ) : shown ? (
         <CalcLine
           text={shown.question.text}
+          puzzle={shown.question.puzzle}
           value={value}
           onChange={setValue}
           onSubmit={submit}
@@ -258,7 +281,7 @@ export function SoloGame({ loggedIn, playerName }: Props) {
             </span>
           ) : (
             <span className="ko">
-              {myClosed?.value == null ? t("game.timeUp") : t("game.no")} : {closed.question.answer}
+              {myClosed?.value == null && myClosed?.text == null ? t("game.timeUp") : t("game.no")} : {closed.question.solution}
             </span>
           )
         ) : null}

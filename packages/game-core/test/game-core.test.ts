@@ -9,6 +9,7 @@ import {
   defaultSettings,
   evaluateText,
   generateQuestion,
+  GAMES,
   sanitizeSettings,
   type Difficulty,
   type GameSettings,
@@ -78,6 +79,18 @@ describe("paramètres", () => {
     expect(s.operations.length).toBeGreaterThan(0);
     expect(s.rounds).toBe(50);
     expect(s.timePerQuestion).toBe(3);
+  });
+
+  it("reprend les anciens réglages sans jeu comme du calcul standard", () => {
+    expect(sanitizeSettings({ difficulty: 3, mode: "battle-royale" }).game).toBe("standard");
+    expect(sanitizeSettings({ game: "hack" }).game).toBe("standard");
+  });
+
+  it("ne garde qu'un mode proposé par le jeu", () => {
+    for (const mode of ["battle-royale", "speed-race", "hack"]) {
+      const s = sanitizeSettings({ game: "standard", mode });
+      expect(GAMES[s.game].modes).toContain(s.mode);
+    }
   });
 });
 

@@ -1,14 +1,19 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import {
+  GAMES,
+  GAME_IDS,
   INITIAL_RATING,
   PLACEMENT_GAMES,
   buildReport,
   computeRatingChanges,
   describeRatingChange,
+  type GameId,
   type GameReport,
   type GameSettings,
   type OpTag,
   type PlayerState,
+  type Puzzle,
+  type Question,
   type RatingChange,
   type RoundRecord,
   type Standing,
@@ -58,7 +63,7 @@ export async function saveGame(input: SaveGameInput): Promise<SavedGame> {
   const playerRowId = new Map<string, string>();
   for (const s of input.standings) playerRowId.set(s.player.id, randomUUID());
   const multiplayer = input.standings.length > 1;
-  const { mode, difficulty } = input.settings;
+  const { game, mode, difficulty } = input.settings;
   const ratings: Record<string, RatingChange> = {};
   /** Elo avant, variation et parties jouées après celle-ci, pour chaque joueur classé (valeurs internes). */
   const stored = new Map<string, { before: number; delta: number; games: number }>();
@@ -68,7 +73,7 @@ export async function saveGame(input: SaveGameInput): Promise<SavedGame> {
     const rated = input.solo ? [] : input.standings.filter((s) => input.userIds[s.player.id]);
     if (rated.length >= 2) {
       const rows = await tx.rating.findMany({
-        where: { mode, difficulty, userId: { in: rated.map((s) => input.userIds[s.player.id]!) } },
+        where: { game, mode, difficulty, userId: { in: rated.map((s) => input.userIds[s.player.id]!) } },
       });
       const current = new Map(rows.map((r) => [r.userId, r]));
       const entries = rated.map((s) => {
@@ -84,8 +89,8 @@ export async function saveGame(input: SaveGameInput): Promise<SavedGame> {
         const userId = input.userIds[e.id]!;
         // Incrément plutôt qu'écriture : deux parties qui se terminent en même temps ne s'écrasent pas.
         await tx.rating.upsert({
-          where: { userId_mode_difficulty: { userId, mode, difficulty } },
-          create: { userId, mode, difficulty, rating: INITIAL_RATING + delta, games: 1 },
+          where: { userId_game_mode_difficulty: { userId, game, mode, difficulty } },
+          create: { userId, game, mode, difficulty, rating: INITIAL_RATING + delta, games: 1 },
           update: { rating: { increment: delta }, games: { increment: 1 } },
         });
       }
@@ -98,7 +103,8 @@ export async function saveGame(input: SaveGameInput): Promise<SavedGame> {
         solo: input.solo,
         hostId: input.hostUserId,
         settings: input.settings as unknown as Prisma.InputJsonValue,
-        mode: input.settings.mode,
+        game,
+        mode,
         difficulty: input.settings.difficulty,
         turnStyle: input.settings.turnStyle,
         seed: input.seed,
@@ -129,26 +135,36 @@ export async function saveGame(input: SaveGameInput): Promise<SavedGame> {
       })),
     });
 
-    const questionRows = input.history.map((r) => ({
-      id: randomUUID(),
-      gameId,
-      position: r.index,
-      text: r.question.text,
-      answer: r.question.answer,
-      tags: r.question.tags,
-      difficulty: r.question.difficulty,
-      timeLimitMs: r.timeLimitMs,
-      activePlayerKey: r.activePlayerId,
-    }));
+    // Un calcul par manche ; à la bombe, un par destinataire (avec son auteur), le tirage dans `puzzle`.
+    const questionRows = input.history.flatMap((r) =>
+      (r.personal ? Object.entries(r.personal) : [["", { question: r.question, authorId: null }] as const]).map(([forPlayerKey, { question, authorId }]) => ({
+        id: randomUUID(),
+        gameId,
+        position: r.index,
+        text: question.text,
+        answer: question.answer,
+        solution: question.solution,
+        puzzle: r.question.puzzle as unknown as Prisma.InputJsonValue,
+        tags: question.tags,
+        difficulty: question.difficulty,
+        timeLimitMs: r.timeLimitMs,
+        activePlayerKey: r.activePlayerId,
+        forPlayerKey,
+        authorPlayerKey: authorId,
+      })),
+    );
     if (questionRows.length) await tx.question.createMany({ data: questionRows });
+    const rowOf = (position: number, playerKey: string) =>
+      questionRows.find((q) => q.position === position && q.forPlayerKey === playerKey) ?? questionRows.find((q) => q.position === position)!;
 
-    const answerRows = input.history.flatMap((r, i) =>
+    const answerRows = input.history.flatMap((r) =>
       r.answers
         .filter((a) => playerRowId.has(a.playerId))
         .map((a) => ({
-          questionId: questionRows[i]!.id,
+          questionId: rowOf(r.index, a.playerId).id,
           playerId: playerRowId.get(a.playerId)!,
           value: a.value,
+          text: a.text,
           correct: a.correct,
           timeMs: Math.round(a.timeMs),
         })),
@@ -221,7 +237,7 @@ export async function loadGameReport(id: string): Promise<StoredGameReport | nul
     where: { id },
     include: {
       players: { orderBy: { rank: "asc" } },
-      questions: { orderBy: { position: "asc" }, include: { answers: true } },
+      questions: { orderBy: [{ position: "asc" }, { forPlayerKey: "asc" }], include: { answers: true } },
     },
   });
   if (!game) return null;
@@ -243,16 +259,40 @@ export async function loadGameReport(id: string): Promise<StoredGameReport | nul
     };
     return { rank: p.rank, player };
   });
-  const settings = game.settings as unknown as GameSettings;
-  const history: RoundRecord[] = game.questions.map((q) => {
-    const answers = q.answers
-      .map((a) => ({ playerId: keyByRow.get(a.playerId) ?? "?", value: a.value, correct: a.correct, timeMs: a.timeMs }))
+  // Les parties d'avant les jeux n'ont pas `game` dans leurs réglages : la colonne fait foi.
+  const settings = { ...(game.settings as unknown as GameSettings), game: game.game as GameId };
+  const toQuestion = (q: (typeof game.questions)[number]): Question => ({
+    index: q.position,
+    text: q.text,
+    answer: q.answer,
+    solution: q.solution ?? String(q.answer),
+    // À la bombe, `puzzle` est le tirage de la manche ; le calcul de chacun est un calcul standard.
+    puzzle: q.forPlayerKey ? { game: "standard" } : ((q.puzzle as Puzzle | null) ?? { game: "standard" }),
+    tags: q.tags as OpTag[],
+    difficulty: settings.difficulty,
+  });
+  // Les lignes d'une même manche (une par destinataire à la bombe) sont regroupées.
+  const byPosition = new Map<number, (typeof game.questions)[number][]>();
+  for (const q of game.questions) byPosition.set(q.position, [...(byPosition.get(q.position) ?? []), q]);
+  const history: RoundRecord[] = [...byPosition.values()].map((rows) => {
+    const q = rows[0]!;
+    const answers = rows
+      .flatMap((row) => row.answers)
+      .map((a) => ({ playerId: keyByRow.get(a.playerId) ?? "?", value: a.value, text: a.text, correct: a.correct, timeMs: a.timeMs }))
       .sort((a, b) => a.timeMs - b.timeMs);
     // Course de vitesse : le point revient à la première bonne réponse arrivée.
     const first = settings.mode === "speed-race" ? answers.find((a) => a.correct) : undefined;
+    const draw = q.puzzle as Puzzle | null;
+    const personal = q.forPlayerKey
+      ? Object.fromEntries(rows.map((row) => [row.forPlayerKey, { question: toQuestion(row), authorId: row.authorPlayerKey ?? "?" }]))
+      : undefined;
     return {
       index: q.position,
-      question: { index: q.position, text: q.text, answer: q.answer, tags: q.tags as OpTag[], difficulty: settings.difficulty },
+      question:
+        personal && draw?.game === "bomb"
+          ? { index: q.position, text: draw.tiles.join(" "), answer: 0, solution: "", puzzle: draw, tags: [], difficulty: settings.difficulty }
+          : toQuestion(q),
+      ...(personal ? { personal } : {}),
       activePlayerId: q.activePlayerKey,
       startedAt: 0,
       timeLimitMs: q.timeLimitMs,
@@ -303,6 +343,7 @@ export interface DashboardData {
     gameId: string;
     endedAt: string;
     solo: boolean;
+    game: string;
     mode: string;
     difficulty: number;
     rank: number;
@@ -313,10 +354,13 @@ export interface DashboardData {
     /** Effet sur l'Elo (null si la partie n'était pas classée) */
     rating: RatingChange | null;
   }[];
-  /** Elo par mode et par difficulté, là où le joueur a déjà joué une partie classée ; `rating` null pendant le placement. */
-  ratings: { mode: string; difficulty: number; rating: number | null; games: number }[];
+  /** Elo par jeu, mode et difficulté, là où le joueur a déjà joué une partie classée ; `rating` null pendant le placement. */
+  ratings: { game: string; mode: string; difficulty: number; rating: number | null; games: number }[];
   byOperation: { tag: OpTag; attempts: number; correct: number; avgCorrectMs: number | null }[];
 }
+
+/** Jeux comptés dans les statistiques par opération du tableau de bord. */
+const OPERATION_STATS_GAMES: GameId[] = GAME_IDS.filter((g) => GAMES[g].operationStats);
 
 export async function getDashboard(userId: string): Promise<DashboardData> {
   const [s, recentRows, answers, ratingRows] = await Promise.all([
@@ -325,18 +369,19 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       where: { userId },
       orderBy: { game: { endedAt: "desc" } },
       take: 30,
-      include: { game: { select: { id: true, endedAt: true, solo: true, mode: true, difficulty: true, _count: { select: { players: true } } } } },
+      include: { game: { select: { id: true, endedAt: true, solo: true, game: true, mode: true, difficulty: true, _count: { select: { players: true } } } } },
     }),
     prisma.answer.findMany({
-      where: { player: { userId } },
+      // Les stats par opération n'ont de sens que pour les jeux dont les étiquettes sont des opérations.
+      where: { player: { userId, game: { game: { in: OPERATION_STATS_GAMES } } } },
       orderBy: { player: { game: { endedAt: "desc" } } },
       take: 3000,
       select: { correct: true, timeMs: true, question: { select: { tags: true } } },
     }),
     prisma.rating.findMany({
       where: { userId },
-      orderBy: [{ mode: "asc" }, { difficulty: "asc" }],
-      select: { mode: true, difficulty: true, rating: true, games: true },
+      orderBy: [{ game: "asc" }, { mode: "asc" }, { difficulty: "asc" }],
+      select: { game: true, mode: true, difficulty: true, rating: true, games: true },
     }),
   ]);
 
@@ -372,6 +417,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       gameId: r.game.id,
       endedAt: r.game.endedAt.toISOString(),
       solo: r.game.solo,
+      game: r.game.game,
       mode: r.game.mode,
       difficulty: r.game.difficulty,
       rank: r.rank,
@@ -396,7 +442,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
 }
 
 /* ------------------------------------------------------------------ */
-/* Classement : meilleurs Elo d'un mode et d'une difficulté             */
+/* Classement : meilleurs Elo d'un jeu, d'un mode et d'une difficulté   */
 /* ------------------------------------------------------------------ */
 
 /** Joueurs affichés dans le classement. */
@@ -410,15 +456,15 @@ export interface LeaderboardEntry {
   userId: string;
   name: string;
   rating: number;
-  /** Parties classées dans ce mode et cette difficulté */
+  /** Parties classées dans ce jeu, ce mode et cette difficulté */
   games: number;
-  /** Parties classées gagnées (1re place) dans ce mode et cette difficulté */
+  /** Parties classées gagnées (1re place) dans ce jeu, ce mode et cette difficulté */
   wins: number;
 }
 
 export interface LeaderboardData {
   top: LeaderboardEntry[];
-  /** Joueurs classés (placement terminé) dans ce mode et cette difficulté */
+  /** Joueurs classés (placement terminé) dans ce jeu, ce mode et cette difficulté */
   total: number;
   /** Place du joueur connecté, null s'il n'est pas encore classé */
   me: LeaderboardEntry | null;
@@ -426,23 +472,30 @@ export interface LeaderboardData {
   mePlacement: number | null;
 }
 
+/** Un classement : un jeu, un mode et une difficulté. */
+export interface Board {
+  game: string;
+  mode: string;
+  difficulty: number;
+}
+
 /** Seuls les joueurs sortis du placement sont classés : l'Elo caché ne quitte jamais la base. */
-const rankedWhere = (mode: string, difficulty: number) => ({ mode, difficulty, games: { gte: PLACEMENT_GAMES } });
+const rankedWhere = (board: Board) => ({ ...board, games: { gte: PLACEMENT_GAMES } });
 const leaderboardOrder = [{ rating: "desc" }, { games: "desc" }, { userId: "asc" }] satisfies Prisma.RatingOrderByWithRelationInput[];
 const leaderboardSelect = { userId: true, rating: true, games: true, user: { select: { name: true } } } as const;
 type LeaderboardRow = { userId: string; rating: number; games: number; user: { name: string } };
 
 /** Place d'un Elo : 1 + nombre de joueurs classés strictement au-dessus. */
-function rankOf(mode: string, difficulty: number, rating: number): Promise<number> {
-  return prisma.rating.count({ where: { ...rankedWhere(mode, difficulty), rating: { gt: rating } } }).then((n) => n + 1);
+function rankOf(board: Board, rating: number): Promise<number> {
+  return prisma.rating.count({ where: { ...rankedWhere(board), rating: { gt: rating } } }).then((n) => n + 1);
 }
 
-/** Victoires (1re place d'une partie classée) de chaque joueur dans ce mode et cette difficulté. */
-async function winsOf(mode: string, difficulty: number, userIds: string[]): Promise<Map<string, number>> {
+/** Victoires (1re place d'une partie classée) de chaque joueur dans ce classement. */
+async function winsOf(board: Board, userIds: string[]): Promise<Map<string, number>> {
   if (!userIds.length) return new Map();
   const rows = await prisma.gamePlayer.groupBy({
     by: ["userId"],
-    where: { userId: { in: userIds }, rank: 1, ratingGames: { not: null }, game: { mode, difficulty } },
+    where: { userId: { in: userIds }, rank: 1, ratingGames: { not: null }, game: board },
     _count: { _all: true },
   });
   return new Map(rows.map((r) => [r.userId!, r._count._all]));
@@ -457,15 +510,15 @@ const toEntry = (r: LeaderboardRow, rank: number, wins: Map<string, number>): Le
   wins: wins.get(r.userId) ?? 0,
 });
 
-/** Top 100 d'un mode et d'une difficulté, avec la place (ou l'avancée du placement) du joueur connecté. */
-export async function getLeaderboard(mode: string, difficulty: number, viewerId?: string): Promise<LeaderboardData> {
+/** Top 100 d'un classement, avec la place (ou l'avancée du placement) du joueur connecté. */
+export async function getLeaderboard(board: Board, viewerId?: string): Promise<LeaderboardData> {
   const [rows, total, mine] = await Promise.all([
-    prisma.rating.findMany({ where: rankedWhere(mode, difficulty), orderBy: leaderboardOrder, take: LEADERBOARD_SIZE, select: leaderboardSelect }),
-    prisma.rating.count({ where: rankedWhere(mode, difficulty) }),
-    viewerId ? prisma.rating.findUnique({ where: { userId_mode_difficulty: { userId: viewerId, mode, difficulty } }, select: leaderboardSelect }) : null,
+    prisma.rating.findMany({ where: rankedWhere(board), orderBy: leaderboardOrder, take: LEADERBOARD_SIZE, select: leaderboardSelect }),
+    prisma.rating.count({ where: rankedWhere(board) }),
+    viewerId ? prisma.rating.findUnique({ where: { userId_game_mode_difficulty: { userId: viewerId, ...board } }, select: leaderboardSelect }) : null,
   ]);
   const ranked = mine && mine.games >= PLACEMENT_GAMES ? mine : null;
-  const wins = await winsOf(mode, difficulty, [...rows.map((r) => r.userId), ...(ranked ? [ranked.userId] : [])]);
+  const wins = await winsOf(board, [...rows.map((r) => r.userId), ...(ranked ? [ranked.userId] : [])]);
 
   // Classement « 1, 2, 2, 4 » : un ex æquo prend la place du premier de son Elo.
   const top: LeaderboardEntry[] = [];
@@ -474,33 +527,34 @@ export async function getLeaderboard(mode: string, difficulty: number, viewerId?
     top.push(toEntry(r, prev && prev.rating === r.rating ? prev.rank : i + 1, wins));
   });
 
-  const me = ranked ? (top.find((e) => e.userId === ranked.userId) ?? toEntry(ranked, await rankOf(mode, difficulty, ranked.rating), wins)) : null;
+  const me = ranked ? (top.find((e) => e.userId === ranked.userId) ?? toEntry(ranked, await rankOf(board, ranked.rating), wins)) : null;
   return { top, total, me, mePlacement: mine && !ranked ? mine.games : null };
 }
 
 /** Joueurs classés dont le pseudo contient `query` (insensible à la casse), avec leur place, même hors du top 100. */
-export async function searchLeaderboard(mode: string, difficulty: number, query: string): Promise<LeaderboardEntry[]> {
+export async function searchLeaderboard(board: Board, query: string): Promise<LeaderboardEntry[]> {
   const q = query.trim();
   if (!q) return [];
   const rows = await prisma.rating.findMany({
-    where: { ...rankedWhere(mode, difficulty), user: { name: { contains: q, mode: "insensitive" } } },
+    where: { ...rankedWhere(board), user: { name: { contains: q, mode: "insensitive" } } },
     orderBy: leaderboardOrder,
     take: LEADERBOARD_SEARCH_LIMIT,
     select: leaderboardSelect,
   });
   const [wins, ranks] = await Promise.all([
-    winsOf(mode, difficulty, rows.map((r) => r.userId)),
-    Promise.all(rows.map((r) => rankOf(mode, difficulty, r.rating))),
+    winsOf(board, rows.map((r) => r.userId)),
+    Promise.all(rows.map((r) => rankOf(board, r.rating))),
   ]);
   return rows.map((r, i) => toEntry(r, ranks[i]!, wins));
 }
 
-/** Classement d'un joueur dans un mode et une difficulté où il a fini son placement. */
+/** Classement d'un joueur dans un jeu, un mode et une difficulté où il a fini son placement. */
 export interface PlayerRanking {
+  game: string;
   mode: string;
   difficulty: number;
   rank: number;
-  /** Joueurs classés dans ce mode et cette difficulté */
+  /** Joueurs classés dans ce jeu, ce mode et cette difficulté */
   total: number;
   rating: number;
   games: number;
@@ -526,19 +580,16 @@ export async function getPlayerProfile(userId: string, viewerId?: string): Promi
     select: {
       id: true,
       name: true,
-      ratings: { where: { games: { gte: PLACEMENT_GAMES } }, orderBy: [{ mode: "asc" }, { difficulty: "asc" }] },
+      ratings: { where: { games: { gte: PLACEMENT_GAMES } }, orderBy: [{ game: "asc" }, { mode: "asc" }, { difficulty: "asc" }] },
     },
   });
   if (!user) return null;
   const [rankings, friendship] = await Promise.all([
     Promise.all(
       user.ratings.map(async (r) => {
-        const [rank, total, wins] = await Promise.all([
-          rankOf(r.mode, r.difficulty, r.rating),
-          prisma.rating.count({ where: rankedWhere(r.mode, r.difficulty) }),
-          winsOf(r.mode, r.difficulty, [userId]),
-        ]);
-        return { mode: r.mode, difficulty: r.difficulty, rank, total, rating: r.rating, games: r.games, wins: wins.get(userId) ?? 0 };
+        const board: Board = { game: r.game, mode: r.mode, difficulty: r.difficulty };
+        const [rank, total, wins] = await Promise.all([rankOf(board, r.rating), prisma.rating.count({ where: rankedWhere(board) }), winsOf(board, [userId])]);
+        return { game: r.game, mode: r.mode, difficulty: r.difficulty, rank, total, rating: r.rating, games: r.games, wins: wins.get(userId) ?? 0 };
       }),
     ),
     viewerId ? friendshipState(viewerId, userId) : null,

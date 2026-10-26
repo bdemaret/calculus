@@ -63,6 +63,76 @@ test.describe("course de vitesse", () => {
   });
 });
 
+test.describe("nombre manquant en ligne", () => {
+  test("course de vitesse : nombres et opérateurs manquants, le bot répond aussi", async ({ host, bots }) => {
+    const alice = await host("Alice", { game: "missing", missingKind: "mixed", difficulty: 3, operations: ["add", "sub", "mul", "div"], mode: "speed-race", rounds: 5, timePerQuestion: 20 });
+    const code = await alice.create();
+    const [bot] = await bots(code, ["Bot"]);
+    bot!.play(({ index }) => (index === 2 ? "right" : index === 3 ? "wrong" : "idle"));
+    await expect(alice.slot("Bot")).toBeVisible();
+    await expect(alice.page.getByRole("button", { name: new RegExp(t("games.missing.name")) })).toHaveAttribute("aria-pressed", "true");
+    await alice.start();
+
+    await alice.play("right");
+    await alice.play("right");
+    // Manche 3 : le bot trouve avant Alice.
+    await expect(alice.result).toContainText(t("game.pointFor", { names: "Bot" }), { timeout: 30_000 });
+    const missed = await alice.play("wrong");
+    await expect(alice.result).toContainText(`${t("game.no")} : ${missed.answer}`);
+    await alice.play("right");
+
+    await expect(alice.rankingRow("Alice")).toContainText(`3 ${t("report.pts")}`);
+    await expect(alice.rankingRow("Bot")).toContainText(`1 ${t("report.pts")}`);
+  });
+});
+
+test.describe("nombre manquant, chacun son tour", () => {
+  test("l'opérateur tapé par le joueur actif s'affiche chez les autres", async ({ host, bots }) => {
+    const alice = await host("Alice", {
+      game: "missing",
+      missingKind: "operator",
+      difficulty: 3,
+      operations: ["add", "sub", "mul", "div"],
+      mode: "speed-race",
+      rounds: 5,
+      turnStyle: "turns",
+      timePerQuestion: 20,
+    });
+    const code = await alice.create();
+    const [bot] = await bots(code, ["Bot"]);
+    bot!.play(() => ({ move: "right", typeFirst: true, delayMs: 1_500 }));
+    await expect(alice.slot("Bot")).toBeVisible();
+    await alice.start();
+
+    const status = alice.page.locator("p.status");
+    for (let i = 0; i < 5; i++) {
+      await alice.play("right");
+      if (i === 0) {
+        await expect(status).toHaveText(t("game.turnOf", { name: "Bot" }), { timeout: 15_000 });
+        await expect(answerBox(alice.page)).toBeDisabled();
+        await expect(answerBox(alice.page)).toHaveValue(/^[+−×÷]$/);
+      }
+    }
+    await expect(alice.rankingRow("Alice")).toContainText(`5 ${t("report.pts")}`, { timeout: 20_000 });
+    await expect(alice.rankingRow("Bot")).toContainText(`5 ${t("report.pts")}`);
+  });
+});
+
+test.describe("le bon compte en ligne", () => {
+  test("battle royale : une expression fausse élimine, le dernier en vie gagne", async ({ host, bots }) => {
+    const alice = await host("Alice", { game: "right-count", mode: "battle-royale", operations: ["add", "sub", "mul"], difficulty: 2, timePerQuestion: 60 });
+    const code = await alice.create();
+    const [bot] = await bots(code, ["Bot"]);
+    bot!.play(() => "wrong");
+    await expect(alice.slot("Bot")).toBeVisible();
+    await alice.start();
+
+    await alice.play("right");
+    await expect(alice.verdict).toHaveText(t("report.first"), { timeout: 20_000 });
+    await expect(alice.rankingRow("Bot")).toBeVisible();
+  });
+});
+
 test.describe("battle royale", () => {
   test("une erreur élimine, le dernier en vie gagne", async ({ host, bots }) => {
     const alice = await host("Alice", { mode: "battle-royale" });
@@ -198,7 +268,7 @@ test.describe("Elo", () => {
 
   const idOf = async (email: string) => (await prisma.user.findUniqueOrThrow({ where: { email } })).id;
   const ratingOf = (userId: string) =>
-    prisma.rating.findUniqueOrThrow({ where: { userId_mode_difficulty: { userId, mode: "speed-race", difficulty: 2 } } });
+    prisma.rating.findUniqueOrThrow({ where: { userId_game_mode_difficulty: { userId, game: "standard", mode: "speed-race", difficulty: 2 } } });
 
   test("deux comptes neufs : l'Elo bouge en caché pendant le placement", async ({ page, user, request }) => {
     const rival = await signUp(request);

@@ -2,11 +2,12 @@
 import { useState, useTransition, type FormEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { LeaderboardData, LeaderboardEntry } from "@calculus/db";
-import { DIFFICULTIES, GAME_MODES, PLACEMENT_GAMES, type Difficulty, type GameModeId } from "@calculus/game-core";
+import { DIFFICULTIES, GAMES, GAME_IDS, PLACEMENT_GAMES, type Difficulty, type GameId, type GameModeId } from "@calculus/game-core";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { formatPercent } from "@/lib/format";
 
 interface Props {
+  game: GameId;
   mode: GameModeId;
   difficulty: Difficulty;
   query: string;
@@ -18,7 +19,7 @@ interface Props {
   viewerId: string | null;
 }
 
-export function LeaderboardView({ mode, difficulty, query, board, size, results, viewerId }: Props) {
+export function LeaderboardView({ game, mode, difficulty, query, board, size, results, viewerId }: Props) {
   const t = useTranslations();
   const router = useRouter();
   const pathname = usePathname();
@@ -45,9 +46,22 @@ export function LeaderboardView({ mode, difficulty, query, board, size, results,
         <p className="muted">{t("leaderboard.lede", { total: PLACEMENT_GAMES })}</p>
       </div>
 
+      <nav className="board-tabs" aria-label={t("leaderboard.gamesLabel")}>
+        {GAME_IDS.map((g) => (
+          // Changer de jeu garde le mode s'il existe dans ce jeu, sinon on prend son premier mode.
+          <Link
+            key={g}
+            href={{ pathname: `/leaderboard/${g}/${GAMES[g].modes.includes(mode) ? mode : GAMES[g].modes[0]}`, query: { difficulty } }}
+            aria-current={g === game ? "page" : undefined}
+          >
+            {t(`games.${g}.name`)}
+          </Link>
+        ))}
+      </nav>
+
       <nav className="board-tabs" aria-label={t("leaderboard.modesLabel")}>
-        {GAME_MODES.map((m) => (
-          <Link key={m} href={{ pathname: `/leaderboard/${m}`, query: { difficulty } }} aria-current={m === mode ? "page" : undefined}>
+        {GAMES[game].modes.map((m) => (
+          <Link key={m} href={{ pathname: `/leaderboard/${game}/${m}`, query: { difficulty } }} aria-current={m === mode ? "page" : undefined}>
             {t(`modes.${m}.name`)}
           </Link>
         ))}

@@ -12,7 +12,7 @@
     "home": "Retour à l’accueil",
     "tagline": "calcul mental",
     "main": "Navigation principale",
-    "modes": "Modes",
+    "games": "Jeux",
     "dashboard": "Tableau de bord",
     "leaderboard": "Classement",
     "login": "Se connecter",
@@ -37,7 +37,8 @@
     "playSolo": "Jouer solo",
     "playSoloKicker": "5 niveaux",
     "playSoloSub": "Cinq niveaux, du « 7 + 4 » au « 125 × 8 − 36 ÷ 4 ».",
-    "modesTitle": "Deux modes de jeu"
+    "gamesTitle": "Quatre jeux, deux modes",
+    "allRules": "Toutes les règles"
   },
   "modes": {
     "battle-royale": {
@@ -53,9 +54,34 @@
       "solo": "Une série de calculs, un point par bonne réponse. Ton temps moyen compte pour ta progression."
     }
   },
-  "modesPage": {
-    "title": "Modes de jeu",
-    "intro": "Chaque partie combine un mode, un niveau de difficulté et les opérations choisies par le créateur du lobby.",
+  "games": {
+    "standard": {
+      "name": "Calcul mental",
+      "short": "Trouve le résultat.",
+      "long": "Un calcul s’affiche, tu tapes son résultat. Du « 7 + 4 » au « 125 × 8 − 36 ÷ 4 » selon le niveau."
+    },
+    "right-count": {
+      "name": "Le bon compte",
+      "short": "Toutes les plaques, pile sur la cible.",
+      "long": "Des plaques et une cible : combine toutes les plaques, chacune exactement une fois, avec les opérations et des parenthèses pour tomber pile sur la cible. Il y a toujours une solution."
+    },
+    "missing": {
+      "name": "Nombre manquant",
+      "short": "Complète l’égalité.",
+      "long": "Le résultat est donné, mais il manque un nombre ou un opérateur dans le calcul : « 23 + ? = 41 », « 12 ? 4 = 3 ». Trouve ce qui manque."
+    },
+    "bomb": {
+      "name": "La bombe",
+      "short": "Piège un calcul, désamorce celui d’un autre.",
+      "long": "Tout le monde reçoit les mêmes plaques et construit un calcul : sa bombe. Quand tout le monde est prêt, chaque bombe part chez un autre joueur, qui doit trouver son résultat. Une erreur et tu sors ; si ta bombe fait sauter quelqu’un, tu marques un point. En ligne, à partir de deux joueurs."
+    }
+  },
+  "gamesPage": {
+    "title": "Jeux et modes",
+    "intro": "Choisis un jeu (ce qu’on résout), puis un mode (comment on gagne). Chaque partie combine aussi un niveau de difficulté et les opérations choisies par le créateur du lobby.",
+    "gamesTitle": "Les jeux",
+    "modesTitle": "Les modes",
+    "playableIn": "Se joue en :",
     "turnTitle": "Simultané ou chacun son tour",
     "turnText": "En simultané, tout le monde voit le même calcul en même temps. En « chacun son tour », un seul joueur répond et les autres regardent sa réponse s’écrire en direct. Seul le battle royale élimine.",
     "levelsTitle": "Les cinq niveaux"
@@ -72,13 +98,22 @@
     "sub": "Soustractions",
     "mul": "Multiplications",
     "div": "Divisions",
-    "paren": "Parenthèses"
+    "paren": "Parenthèses",
+    "hole-num": "Nombres manquants",
+    "hole-op": "Opérateurs manquants"
   },
   "settings": {
+    "game": "Jeu",
     "mode": "Mode de jeu",
     "difficulty": "Difficulté",
     "example": "par exemple : {calc}",
     "operations": "Calculs",
+    "missingKind": {
+      "label": "Ce qui manque",
+      "number": "Un nombre",
+      "operator": "Un opérateur",
+      "mixed": "L’un ou l’autre"
+    },
     "rounds": "Nombre de calculs",
     "roundsPerPlayer": "Nombre de calculs par joueur",
     "time": "Temps par calcul",
@@ -86,7 +121,8 @@
     "seconds": "{n} s",
     "answers": "Réponses",
     "simultaneous": "Tous en même temps",
-    "turns": "Chacun son tour"
+    "turns": "Chacun son tour",
+    "buildTime": "Temps pour construire sa bombe"
   },
   "solo": {
     "title": "Jouer solo",
@@ -152,7 +188,8 @@
     "rules": "Règles de la partie",
     "waitingHost": "L’hôte choisit les règles et lance la partie.",
     "hostHint": "Tu es l’hôte : règle la partie, puis lance-la quand tout le monde est là.",
-    "everyoneReady": "Tout le monde est prêt."
+    "everyoneReady": "Tout le monde est prêt.",
+    "notEnoughPlayers": "Il faut au moins {count} joueurs pour ce jeu."
   },
   "game": {
     "yourAnswer": "Ta réponse",
@@ -179,6 +216,48 @@
       "listeningTouch": "À l’écoute… dis ta réponse, puis OK",
       "denied": "Micro bloqué : autorise-le dans ton navigateur",
       "unsupported": "Reconnaissance vocale indisponible dans ce navigateur"
+    },
+    "operator": {
+      "add": "plus",
+      "sub": "moins",
+      "mul": "fois",
+      "div": "divisé par"
+    },
+    "target": "Cible",
+    "tiles": "Plaques",
+    "openParen": "Parenthèse ouvrante",
+    "closeParen": "Parenthèse fermante",
+    "useAllTiles": "Bonne cible ! Il reste des plaques : utilise-les toutes.",
+    "bomb": {
+      "building": "Construis ta bombe avec ces plaques.",
+      "buildTitle": "Plaques",
+      "rules": "Au moins {min} plaques, chacune une fois au plus · résultat ≤ {max}",
+      "parenYes": "parenthèses permises",
+      "parenNo": "sans parenthèses",
+      "sent": "Ta bombe : {bomb}",
+      "ready": "{count} / {total} bombes prêtes",
+      "youDefuse": "Tu désamorces la bombe de {name}",
+      "yourBombGoes": "Ta bombe part chez {name}.",
+      "pair": "{author} → {defuser}",
+      "defusing": "Bombe de {name} : trouve son résultat.",
+      "defused": "désamorcée",
+      "exploded": "a explosé",
+      "explodedWith": "a explosé ({value})",
+      "fallback": "bombe de secours",
+      "errors": {
+        "syntax": "Calcul incomplet.",
+        "tiles": "Seulement les plaques du tirage, chacune une fois au plus.",
+        "min-tiles": "Utilise plus de plaques.",
+        "operations": "Opération non permise.",
+        "parentheses": "Pas de parenthèses à ce niveau.",
+        "invalid": "Résultats intermédiaires entiers et positifs, divisions exactes.",
+        "too-big": "Résultat trop grand.",
+        "already-answered": "Ta bombe est déjà envoyée.",
+        "not-allowed": "Tu ne peux plus construire de bombe.",
+        "no-round": "La construction est terminée.",
+        "unknown-player": "Joueur inconnu.",
+        "invalid-value": "Calcul invalide."
+      }
     }
   },
   "report": {
@@ -367,6 +446,7 @@
   "leaderboard": {
     "title": "Classement",
     "lede": "Les meilleurs Elo de chaque mode et de chaque difficulté. On y apparaît après ses {total} parties de placement.",
+    "gamesLabel": "Jeux du classement",
     "modesLabel": "Modes de jeu",
     "searchLabel": "Chercher un joueur",
     "searchPlaceholder": "Pseudo",
@@ -631,7 +711,7 @@
     "title": "{name} · profil",
     "notFound": "Joueur introuvable",
     "rankingsTitle": "Classement",
-    "mode": "Mode",
+    "mode": "Jeu · mode",
     "rankOf": "{rank} / {total}",
     "unranked": "Pas encore classé : il faut finir ses parties de placement dans un mode et une difficulté pour y apparaître.",
     "backToLeaderboard": "Retour au classement",

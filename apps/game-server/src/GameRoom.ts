@@ -2,8 +2,11 @@ import { Room, ServerError, type Client, type Delayed } from "@colyseus/core";
 import {
   CODE_ALPHABET,
   CODE_LENGTH,
+  ALL_OPERATIONS,
+  GAMES,
   GameEngine,
   JOIN_ERRORS,
+  MAX_EXPRESSION_LENGTH,
   MAX_PLAYERS,
   buildReport,
   randomSeed,
@@ -11,9 +14,12 @@ import {
   type GameReport,
   type GameSettings,
   type LobbyPlayer,
+  type Operation,
+  type PlayerAnswer,
   type RatingChange,
   type RoomPhase,
   type RoomSnapshot,
+  type RoundRecord,
   type RoundResultPayload,
 } from "@calculus/game-core";
 import { z } from "zod";
@@ -23,6 +29,8 @@ import { persistGame } from "./persist";
 /** Durées des transitions, en ms. */
 const COUNTDOWN_MS = 3000;
 const ROUND_RESULT_MS = 2200;
+/** La bombe : temps pour montrer qui désamorce la bombe de qui, avant le désamorçage. */
+const ASSIGN_MS = 3000;
 /** Petite marge laissée aux réponses envoyées à la dernière milliseconde. */
 const LATENCY_GRACE_MS = 150;
 /** Temps laissé à un joueur déconnecté pour revenir, en secondes. */
@@ -56,10 +64,17 @@ interface Member {
   rateCount: number;
 }
 
-const answerSchema = z.object({ value: z.number().int().min(0).max(1_000_000), questionIndex: z.number().int().min(0) });
+/** Une réponse : un nombre, une expression ou un opérateur (la forme attendue par le jeu est vérifiée par le moteur). */
+const answerSchema = z.union([
+  z.object({ questionIndex: z.number().int().min(0), value: z.number().int().min(0).max(1_000_000) }).strict(),
+  z.object({ questionIndex: z.number().int().min(0), expr: z.string().min(1).max(MAX_EXPRESSION_LENGTH) }).strict(),
+  z.object({ questionIndex: z.number().int().min(0), op: z.enum(ALL_OPERATIONS as [Operation, ...Operation[]]) }).strict(),
+]);
 const readySchema = z.object({ ready: z.boolean() });
-const typingSchema = z.object({ value: z.string().max(8).regex(/^\d*$/) });
+/** Saisie visible : des chiffres, un opérateur (nombre manquant) ou une expression (bon compte). */
+const typingSchema = z.object({ value: z.string().max(MAX_EXPRESSION_LENGTH).regex(/^[0-9+\-−×÷*x/:() ]*$/) });
 const kickSchema = z.object({ playerId: z.string().max(100) });
+const bombSchema = z.object({ roundIndex: z.number().int().min(0), expr: z.string().min(1).max(MAX_EXPRESSION_LENGTH) });
 
 /**
  * Une salle de jeu = un lobby. Elle reste ouverte d'une partie à l'autre,
@@ -111,12 +126,12 @@ export class GameRoom extends Room {
 
     this.on("start", (m) => {
       if (m.id !== this.hostId || this.phase !== "lobby") return;
-      this.startGame();
+      this.startGame(m);
     });
 
     this.on("replay-same", (m) => {
       if (m.id !== this.hostId || this.phase !== "finished") return;
-      this.startGame();
+      this.startGame(m);
     });
 
     this.on("replay-new", (m) => {
@@ -133,9 +148,11 @@ export class GameRoom extends Room {
 
     this.on("answer", (m, msg, client) => this.handleAnswer(m, client, msg));
 
+    this.on("bomb", (m, msg, client) => this.handleBomb(m, client, msg));
+
     this.on("hello", (m, _msg, client) => {
       client.send("welcome", { playerId: m.id });
-      client.send("snapshot", this.snapshot());
+      client.send("snapshot", this.snapshot(m.id));
     });
 
     this.on("typing", (m, msg, client) => {
@@ -232,11 +249,23 @@ export class GameRoom extends Room {
     if (this.engine && this.phase !== "lobby" && this.phase !== "finished") {
       this.engine.setConnected(id, false);
       const round = this.engine.currentRound;
+      if (this.phase === "build") {
+        // La bombe : partie finie (la manche est annulée), ou tous ceux qui restent ont envoyé leur bombe.
+        if (this.engine.rules.isGameOver(this.engine)) {
+          this.engine.closeRound();
+          this.finish();
+          return;
+        }
+        if (this.engine.bombPlayers.every((p) => round?.bombs?.[p.id])) {
+          this.endBuild();
+          return;
+        }
+      }
       if (this.phase === "question" && round && this.engine.rules.shouldCloseEarly(this.engine, round)) {
         this.closeRound();
         return;
       }
-      if (this.engine.rules.isGameOver(this.engine) && this.phase === "question") {
+      if (this.engine.rules.isGameOver(this.engine) && (this.phase === "question" || this.phase === "assign")) {
         this.closeRound();
         return;
       }
@@ -249,9 +278,14 @@ export class GameRoom extends Room {
     this.broadcastSnapshot();
   }
 
-  private startGame() {
-    this.timer?.clear();
+  private startGame(host: Member) {
     // Ceux qui ont quitté pendant la partie précédente ne sont pas repris.
+    const present = [...this.members.values()].filter((m) => m.connected).length;
+    if (present < GAMES[this.settings.game].minPlayers) {
+      host.client.send("error", { code: "not-enough-players" });
+      return;
+    }
+    this.timer?.clear();
     for (const [id, m] of this.members) if (!m.connected) this.members.delete(id);
     if (this.members.size === 0) return;
     const players = [...this.members.values()].map((m) => ({ id: m.id, name: m.name }));
@@ -278,6 +312,50 @@ export class GameRoom extends Room {
       this.finish();
       return;
     }
+    if (round.stage === "build") {
+      this.phase = "build";
+      this.deadline = round.startedAt + round.timeLimitMs;
+      this.broadcastSnapshot();
+      this.timer = this.clock.setTimeout(() => this.endBuild(), round.timeLimitMs + LATENCY_GRACE_MS);
+      return;
+    }
+    this.phase = "question";
+    this.deadline = round.startedAt + round.timeLimitMs;
+    this.broadcastSnapshot();
+    this.timer = this.clock.setTimeout(() => this.closeRound(), round.timeLimitMs + LATENCY_GRACE_MS);
+  }
+
+  /** La bombe : une bombe envoyée pendant la construction. */
+  private handleBomb(m: Member, client: Client, msg: unknown) {
+    const engine = this.engine;
+    const round = engine?.currentRound;
+    const parsed = bombSchema.safeParse(msg);
+    if (!engine || !round || this.phase !== "build" || !parsed.success || parsed.data.roundIndex !== round.index) {
+      client.send("bomb-ack", { roundIndex: round?.index ?? -1, accepted: false, reason: "invalid" });
+      return;
+    }
+    const res = engine.submitBomb(m.id, parsed.data.expr);
+    client.send("bomb-ack", { roundIndex: round.index, accepted: res.accepted, reason: res.reason, text: res.text, value: res.value });
+    if (res.accepted && res.allBuilt) this.endBuild();
+    else if (res.accepted) this.broadcastSnapshot();
+  }
+
+  /** La bombe : fin de la construction, on montre qui reçoit quoi, puis le désamorçage commence. */
+  private endBuild() {
+    const engine = this.engine;
+    if (!engine || this.phase !== "build") return;
+    this.timer?.clear();
+    const solveAt = Date.now() + ASSIGN_MS;
+    if (!engine.closeBuild(solveAt)) return;
+    this.phase = "assign";
+    this.deadline = solveAt;
+    this.broadcastSnapshot();
+    this.timer = this.clock.setTimeout(() => this.startSolve(), ASSIGN_MS);
+  }
+
+  private startSolve() {
+    const round = this.engine?.currentRound;
+    if (!round || this.phase !== "assign") return;
     this.phase = "question";
     this.deadline = round.startedAt + round.timeLimitMs;
     this.broadcastSnapshot();
@@ -295,7 +373,8 @@ export class GameRoom extends Room {
       return;
     }
     // Le temps est mesuré ici, par le serveur, à la réception.
-    const res = engine.submit(m.id, parsed.data.value, Math.min(now, round.startedAt + round.timeLimitMs));
+    const { questionIndex: _questionIndex, ...answer } = parsed.data;
+    const res = engine.submit(m.id, answer as PlayerAnswer, Math.min(now, round.startedAt + round.timeLimitMs));
     if (!res.accepted) {
       client.send("answer-refused", { reason: res.reason ?? "refused" });
       return;
@@ -307,7 +386,7 @@ export class GameRoom extends Room {
 
   private closeRound() {
     const engine = this.engine;
-    if (!engine || this.phase !== "question") return;
+    if (!engine || (this.phase !== "question" && this.phase !== "assign")) return;
     this.timer?.clear();
     const rec = engine.closeRound();
     if (!rec) return;
@@ -315,7 +394,20 @@ export class GameRoom extends Room {
       index: rec.index,
       text: rec.question.text,
       answer: rec.question.answer,
+      solution: rec.question.solution,
+      puzzle: rec.question.puzzle,
       answers: rec.answers,
+      ...(rec.personal
+        ? {
+            bombs: Object.entries(rec.personal).map(([defuserId, p]) => ({
+              authorId: p.authorId,
+              defuserId,
+              text: p.question.text,
+              answer: p.question.answer,
+              fallback: rec.bombs?.[p.authorId]?.fallback ?? false,
+            })),
+          }
+        : {}),
       eliminated: rec.eliminated,
       scorers: rec.scorers,
       spared: rec.spared,
@@ -364,10 +456,12 @@ export class GameRoom extends Room {
     this.broadcastSnapshot();
   }
 
-  private snapshot(): RoomSnapshot {
+  /** Instantané de la salle vu par un joueur (à la bombe, chacun ne reçoit que sa propre bombe). */
+  private snapshot(forId: string): RoomSnapshot {
     const engine = this.engine;
     const inGame = engine && this.phase !== "lobby";
     const round = engine?.currentRound ?? null;
+    const building = this.phase === "build";
     let players: LobbyPlayer[];
     if (inGame && engine) {
       players = engine.standings().map(({ player }) => {
@@ -381,7 +475,7 @@ export class GameRoom extends Room {
           isGuest: this.guestById.get(player.id) ?? true,
           score: player.score,
           alive: player.alive,
-          answeredThisRound: !!round?.answers.some((a) => a.playerId === player.id),
+          answeredThisRound: building ? !!round?.bombs?.[player.id] : !!round?.answers.some((a) => a.playerId === player.id),
         };
       });
     } else {
@@ -406,10 +500,18 @@ export class GameRoom extends Room {
       maxPlayers: MAX_PLAYERS,
       roundIndex: round ? round.index : (engine?.roundsPlayed ?? 0),
       totalRounds: engine && this.settings.mode === "speed-race" ? engine.totalRounds : null,
-      question: round && this.phase === "question" ? { index: round.index, text: round.question.text } : null,
+      question: round && (this.phase === "question" || building) ? this.questionFor(round, forId) : null,
+      bomb:
+        round?.bombs && engine
+          ? {
+              built: Object.keys(round.bombs).filter((id) => !round.bombs![id]!.fallback),
+              mine: round.bombs[forId]?.expr ?? null,
+              pairs: round.personal ? Object.entries(round.personal).map(([defuserId, p]) => ({ authorId: p.authorId, defuserId })) : null,
+            }
+          : null,
       activePlayerId: round?.activePlayerId ?? null,
       deadline: this.deadline,
-      timeLimitMs: round && this.phase === "question" ? round.timeLimitMs : null,
+      timeLimitMs: round && (this.phase === "question" || building) ? round.timeLimitMs : null,
       serverNow: Date.now(),
       lastRound: this.phase === "round-result" || this.phase === "finished" ? this.lastRound : null,
       report: this.report,
@@ -418,7 +520,15 @@ export class GameRoom extends Room {
     };
   }
 
+  /** Le calcul montré à ce joueur : le tirage pendant la construction, sa bombe au désamorçage (aucune s'il n'en a pas). */
+  private questionFor(round: RoundRecord, forId: string): RoomSnapshot["question"] {
+    if (this.phase !== "question" || !round.personal) return { index: round.index, text: round.question.text, puzzle: round.question.puzzle };
+    const mine = round.personal[forId]?.question;
+    return mine ? { index: round.index, text: mine.text, puzzle: mine.puzzle } : null;
+  }
+
+  /** Chaque membre reçoit son propre instantané (identique pour tous, sauf à la bombe). */
   private broadcastSnapshot() {
-    this.broadcast("snapshot", this.snapshot());
+    for (const m of this.members.values()) if (m.connected) m.client.send("snapshot", this.snapshot(m.id));
   }
 }

@@ -12,7 +12,7 @@
     "home": "Back to home",
     "tagline": "mental math",
     "main": "Main navigation",
-    "modes": "Modes",
+    "games": "Games",
     "dashboard": "Dashboard",
     "leaderboard": "Leaderboard",
     "login": "Log in",
@@ -37,7 +37,8 @@
     "playSolo": "Play solo",
     "playSoloKicker": "5 levels",
     "playSoloSub": "Five levels, from “7 + 4” to “125 × 8 − 36 ÷ 4”.",
-    "modesTitle": "Two game modes"
+    "gamesTitle": "Four games, two modes",
+    "allRules": "All the rules"
   },
   "modes": {
     "battle-royale": {
@@ -53,9 +54,34 @@
       "solo": "A series of calculations, one point per correct answer. Your average time tracks your progress."
     }
   },
-  "modesPage": {
-    "title": "Game modes",
-    "intro": "Every game combines a mode, a difficulty level and the operations picked by the lobby’s host.",
+  "games": {
+    "standard": {
+      "name": "Mental math",
+      "short": "Find the result.",
+      "long": "A calculation appears, you type its result. From “7 + 4” to “125 × 8 − 36 ÷ 4” depending on the level."
+    },
+    "right-count": {
+      "name": "Right on target",
+      "short": "Every tile, right on target.",
+      "long": "Some tiles and a target: combine all the tiles, each exactly once, with the operations and brackets to hit the target exactly. There is always a solution."
+    },
+    "missing": {
+      "name": "Missing number",
+      "short": "Complete the equation.",
+      "long": "The result is given, but a number or an operator is missing from the calculation: “23 + ? = 41”, “12 ? 4 = 3”. Find what’s missing."
+    },
+    "bomb": {
+      "name": "The bomb",
+      "short": "Rig a calculation, defuse someone else’s.",
+      "long": "Everyone gets the same tiles and builds a calculation: their bomb. Once everyone is ready, each bomb goes to another player, who must find its result. One mistake and you’re out; if your bomb blows someone up, you score a point. Online, two players or more."
+    }
+  },
+  "gamesPage": {
+    "title": "Games and modes",
+    "intro": "Pick a game (what you solve), then a mode (how you win). Every game also combines a difficulty level and the operations picked by the lobby’s host.",
+    "gamesTitle": "Games",
+    "modesTitle": "Modes",
+    "playableIn": "Playable in:",
     "turnTitle": "All at once or taking turns",
     "turnText": "All at once: everyone sees the same calculation at the same time. Taking turns: one player answers while the others watch the answer being typed live. Only battle royale eliminates players.",
     "levelsTitle": "The five levels"
@@ -72,13 +98,22 @@
     "sub": "Subtractions",
     "mul": "Multiplications",
     "div": "Divisions",
-    "paren": "Parentheses"
+    "paren": "Parentheses",
+    "hole-num": "Missing numbers",
+    "hole-op": "Missing operators"
   },
   "settings": {
+    "game": "Game",
     "mode": "Game mode",
     "difficulty": "Difficulty",
     "example": "for example: {calc}",
     "operations": "Calculations",
+    "missingKind": {
+      "label": "What’s missing",
+      "number": "A number",
+      "operator": "An operator",
+      "mixed": "Either"
+    },
     "rounds": "Number of calculations",
     "roundsPerPlayer": "Calculations per player",
     "time": "Time per calculation",
@@ -86,7 +121,8 @@
     "seconds": "{n} s",
     "answers": "Answers",
     "simultaneous": "All at once",
-    "turns": "Taking turns"
+    "turns": "Taking turns",
+    "buildTime": "Time to build your bomb"
   },
   "solo": {
     "title": "Play solo",
@@ -152,7 +188,8 @@
     "rules": "Game rules",
     "waitingHost": "The host sets the rules and starts the game.",
     "hostHint": "You’re the host: set up the game, then start it when everyone is here.",
-    "everyoneReady": "Everyone is ready."
+    "everyoneReady": "Everyone is ready.",
+    "notEnoughPlayers": "This game needs at least {count} players."
   },
   "game": {
     "yourAnswer": "Your answer",
@@ -179,6 +216,48 @@
       "listeningTouch": "Listening… say your answer, then tap OK",
       "denied": "Microphone blocked: allow it in your browser",
       "unsupported": "Speech recognition isn’t available in this browser"
+    },
+    "operator": {
+      "add": "plus",
+      "sub": "minus",
+      "mul": "times",
+      "div": "divided by"
+    },
+    "target": "Target",
+    "tiles": "Tiles",
+    "openParen": "Opening bracket",
+    "closeParen": "Closing bracket",
+    "useAllTiles": "On target! Some tiles are left: use them all.",
+    "bomb": {
+      "building": "Build your bomb with these tiles.",
+      "buildTitle": "Tiles",
+      "rules": "At least {min} tiles, each once at most · result ≤ {max}",
+      "parenYes": "brackets allowed",
+      "parenNo": "no brackets",
+      "sent": "Your bomb: {bomb}",
+      "ready": "{count} / {total} bombs ready",
+      "youDefuse": "You defuse {name}’s bomb",
+      "yourBombGoes": "Your bomb goes to {name}.",
+      "pair": "{author} → {defuser}",
+      "defusing": "{name}’s bomb: find its result.",
+      "defused": "defused",
+      "exploded": "blew up",
+      "explodedWith": "blew up ({value})",
+      "fallback": "backup bomb",
+      "errors": {
+        "syntax": "Unfinished calculation.",
+        "tiles": "Only the tiles drawn, each once at most.",
+        "min-tiles": "Use more tiles.",
+        "operations": "Operation not allowed.",
+        "parentheses": "No brackets at this level.",
+        "invalid": "Whole, positive intermediate results and exact divisions only.",
+        "too-big": "Result too big.",
+        "already-answered": "Your bomb has already been sent.",
+        "not-allowed": "You can no longer build a bomb.",
+        "no-round": "Building is over.",
+        "unknown-player": "Unknown player.",
+        "invalid-value": "Invalid calculation."
+      }
     }
   },
   "report": {
@@ -367,6 +446,7 @@
   "leaderboard": {
     "title": "Leaderboard",
     "lede": "The best Elo ratings in each mode and difficulty. Players appear after their {total} placement games.",
+    "gamesLabel": "Leaderboard games",
     "modesLabel": "Game modes",
     "searchLabel": "Find a player",
     "searchPlaceholder": "Username",
@@ -634,7 +714,7 @@
     "title": "{name} · profile",
     "notFound": "Player not found",
     "rankingsTitle": "Rankings",
-    "mode": "Mode",
+    "mode": "Game · mode",
     "rankOf": "{rank} / {total}",
     "unranked": "Not ranked yet: finish your placement games in a mode and difficulty to appear on the leaderboard.",
     "backToLeaderboard": "Back to the leaderboard",

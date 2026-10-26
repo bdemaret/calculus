@@ -37,9 +37,11 @@ export function PlayerView({ profile }: { profile: PlayerProfile }) {
               </thead>
               <tbody>
                 {profile.rankings.map((r) => (
-                  <tr key={`${r.mode}-${r.difficulty}`}>
+                  <tr key={`${r.game}-${r.mode}-${r.difficulty}`}>
                     <td>
-                      <Link href={{ pathname: `/leaderboard/${r.mode}`, query: { difficulty: r.difficulty } }}>{t(`modes.${r.mode}.name`)}</Link>
+                      <Link href={{ pathname: `/leaderboard/${r.game}/${r.mode}`, query: { difficulty: r.difficulty } }}>
+                        {t(`games.${r.game}.name`)} · {t(`modes.${r.mode}.name`)}
+                      </Link>
                     </td>
                     <td>{t(`levels.${r.difficulty}`)}</td>
                     <td className="rk">{t("player.rankOf", { rank: r.rank, total: r.total })}</td>

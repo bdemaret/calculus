@@ -1,13 +1,15 @@
 "use client";
 import { useState, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { PLACEMENT_GAMES, type GameModeId, type GameReport, type PlayerReport, type RatingChange, type RoundReview } from "@calculus/game-core";
+import { GAMES, PLACEMENT_GAMES, type GameId, type GameModeId, type GameReport, type PlayerReport, type RatingChange, type RoundReview } from "@calculus/game-core";
+import { revealSeparator } from "@/lib/answer";
 import { formatPercent, formatSeconds, formatSigned } from "@/lib/format";
 
 interface Props {
   report: GameReport;
   meId: string | null;
   online: boolean;
+  game: GameId;
   mode: GameModeId;
   timePerQuestion: number;
   /** Effet sur l'Elo par id de joueur (parties en ligne classées uniquement). */
@@ -16,7 +18,7 @@ interface Props {
 }
 
 /** Rapport de fin de partie : verdict, classement, statistiques, graphique de progression. */
-export function GameReportView({ report: raw, meId, online, mode, timePerQuestion, ratings, actions }: Props) {
+export function GameReportView({ report: raw, meId, online, game, mode, timePerQuestion, ratings, actions }: Props) {
   const t = useTranslations("report");
   // Pseudo vide : le compte de ce joueur a été supprimé depuis la partie.
   const report: GameReport = { ...raw, players: raw.players.map((pl) => (pl.name ? pl : { ...pl, name: t("deletedPlayer") })) };
@@ -126,26 +128,31 @@ export function GameReportView({ report: raw, meId, online, mode, timePerQuestio
               <p className="callout">{t("timelineLegend")}</p>
             </div>
             <div className="stack">
-              <h3>{t("byOpTitle")}</h3>
-              <div className="bars">
-                {mine.byOperation.length === 0 ? <p className="muted">{t("noAnswer")}</p> : null}
-                {mine.byOperation.map((o) => (
-                  <div className="bar-row" key={o.tag}>
-                    <span>{tOps(o.tag)}</span>
-                    <span className="bar">
-                      <i style={{ width: `${o.attempts ? (o.correct / o.attempts) * 100 : 0}%` }} />
-                    </span>
-                    <span className="pc">
-                      {o.correct}/{o.attempts}
-                    </span>
+              {/* Le bon compte n'a pas d'opération imposée : pas de statistiques par opération. */}
+              {GAMES[game].operationStats ? (
+                <>
+                  <h3>{t("byOpTitle")}</h3>
+                  <div className="bars">
+                    {mine.byOperation.length === 0 ? <p className="muted">{t("noAnswer")}</p> : null}
+                    {mine.byOperation.map((o) => (
+                      <div className="bar-row" key={o.tag}>
+                        <span>{tOps(o.tag)}</span>
+                        <span className="bar">
+                          <i style={{ width: `${o.attempts ? (o.correct / o.attempts) * 100 : 0}%` }} />
+                        </span>
+                        <span className="pc">
+                          {o.correct}/{o.attempts}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              ) : null}
               {report.hardest ? (
                 <p className="callout">
                   {t("hardest")}
                   <b>
-                    {report.hardest.text} = {report.hardest.answer}
+                    {report.hardest.text} {revealSeparator(game)} {report.hardest.solution ?? report.hardest.answer}
                   </b>
                 </p>
               ) : null}
@@ -154,7 +161,7 @@ export function GameReportView({ report: raw, meId, online, mode, timePerQuestio
         </>
       ) : null}
 
-      {report.review?.length ? <Review report={report} meId={mine?.playerId ?? null} online={online} mode={mode} /> : null}
+      {report.review?.length ? <Review report={report} meId={mine?.playerId ?? null} online={online} game={game} mode={mode} /> : null}
     </section>
   );
 }
@@ -179,7 +186,7 @@ export function EloDelta({ change }: { change: { before: number; after: number }
 }
 
 /** Revoir les calculs : chaque manche, la bonne réponse et ce que chaque joueur a répondu. */
-function Review({ report, meId, online, mode }: { report: GameReport; meId: string | null; online: boolean; mode: GameModeId }) {
+function Review({ report, meId, online, game, mode }: { report: GameReport; meId: string | null; online: boolean; game: GameId; mode: GameModeId }) {
   const t = useTranslations("report");
   const locale = useLocale();
   const [onlyMisses, setOnlyMisses] = useState(false);
@@ -221,8 +228,14 @@ function Review({ report, meId, online, mode }: { report: GameReport; meId: stri
               <span className="rv-n">{r.round}</span>
               <p className="rv-q">
                 {r.text}
-                <span className="eq">=</span>
-                <b>{r.answer}</b>
+                {/* À la bombe, la ligne montre le tirage ; chaque joueur a sa bombe, montrée avec sa réponse. */}
+                {r.bombs ? null : (
+                  <>
+                    <span className="eq">{revealSeparator(game)}</span>
+                    {/* Les rapports d'avant les jeux n'ont pas de solution : la réponse en tient lieu. */}
+                    <b>{r.solution ?? r.answer}</b>
+                  </>
+                )}
                 {mineA ? <span className={`mk ${mineA.correct ? "ok" : "ko"}`}>{mineA.correct ? t("reviewRight") : t("reviewWrong")}</span> : null}
                 {r.spared ? <span className="rv-spared"> · {t("reviewSpared")}</span> : null}
               </p>
@@ -233,6 +246,12 @@ function Review({ report, meId, online, mode }: { report: GameReport; meId: stri
                   const isMe = pl.playerId === meId;
                   const who = isMe ? (online ? t("reviewYou") : t("reviewYourAnswer")) : pl.name;
                   const me = isMe ? " me" : "";
+                  const bomb = r.bombs?.find((b) => b.defuserId === pl.playerId);
+                  const bombLine = bomb ? (
+                    <span className="rv-bomb">
+                      {bomb.text} = {bomb.answer}
+                    </span>
+                  ) : null;
                   if (!a)
                     return (
                       <span key={pl.playerId} className={`rv-a none${me}`}>
@@ -240,17 +259,21 @@ function Review({ report, meId, online, mode }: { report: GameReport; meId: stri
                         <span>{t("reviewNoAnswer")}</span>
                       </span>
                     );
-                  if (a.value == null)
+                  // Un nombre, ou une expression / un opérateur selon le jeu ; rien si le temps s'est écoulé.
+                  const given = a.value ?? a.text;
+                  if (given == null)
                     return (
                       <span key={pl.playerId} className={`rv-a ko${me}`}>
                         <span className="nm">{who}</span>
+                        {bombLine}
                         <span className="val">{t("reviewTimeout")}</span>
                       </span>
                     );
                   return (
                     <span key={pl.playerId} className={`rv-a ${a.correct ? "ok" : "ko"}${me}`}>
                       <span className="nm">{who}</span>
-                      <span className="val">{a.correct ? <>{a.value} ✓</> : <><s>{a.value}</s> ✗</>}</span>
+                      {bombLine}
+                      <span className="val">{a.correct ? <>{given} ✓</> : <><s>{given}</s> ✗</>}</span>
                       <span className="t">{formatSeconds(a.timeMs, locale)}</span>
                       {r.scorers.includes(pl.playerId) ? <span className="pt">+1</span> : null}
                     </span>

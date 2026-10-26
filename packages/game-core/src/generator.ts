@@ -2,11 +2,18 @@ import { LEVELS, type LevelConfig } from "./levels";
 import { createRng, pick, randInt, type Rng } from "./rng";
 import type { Difficulty, GameSettings, Operation, OpTag, Question } from "./types";
 
-type OpSymbol = "+" | "−" | "×" | "÷";
-type Token = number | OpSymbol | "(" | ")";
+/** Symboles affichés (signe moins et multiplication Unicode). */
+export type OpSymbol = "+" | "−" | "×" | "÷";
+/** Jeton d'un calcul : nombre, opérateur ou parenthèse. */
+export type CalcToken = number | OpSymbol | "(" | ")";
+type Token = CalcToken;
 
-const SYMBOL: Record<Operation, OpSymbol> = { add: "+", sub: "−", mul: "×", div: "÷" };
-const TAG: Record<OpSymbol, Operation> = { "+": "add", "−": "sub", "×": "mul", "÷": "div" };
+/** Symbole affiché de chaque opération. */
+export const OPERATION_SYMBOL: Record<Operation, OpSymbol> = { add: "+", sub: "−", mul: "×", div: "÷" };
+const SYMBOL = OPERATION_SYMBOL;
+/** Opération de chaque symbole affiché. */
+export const SYMBOL_OPERATION: Record<OpSymbol, Operation> = { "+": "add", "−": "sub", "×": "mul", "÷": "div" };
+const TAG = SYMBOL_OPERATION;
 
 interface Built {
   tokens: Token[];
@@ -88,7 +95,8 @@ export function evaluateText(text: string): number {
   return evaluateTokens(tokenize(text));
 }
 
-function render(tokens: Token[]): string {
+/** Écrit une suite de jetons comme on l'affiche : « (7 + 5) × 3 ». */
+export function renderTokens(tokens: readonly (Token | "?")[]): string {
   return tokens
     .map(String)
     .join(" ")
@@ -290,8 +298,10 @@ export function generateWithRng(rng: Rng, opts: GenerateOptions, index = 0): Que
     if (checked <= 0 || checked > cfg.maxResult) continue;
     return {
       index,
-      text: render(built.tokens),
+      text: renderTokens(built.tokens),
       answer: checked,
+      solution: String(checked),
+      puzzle: { game: "standard" },
       tags: tagsOf(built.tokens),
       difficulty: cfg.level,
     };
@@ -299,7 +309,7 @@ export function generateWithRng(rng: Rng, opts: GenerateOptions, index = 0): Que
   // Filet de sécurité (ne devrait jamais servir).
   const a = randInt(rng, 1, cfg.addMax);
   const b = randInt(rng, 1, cfg.addMax);
-  return { index, text: `${a} + ${b}`, answer: a + b, tags: ["add"], difficulty: cfg.level };
+  return { index, text: `${a} + ${b}`, answer: a + b, solution: String(a + b), puzzle: { game: "standard" }, tags: ["add"], difficulty: cfg.level };
 }
 
 /**

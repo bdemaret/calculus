@@ -2,10 +2,12 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { Room } from "colyseus.js";
-import { MAX_PLAYERS, type GameSettings, type RoomSnapshot } from "@calculus/game-core";
+import { GAMES, MAX_PLAYERS, type GameSettings, type RoomSnapshot } from "@calculus/game-core";
 import { Link, useRouter } from "@/i18n/navigation";
 import { CalcLine } from "@/components/CalcLine";
+import { BombAssign, BombBuild, BombPairList, BombResults } from "@/components/BombStage";
 import { Check } from "@/components/Check";
+import { ExpressionBuilder } from "@/components/ExpressionBuilder";
 import { GameReportView } from "@/components/GameReportView";
 import { InviteFriends } from "@/components/InviteFriends";
 import { Margin, MarginNote } from "@/components/Margin";
@@ -13,6 +15,7 @@ import { Avatar, PlayerChips, type ChipPlayer } from "@/components/PlayerChips";
 import { SettingsForm } from "@/components/SettingsForm";
 import { TimerBar } from "@/components/TimerBar";
 import { JoinError, joinLobby, leaveLobby, readRoom, subscribeRoom, type LobbyState } from "@/lib/colyseus";
+import { answerFromInput, answerKindOfPuzzle, revealSeparator, shownAnswer } from "@/lib/answer";
 import { formatSeconds } from "@/lib/format";
 import { cleanName } from "@/lib/names";
 import { celebrate, sfx } from "@/lib/sound";
@@ -182,6 +185,9 @@ function WaitingRoom({
 
   const others = snap.players.filter((p) => !p.isHost);
   const allReady = others.length > 0 && others.every((p) => p.ready);
+  // Certains jeux demandent plusieurs joueurs : le serveur refuse aussi de lancer en dessous.
+  const minPlayers = GAMES[snap.settings.game].minPlayers;
+  const enoughPlayers = snap.players.filter((p) => p.connected).length >= minPlayers;
 
   return (
     <section className="lobby">
@@ -235,7 +241,7 @@ function WaitingRoom({
 
         <div className="actions">
           {isHost ? (
-            <button className="btn" type="button" onClick={() => room.send("start", {})}>
+            <button className="btn" type="button" disabled={!enoughPlayers} onClick={() => room.send("start", {})}>
               {t("lobby.start")}
             </button>
           ) : (
@@ -247,7 +253,15 @@ function WaitingRoom({
             {t("lobby.leave")}
           </button>
         </div>
-        <p className="note">{isHost ? (allReady ? t("lobby.everyoneReady") : t("lobby.hostHint")) : t("lobby.waitingHost")}</p>
+        <p className="note">
+          {!enoughPlayers
+            ? t("lobby.notEnoughPlayers", { count: minPlayers })
+            : isHost
+              ? allReady
+                ? t("lobby.everyoneReady")
+                : t("lobby.hostHint")
+              : t("lobby.waitingHost")}
+        </p>
         {signedIn && snap.players.length < MAX_PLAYERS ? <InviteFriends code={snap.code} presentIds={snap.players.map((p) => p.id)} /> : null}
       </div>
 
@@ -311,9 +325,11 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
   }, [snap.phase, snap.roundIndex, snap.lastRound, me]);
 
   const submit = () => {
-    if (!canAnswer || !question || value === "") return;
+    if (!canAnswer || !question) return;
+    const answer = answerFromInput(value, answerKindOfPuzzle(question.puzzle));
+    if (!answer) return;
     setSentFor(question.index);
-    room.send("answer", { value: Number(value), questionIndex: question.index });
+    room.send("answer", { ...answer, questionIndex: question.index });
   };
 
   const onType = (v: string) => {
@@ -332,8 +348,15 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
   const shownValue = watching ? (state.typing?.playerId === snap.activePlayerId ? state.typing.value : "") : value;
   const lastActive = last && turns ? last.answers[0] : undefined;
 
+  // La bombe : ce que ce joueur doit désamorcer, et ce qu'il a eu à désamorcer en fin de manche.
+  const bomb = snap.settings.game === "bomb";
+  const receivedFrom = snap.bomb?.pairs?.find((p) => p.defuserId === me);
+  const myBomb = last?.bombs?.find((b) => b.defuserId === me);
+
   let status = "";
-  if (snap.phase === "countdown") status = `${t(`modes.${snap.settings.mode}.name`)} · ${t("game.level", { n: snap.settings.difficulty })}`;
+  if (bomb && snap.phase === "build") status = t("game.bomb.building");
+  else if (bomb && snap.phase === "question" && receivedFrom) status = t("game.bomb.defusing", { name: nameOf(receivedFrom.authorId) });
+  else if (snap.phase === "countdown") status = `${t(`modes.${snap.settings.mode}.name`)} · ${t("game.level", { n: snap.settings.difficulty })}`;
   else if (turns && active) status = active.id === me ? t("game.yourTurn") : t("game.turnOf", { name: active.name });
   else if (eliminates && meP && !meP.alive) status = t("game.spectator");
 
@@ -345,7 +368,21 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
     return { id: p.id, name: p.name, score: p.score, alive: p.alive, connected: p.connected, state: st, active: p.id === snap.activePlayerId };
   });
 
-  const displayedText = question?.text ?? last?.text ?? "";
+  const displayedText = bomb && last ? (myBomb?.text ?? "") : (question?.text ?? last?.text ?? "");
+  const displayedPuzzle = bomb && last ? ({ game: "standard" } as const) : (question?.puzzle ?? last?.puzzle);
+  const lastSolution = myBomb ? String(myBomb.answer) : last?.solution;
+  // Mêmes réglages de saisie pour la ligne de calcul et pour le bon compte.
+  const lineProps = {
+    value: last && bomb ? (myLast ? shownAnswer(myLast) : "") : last && lastActive && turns && lastActive.playerId !== me ? shownAnswer(lastActive) : shownValue,
+    onChange: onType,
+    onSubmit: submit,
+    disabled: !canAnswer,
+    status: (ack ? (ack.correct ? "right" : "wrong") : myLast ? (myLast.correct ? "right" : "wrong") : lastActive ? (lastActive.correct ? "right" : "wrong") : null) as
+      | "right"
+      | "wrong"
+      | null,
+    shake: !!ack && !ack.correct,
+  };
   const countLeft = localDeadline ? Math.max(1, Math.ceil((localDeadline - now) / 1000)) : 3;
 
   return (
@@ -355,7 +392,7 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
         <MarginNote value={<span className="grade">{meP?.score ?? 0}</span>} label={snap.settings.mode === "speed-race" ? t("game.points") : t("game.correct")} />
       </Margin>
       <TimerBar
-        deadline={snap.phase === "question" ? localDeadline : null}
+        deadline={snap.phase === "question" || snap.phase === "build" ? localDeadline : null}
         totalMs={snap.timeLimitMs ?? 1}
       />
       <p className="status">{status}</p>
@@ -365,18 +402,16 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
             {countLeft}
           </span>
         </div>
+      ) : snap.phase === "build" ? (
+        <BombBuild room={room} snap={snap} state={state} me={me} />
+      ) : snap.phase === "assign" ? (
+        <BombAssign snap={snap} me={me} />
+      ) : bomb && snap.phase === "question" && !question ? (
+        <BombPairList snap={snap} />
+      ) : displayedText && displayedPuzzle?.game === "right-count" ? (
+        <ExpressionBuilder text={displayedText} puzzle={displayedPuzzle} {...lineProps} />
       ) : displayedText ? (
-        <CalcLine
-          text={displayedText}
-          value={last && lastActive && turns && lastActive.playerId !== me ? String(lastActive.value ?? "") : shownValue}
-          onChange={onType}
-          onSubmit={submit}
-          disabled={!canAnswer}
-          status={
-            ack ? (ack.correct ? "right" : "wrong") : myLast ? (myLast.correct ? "right" : "wrong") : lastActive ? (lastActive.correct ? "right" : "wrong") : null
-          }
-          shake={!!ack && !ack.correct}
-        />
+        <CalcLine text={displayedText} puzzle={displayedPuzzle} {...lineProps} />
       ) : null}
       <p className="result-line" aria-live="polite">
         {ack && snap.phase === "question" ? (
@@ -396,10 +431,12 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
               </span>
             ) : myLast ? (
               <span className="ko">
-                {myLast.value == null ? t("game.timeUp") : t("game.no")} : {last.answer}
+                {myLast.value == null && myLast.text == null ? t("game.timeUp") : t("game.no")} : {lastSolution}
               </span>
-            ) : (
-              <span>= {last.answer}</span>
+            ) : bomb ? null : (
+              <span>
+                {revealSeparator(snap.settings.game)} {last.solution}
+              </span>
             )}
             {last.scorers.length && me && !last.scorers.includes(me) ? (
               <span className="muted"> · {t("game.pointFor", { names: last.scorers.map(nameOf).join(", ") })}</span>
@@ -409,6 +446,7 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
           </>
         ) : null}
       </p>
+      {last?.bombs ? <BombResults snap={snap} last={last} /> : null}
       <PlayerChips players={chips} meId={me} />
       <div className="actions">
         <button className="link-btn" type="button" onClick={onLeave}>
@@ -448,6 +486,7 @@ function Finished({ room, snap, me, isHost, onLeave }: { room: Room; snap: RoomS
         report={report}
         meId={me}
         online
+        game={snap.settings.game}
         mode={snap.settings.mode}
         timePerQuestion={snap.settings.timePerQuestion}
         ratings={snap.ratings}

@@ -84,10 +84,10 @@ test.describe("classement", () => {
     // Le menu mène au classement du premier mode ; on choisit le mode puis la difficulté.
     await page.goto("/fr");
     await page.getByRole("navigation", { name: t("nav.main") }).getByRole("link", { name: t("nav.leaderboard") }).click();
-    await expect(page).toHaveURL(/\/fr\/leaderboard\/[a-z-]+$/);
+    await expect(page).toHaveURL(/\/fr\/leaderboard\/standard\/[a-z-]+$/);
     await page.getByRole("navigation", { name: t("leaderboard.modesLabel") }).getByRole("link", { name: t(`modes.${MODE}.name`) }).click();
     await page.getByRole("navigation", { name: t("settings.difficulty") }).getByRole("link", { name: t(`levels.${DIFFICULTY}`) }).click();
-    await expect(page).toHaveURL(new RegExp(`/fr/leaderboard/${MODE}\\?difficulty=${DIFFICULTY}$`));
+    await expect(page).toHaveURL(new RegExp(`/fr/leaderboard/standard/${MODE}\\?difficulty=${DIFFICULTY}$`));
 
     // Top 100, trié par Elo décroissant.
     const top = page.getByRole("table", { name: t("leaderboard.topTitle", { count: 100 }) });
@@ -109,7 +109,7 @@ test.describe("classement", () => {
 
     // Effacer la recherche ne garde que « Ta place » et le top.
     await search.getByRole("button", { name: t("leaderboard.clear") }).click();
-    await expect(page).toHaveURL(new RegExp(`/fr/leaderboard/${MODE}\\?difficulty=${DIFFICULTY}$`));
+    await expect(page).toHaveURL(new RegExp(`/fr/leaderboard/standard/${MODE}\\?difficulty=${DIFFICULTY}$`));
     await expect(page.getByRole("table")).toHaveCount(2);
 
     // Sa place est affichée sans avoir à se chercher : 102e, surlignée, parties et % de victoires.
@@ -122,14 +122,14 @@ test.describe("classement", () => {
     await expect(page.getByText(t("leaderboard.meOf", { total: 102 }))).toBeVisible();
 
     // En placement (4 parties sur 5), le joueur n'apparaît pas, même avec le meilleur Elo, et voit son avancée.
-    await page.goto(`/fr/leaderboard/${MODE}?difficulty=5&q=${encodeURIComponent(user.name)}`);
+    await page.goto(`/fr/leaderboard/standard/${MODE}?difficulty=5&q=${encodeURIComponent(user.name)}`);
     await expect(page.getByText(t("leaderboard.noResults"))).toBeVisible();
     await expect(page.getByText(t("leaderboard.mePlacement", { played: 4, total: 5 }))).toBeVisible();
   });
 
   test("cliquer sur un pseudo ouvre son profil, d'où l'ajouter en ami", async ({ page, user }) => {
     const best = nameOf(SEEDED);
-    await page.goto(`/fr/leaderboard/${MODE}?difficulty=${DIFFICULTY}`);
+    await page.goto(`/fr/leaderboard/standard/${MODE}?difficulty=${DIFFICULTY}`);
     await page.getByRole("table", { name: t("leaderboard.topTitle", { count: 100 }) }).getByRole("link", { name: best }).click();
     await expect(page).toHaveURL(new RegExp(`/fr/player/${ids[SEEDED - 1]}$`));
     await expect(page.getByRole("heading", { name: best })).toBeVisible();
@@ -155,5 +155,20 @@ test.describe("classement", () => {
     await expect(page.getByRole("heading", { name: nameOf(1) })).toBeVisible();
     await expect(page.getByRole("link", { name: t("player.loginToAdd") })).toBeVisible();
     await expect(page.getByRole("button", { name: t("player.add") })).toHaveCount(0);
+  });
+
+  test("un onglet par jeu, avec seulement les modes de ce jeu", async ({ page }) => {
+    await page.goto(`/fr/leaderboard/standard/speed-race?difficulty=${DIFFICULTY}`);
+    const games = page.getByRole("navigation", { name: t("leaderboard.gamesLabel") });
+    const modes = page.getByRole("navigation", { name: t("leaderboard.modesLabel") });
+    // Le mode est gardé quand le jeu le propose, la difficulté aussi.
+    await games.getByRole("link", { name: t("games.right-count.name") }).click();
+    await expect(page).toHaveURL(new RegExp(`/fr/leaderboard/right-count/speed-race\\?difficulty=${DIFFICULTY}$`));
+    await expect(games.getByRole("link", { name: t("games.right-count.name") })).toHaveAttribute("aria-current", "page");
+    // La bombe ne se joue qu'en battle royale.
+    await games.getByRole("link", { name: t("games.bomb.name") }).click();
+    await expect(page).toHaveURL(new RegExp(`/fr/leaderboard/bomb/battle-royale\\?difficulty=${DIFFICULTY}$`));
+    await expect(modes.getByRole("link")).toHaveCount(1);
+    await expect(page.getByText(t("leaderboard.empty", { total: 5 }))).toBeVisible();
   });
 });

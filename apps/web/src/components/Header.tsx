@@ -15,8 +15,8 @@ export async function Header() {
           <span className="brand-note">{t("tagline")}</span>
         </Link>
         <nav className="tools" aria-label={t("main")}>
-          <Link className="nav-link" href="/modes">
-            {t("modes")}
+          <Link className="nav-link" href="/games">
+            {t("games")}
           </Link>
           <Link className="nav-link" href="/leaderboard">
             {t("leaderboard")}

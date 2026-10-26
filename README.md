@@ -1,6 +1,17 @@
 # Calculus
 
-Site de calcul mental, en solo ou jusqu'à 12 joueurs en ligne. Deux modes de jeu (battle royale, course de vitesse), 5 niveaux, des comptes avec statistiques, en français et en anglais.
+Site de calcul mental, en solo ou jusqu'à 12 joueurs en ligne. Quatre jeux, deux modes (battle royale, course de vitesse), 5 niveaux, des comptes avec statistiques et un classement, en français et en anglais.
+
+## Les jeux
+
+| Jeu | Le principe | Modes | Solo |
+| --- | --- | --- | :-: |
+| **Calcul mental** | Un calcul, on tape son résultat. | battle royale, course de vitesse | oui |
+| **Le bon compte** | Des plaques et une cible : utiliser toutes les plaques, chacune une fois, pour tomber pile sur la cible. Toujours possible. | battle royale, course de vitesse | oui |
+| **Nombre manquant** | Une égalité où il manque un nombre ou un opérateur : `23 + ? = 41`, `12 ? 4 = 3`. | battle royale, course de vitesse | oui |
+| **La bombe** | Chacun construit un calcul avec les mêmes plaques, puis désamorce celui d'un autre joueur. | battle royale | non (2 joueurs au moins) |
+
+Un **jeu** dit ce qu'on résout, un **mode** dit comment on gagne : en battle royale, une erreur élimine ; en course de vitesse, le premier qui trouve marque le point. L'Elo et le classement sont propres à chaque jeu, mode et niveau.
 
 ## Ce que contient le projet
 
@@ -10,7 +21,7 @@ calculus/
     web/            Le site (Next.js) : pages, comptes, solo, lobby, tableau de bord
     game-server/    Le serveur de jeu (Colyseus) : lobbies et parties en direct
   packages/
-    game-core/      Le cœur du jeu : génération des calculs, niveaux, règles des modes
+    game-core/      Le cœur du jeu : les quatre jeux, niveaux, règles des modes
     db/             La base de données (Prisma + PostgreSQL)
   prototype/        Le prototype jouable d'origine (un seul fichier HTML)
 ```
@@ -85,13 +96,15 @@ Pour tester une partie en ligne seul : ouvre le site dans une fenêtre normale e
 
 ## Comment ça marche
 
-- **Le serveur décide de tout pendant une partie en ligne** : il génère les calculs, chronomètre à la réception des réponses et ne montre jamais la bonne réponse avant la fin de la manche. Une seule réponse par joueur et par calcul, et 10 messages par seconde au maximum.
+- **Le serveur décide de tout pendant une partie en ligne** : il génère les calculs, chronomètre à la réception des réponses et ne montre jamais la bonne réponse avant la fin de la manche. Une seule réponse par joueur et par calcul, et 20 messages par seconde au maximum. À la bombe, chacun ne reçoit que la bombe qu'il doit désamorcer, jamais sa valeur.
 - **Le mode solo** tourne entièrement dans le navigateur. Pour un joueur connecté, la partie est rejouée par le site à partir de sa « graine » avant d'être enregistrée : les calculs et la justesse des réponses ne sont jamais crus sur parole.
 - **Les invités** jouent avec un pseudo, sans compte. Leurs parties ne sont pas enregistrées dans un tableau de bord.
 - **Le lobby reste ouvert d'une partie à l'autre** : « Rejouer la même partie » relance avec les mêmes règles et de nouveaux calculs, « Rejouer avec d'autres paramètres » ramène tout le monde dans la salle d'attente.
 - **Si l'hôte part**, la main passe au joueur arrivé le plus tôt. Un joueur déconnecté a 30 secondes pour revenir.
 
 ### Les niveaux
+
+Pour le calcul mental et le nombre manquant :
 
 | Niveau | Nombres | Opérations par défaut | Temps |
 | --- | --- | --- | --- |
@@ -101,17 +114,25 @@ Pour tester une partie en ligne seul : ouvre le site dans une fenêtre normale e
 | 4 · Expert | jusqu'à 200, 3 termes | + − × ÷ et parenthèses | 15 s |
 | 5 · Légende | jusqu'à 999, 3 ou 4 termes | + − × ÷ et parenthèses | 20 s |
 
-Les réglages sont dans `packages/game-core/src/levels.ts`.
+Les réglages sont dans `packages/game-core/src/levels.ts`. Le bon compte (`RIGHT_COUNT_LEVELS`, de 4 petites plaques et une cible jusqu'à 50, à 6 plaques dont deux grandes et une cible jusqu'à 999) et la bombe (`BOMB_LEVELS`) ont leurs propres niveaux dans `packages/game-core/src/games/`.
+
+### Ajouter un jeu
+
+1. Dans `packages/game-core/src/games/`, crée un objet qui respecte l'interface `GameDefinition` (modes proposés, solo ou non, comment générer un calcul, comment vérifier une réponse).
+2. Ajoute son identifiant au type `GameId` (`types.ts`), à `GAMES` et `GAME_IDS` (`games/index.ts`).
+3. Ajoute son nom et ses règles dans `apps/web/messages/fr.json` et `en.json`, sous `games`, et la saisie qui lui convient côté site.
+4. Écris un test dans `packages/game-core/test/`.
+
+Le détail est dans `agent_docs/game-core.md`.
 
 ### Ajouter un mode de jeu
 
 1. Dans `packages/game-core/src/modes.ts`, crée un objet qui respecte l'interface `GameModeRules` (qui peut répondre, quand la manche se termine, qui marque, quand la partie est finie, comment classer).
-2. Ajoute son identifiant au type `GameModeId` (`types.ts`), à `GAME_MODES` (`settings.ts`) et à `MODES` (`modes.ts`).
+2. Ajoute son identifiant au type `GameModeId` (`types.ts`), à `GAME_MODES` (`settings.ts`) et à `MODES` (`modes.ts`), puis aux `modes` des jeux qui le proposent.
 3. Ajoute son nom et ses explications dans `apps/web/messages/fr.json` et `en.json`, sous `modes`.
 4. Écris un test dans `packages/game-core/test/`.
 
-## Pas encore fait (étape 5 du plan)
+## Pas encore fait
 
 - Mode entraînement ciblé sur les points faibles
-- Classements publics
-- Nouveaux modes de jeu
+- Le bon compte « au plus proche » (comme l'émission), la bombe en solo contre l'ordinateur

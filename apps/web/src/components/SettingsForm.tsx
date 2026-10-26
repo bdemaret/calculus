@@ -4,13 +4,14 @@ import { useTranslations } from "next-intl";
 import {
   ALL_OPERATIONS,
   DIFFICULTIES,
-  GAME_MODES,
+  GAMES,
+  GAME_IDS,
+  MAX_BUILD_TIME,
   MAX_ROUNDS,
-  MAX_TIME,
+  MIN_BUILD_TIME,
   MIN_ROUNDS,
-  MIN_TIME,
+  MISSING_KINDS,
   defaultSettings,
-  generateQuestion,
   randomSeed,
   sanitizeSettings,
   type GameSettings,
@@ -38,8 +39,8 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
   const [example, setExample] = useState("");
   const opsKey = s.operations.join();
   useEffect(() => {
-    setExample(generateQuestion(randomSeed(), 0, { difficulty: s.difficulty, operations: s.operations, parentheses: s.parentheses }).text);
-  }, [s.difficulty, opsKey, s.parentheses]); // eslint-disable-line react-hooks/exhaustive-deps
+    setExample(GAMES[s.game].generate(randomSeed(), 0, s).text);
+  }, [s.game, s.difficulty, opsKey, s.parentheses, s.missingKind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleOp = (op: Operation) => {
     const ops = s.operations.includes(op) ? s.operations.filter((o) => o !== op) : [...s.operations, op];
@@ -55,16 +56,31 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
   return (
     <div className="panel" id={id}>
       <fieldset className="field" disabled={readOnly}>
+        <legend>{t("settings.game")}</legend>
+        <div className="mode-cards">
+          {/* En solo, seuls les jeux jouables seul sont proposés. */}
+          {GAME_IDS.filter((g) => online || GAMES[g].solo).map((g) => (
+            <button key={g} type="button" className="mode-card" aria-pressed={s.game === g} onClick={() => set({ game: g, ...GAMES[g].defaults(s.difficulty) })}>
+              <strong>{t(`games.${g}.name`)}</strong>
+              <span>{t(`games.${g}.short`)}</span>
+            </button>
+          ))}
+        </div>
+        <p className="explain">{t(`games.${s.game}.long`)}</p>
+      </fieldset>
+
+      <fieldset className="field" disabled={readOnly}>
         <legend>{t("settings.mode")}</legend>
         <div className="mode-cards">
-          {GAME_MODES.map((m) => (
+          {GAMES[s.game].modes.map((m) => (
             <button key={m} type="button" className="mode-card" aria-pressed={s.mode === m} onClick={() => set({ mode: m })}>
               <strong>{t(`modes.${m}.name`)}</strong>
               <span>{t(`modes.${m}.short`)}</span>
             </button>
           ))}
         </div>
-        <p className="explain">{t(online ? `modes.${s.mode}.long` : `modes.${s.mode}.solo`)}</p>
+        {/* Un jeu à un seul mode (la bombe) a ses propres règles, déjà expliquées au-dessus. */}
+        {GAMES[s.game].modes.length > 1 ? <p className="explain">{t(online ? `modes.${s.mode}.long` : `modes.${s.mode}.solo`)}</p> : null}
       </fieldset>
 
       <fieldset className="field" disabled={readOnly}>
@@ -76,8 +92,14 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
               type="button"
               aria-pressed={s.difficulty === d}
               onClick={() => {
-                const base = defaultSettings(d);
-                set({ difficulty: d, operations: base.operations, parentheses: base.parentheses, timePerQuestion: base.timePerQuestion });
+                const base = defaultSettings(d, s.mode, s.game);
+                set({
+                  difficulty: d,
+                  operations: base.operations,
+                  parentheses: base.parentheses,
+                  timePerQuestion: base.timePerQuestion,
+                  missingKind: base.missingKind,
+                });
               }}
             >
               {d} · {t(`levels.${d}`)}
@@ -105,17 +127,33 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
               {OP_SYMBOL[op]}
             </button>
           ))}
-          <button
-            type="button"
-            aria-pressed={s.parentheses}
-            aria-label={t("ops.paren")}
-            title={t("ops.paren")}
-            onClick={() => set({ parentheses: !s.parentheses })}
-          >
-            ( )
-          </button>
+          {/* Au bon compte, les parenthèses sont toujours permises. */}
+          {s.game !== "right-count" ? (
+            <button
+              type="button"
+              aria-pressed={s.parentheses}
+              aria-label={t("ops.paren")}
+              title={t("ops.paren")}
+              onClick={() => set({ parentheses: !s.parentheses })}
+            >
+              ( )
+            </button>
+          ) : null}
         </div>
       </fieldset>
+
+      {s.game === "missing" ? (
+        <fieldset className="field" disabled={readOnly}>
+          <legend>{t("settings.missingKind.label")}</legend>
+          <div className="seg" role="group">
+            {MISSING_KINDS.map((k) => (
+              <button key={k} type="button" aria-pressed={s.missingKind === k} onClick={() => set({ missingKind: k })}>
+                {t(`settings.missingKind.${k}`)}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
 
       {s.mode === "speed-race" ? (
         <div className="field">
@@ -146,8 +184,8 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
           <input
             type="range"
             id={`${id}-time`}
-            min={MIN_TIME}
-            max={MAX_TIME}
+            min={GAMES[s.game].timeRange.min}
+            max={GAMES[s.game].timeRange.max}
             value={s.timePerQuestion}
             disabled={readOnly}
             onChange={(e) => set({ timePerQuestion: Number(e.target.value) })}
@@ -156,7 +194,28 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
         </div>
       </div>
 
-      {online ? (
+      {s.game === "bomb" ? (
+        <div className="field">
+          <label className="field-label" htmlFor={`${id}-build`}>
+            {t("settings.buildTime")}
+          </label>
+          <div className="range-row">
+            <input
+              type="range"
+              id={`${id}-build`}
+              min={MIN_BUILD_TIME}
+              max={MAX_BUILD_TIME}
+              step={5}
+              value={s.buildTime}
+              disabled={readOnly}
+              onChange={(e) => set({ buildTime: Number(e.target.value) })}
+            />
+            <span className="range-value">{t("settings.seconds", { n: s.buildTime })}</span>
+          </div>
+        </div>
+      ) : null}
+
+      {online && GAMES[s.game].turns ? (
         <fieldset className="field" disabled={readOnly}>
           <legend>{t("settings.answers")}</legend>
           <div className="seg" role="group">

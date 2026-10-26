@@ -69,12 +69,12 @@ async function clean() {
   const games = await prisma.game.deleteMany({ where: { code: SEED_CODE } });
   const users = await prisma.user.deleteMany({ where: { id: { startsWith: SEED_PREFIX } } });
   let ratings = 0;
-  for (const r of await prisma.rating.findMany({ select: { userId: true, mode: true, difficulty: true } })) {
+  for (const r of await prisma.rating.findMany({ select: { userId: true, game: true, mode: true, difficulty: true } })) {
     const real = await prisma.gamePlayer.count({
-      where: { userId: r.userId, ratingGames: { not: null }, game: { mode: r.mode, difficulty: r.difficulty } },
+      where: { userId: r.userId, ratingGames: { not: null }, game: { game: r.game, mode: r.mode, difficulty: r.difficulty } },
     });
     if (real) continue;
-    await prisma.rating.delete({ where: { userId_mode_difficulty: r } });
+    await prisma.rating.delete({ where: { userId_game_mode_difficulty: r } });
     ratings += 1;
   }
   console.log(`Nettoyé : ${games.count} parties, ${users.count} faux joueurs, ${ratings} Elo de vrais comptes.`);
@@ -182,7 +182,7 @@ async function seed(meEmail: string | undefined) {
       data: games.slice(i, i + 1000).map((g) => ({
         id: g.id,
         code: SEED_CODE,
-        settings: { mode: g.mode, difficulty: g.difficulty, rounds: ROUNDS },
+        settings: { game: "standard", mode: g.mode, difficulty: g.difficulty, rounds: ROUNDS },
         mode: g.mode,
         difficulty: g.difficulty,
         turnStyle: "simultaneous",
