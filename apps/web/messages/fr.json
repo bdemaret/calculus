@@ -168,7 +168,13 @@
     "pointFor": "point pour {names}",
     "spared": "personne ne sort",
     "out": "éliminé : {names}",
-    "quit": "Quitter la partie"
+    "quit": "Quitter la partie",
+    "voice": {
+      "listening": "À l’écoute… dis ta réponse, puis Entrée",
+      "listeningTouch": "À l’écoute… dis ta réponse, puis OK",
+      "denied": "Micro bloqué : autorise-le dans ton navigateur",
+      "unsupported": "Reconnaissance vocale indisponible dans ce navigateur"
+    }
   },
   "report": {
     "pageTitle": "Rapport de partie",
@@ -254,7 +260,13 @@
     "save": "Enregistrer",
     "saved": "Pseudo enregistré.",
     "error": "Le pseudo n’a pas pu être enregistré.",
-    "logout": "Se déconnecter"
+    "logout": "Se déconnecter",
+    "input": "Saisie des réponses",
+    "inputKeyboard": "Clavier",
+    "inputVoice": "Voix",
+    "inputVoiceHelp": "À la voix, dis ta réponse : elle s’écrit dans la case, puis appuie sur Entrée pour valider.",
+    "inputVoiceUnsupported": "Ton navigateur ne gère pas la reconnaissance vocale (essaie Chrome, Edge ou Safari).",
+    "inputSaved": "Préférence enregistrée."
   },
   "dashboard": {
     "title": "Tableau de bord",

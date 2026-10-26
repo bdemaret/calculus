@@ -22,7 +22,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
       <p className="muted">
         {session.user.email} · {t("memberSince", { date: format.dateTime(new Date(session.user.createdAt), { dateStyle: "long" }) })}
       </p>
-      <ProfileForm name={session.user.name} />
+      <ProfileForm name={session.user.name} voiceInput={!!session.user.voiceInput} />
     </section>
   );
 }

@@ -1,15 +1,30 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { authClient } from "@/lib/auth-client";
 import { cleanName } from "@/lib/names";
+import { isVoiceSupported } from "@/lib/useVoiceInput";
 
-export function ProfileForm({ name }: { name: string }) {
+export function ProfileForm({ name, voiceInput }: { name: string; voiceInput: boolean }) {
   const t = useTranslations("profile");
   const router = useRouter();
   const [value, setValue] = useState(name);
   const [state, setState] = useState<"idle" | "saved" | "error">("idle");
+  const [voice, setVoice] = useState(voiceInput);
+  const [voiceState, setVoiceState] = useState<"idle" | "saved" | "error">("idle");
+  const [voiceSupported, setVoiceSupported] = useState(true);
+
+  useEffect(() => setVoiceSupported(isVoiceSupported()), []);
+
+  const changeVoice = async (on: boolean) => {
+    if (on === voice) return;
+    setVoice(on);
+    const { error } = await authClient.updateUser({ voiceInput: on });
+    if (error) setVoice(!on);
+    setVoiceState(error ? "error" : "saved");
+    router.refresh();
+  };
 
   return (
     <>
@@ -33,6 +48,21 @@ export function ProfileForm({ name }: { name: string }) {
         {state === "saved" ? <p className="form-ok">{t("saved")}</p> : null}
         {state === "error" ? <p className="form-error">{t("error")}</p> : null}
       </form>
+      <fieldset className="field">
+        <legend>{t("input")}</legend>
+        <div className="seg" role="group">
+          <button type="button" aria-pressed={!voice} onClick={() => changeVoice(false)}>
+            {t("inputKeyboard")}
+          </button>
+          <button type="button" aria-pressed={voice} onClick={() => changeVoice(true)}>
+            {t("inputVoice")}
+          </button>
+        </div>
+        <p className="muted">{t("inputVoiceHelp")}</p>
+        {voice && !voiceSupported ? <p className="form-error">{t("inputVoiceUnsupported")}</p> : null}
+        {voiceState === "saved" ? <p className="form-ok">{t("inputSaved")}</p> : null}
+        {voiceState === "error" ? <p className="form-error">{t("error")}</p> : null}
+      </fieldset>
       <button
         className="btn ghost"
         type="button"

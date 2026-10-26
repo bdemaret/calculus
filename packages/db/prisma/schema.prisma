@@ -19,6 +19,8 @@ model User {
   email         String    @unique
   emailVerified Boolean   @default(false)
   image         String?
+  /// Saisie des réponses à la voix (reconnaissance vocale du navigateur)
+  voiceInput    Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   sessions      Session[]

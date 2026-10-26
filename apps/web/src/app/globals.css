@@ -221,6 +221,10 @@ p { margin: 0; }
 .game-row { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 20px; min-height: 1.1em; }
 .result-line { font-family: var(--font-hand); font-size: clamp(30px, 5vw, 48px); min-height: 1.2em; line-height: 1.1; }
 .result-line .ok { color: var(--ok); } .result-line .ko { color: var(--ko); }
+.voice-status { font-size: 14px; font-weight: 600; color: var(--muted); }
+.voice-status.listening::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--margin-red); vertical-align: middle; animation: voice-pulse 1.2s ease-in-out infinite; }
+.voice-status.denied, .voice-status.unsupported { color: var(--ko); }
+@keyframes voice-pulse { 50% { opacity: .25; } }
 .players { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border-radius: 999px; border: 1.5px solid var(--line-strong); background: var(--surface); font-weight: 600; font-size: 15px; transition: border-color .2s; }
 .chip .pts { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 700; }

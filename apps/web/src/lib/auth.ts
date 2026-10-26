@@ -21,6 +21,12 @@ export const auth = betterAuth({
       });
     },
   },
+  user: {
+    additionalFields: {
+      /** Préférence de saisie : dicter les réponses au lieu de les taper. */
+      voiceInput: { type: "boolean", required: false, defaultValue: false },
+    },
+  },
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 jours
     cookieCache: { enabled: true, maxAge: 60 * 5 },

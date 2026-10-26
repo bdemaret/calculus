@@ -30,6 +30,7 @@ messages/fr.json, en.json    Traductions
 - **Accès base** : uniquement via `@calculus/db` (fonctions exportées ou `prisma`), jamais côté client.
 - **Style** : réutiliser les variables CSS de `globals.css` (`--ink`, `--paper`, `--hl`, `--margin-red`, `--font-display`, `--font-hand`…) plutôt que des couleurs en dur. Polices : Bricolage Grotesque + Caveat (Google Fonts, chargées dans `[locale]/layout.tsx`).
 - **Tactile** : `useTouch` décide entre saisie clavier et `Keypad` à l'écran.
+- **Dictée** : réglage de compte `User.voiceInput` (champ additionnel Better Auth, modifiable depuis le profil). `CalcLine` lance `useVoiceInput` (Web Speech API, pas de Firefox) qui remplit la case via `parseSpokenNumber` ; la validation reste à la touche Entrée (ou OK sur le pavé).
 
 ## Lancer / vérifier
 

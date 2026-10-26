@@ -168,7 +168,13 @@
     "pointFor": "point for {names}",
     "spared": "nobody is out",
     "out": "out: {names}",
-    "quit": "Leave the game"
+    "quit": "Leave the game",
+    "voice": {
+      "listening": "Listening… say your answer, then press Enter",
+      "listeningTouch": "Listening… say your answer, then tap OK",
+      "denied": "Microphone blocked: allow it in your browser",
+      "unsupported": "Speech recognition isn’t available in this browser"
+    }
   },
   "report": {
     "pageTitle": "Game report",
@@ -254,7 +260,13 @@
     "save": "Save",
     "saved": "Nickname saved.",
     "error": "The nickname couldn’t be saved.",
-    "logout": "Log out"
+    "logout": "Log out",
+    "input": "Answer input",
+    "inputKeyboard": "Keyboard",
+    "inputVoice": "Voice",
+    "inputVoiceHelp": "With voice, say your answer: it fills the box, then press Enter to submit.",
+    "inputVoiceUnsupported": "Your browser doesn’t support speech recognition (try Chrome, Edge or Safari).",
+    "inputSaved": "Preference saved."
   },
   "dashboard": {
     "title": "Dashboard",

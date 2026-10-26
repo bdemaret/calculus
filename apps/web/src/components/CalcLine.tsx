@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useRef, type ReactNode } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { useSession } from "@/lib/auth-client";
 import { useTouch } from "@/lib/useTouch";
+import { useVoiceInput } from "@/lib/useVoiceInput";
 import { Keypad } from "./Keypad";
 
 interface Props {
@@ -22,8 +24,17 @@ const MAX_DIGITS = 6;
 /** Une ligne de cahier : le calcul, le signe égal et la réponse écrite à l'encre bleue. */
 export function CalcLine({ text, value, onChange, onSubmit, disabled, status, shake, mark, autoFocus = true }: Props) {
   const t = useTranslations("game");
+  const locale = useLocale();
   const touch = useTouch();
   const input = useRef<HTMLInputElement>(null);
+  // Dictée : réglage du compte, la case se remplit à la voix et Entrée valide toujours.
+  const { data: session } = useSession();
+  const voice = useVoiceInput({
+    enabled: !!session?.user.voiceInput && !disabled,
+    locale,
+    resetKey: text,
+    onNumber: (digits) => set(digits),
+  });
 
   useEffect(() => {
     if (!disabled && autoFocus && !touch) input.current?.focus({ preventScroll: true });
@@ -60,6 +71,11 @@ export function CalcLine({ text, value, onChange, onSubmit, disabled, status, sh
         </span>
         {mark ? <span className="mark">{mark}</span> : null}
       </form>
+      {voice !== "off" ? (
+        <p className={`voice-status ${voice}`} aria-live="polite">
+          {t(voice === "listening" && touch ? "voice.listeningTouch" : `voice.${voice}`)}
+        </p>
+      ) : null}
       {touch ? (
         <Keypad disabled={disabled} onDigit={(d) => set(value + d)} onDelete={() => set(value.slice(0, -1))} onSubmit={submit} />
       ) : null}
