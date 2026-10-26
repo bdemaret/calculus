@@ -8,7 +8,9 @@ import { cleanName } from "@/lib/names";
 
 function useErrorText() {
   const t = useTranslations("auth");
-  return (code?: string, detail?: string) => {
+  return (code?: string, detail?: string, status?: number) => {
+    // Rate limit de Better Auth : réponse 429 sans code.
+    if (status === 429) return t("tooManyRequests");
     switch (code) {
       case "INVALID_EMAIL_OR_PASSWORD":
         return t("invalidCreds");
@@ -21,6 +23,8 @@ function useErrorText() {
         return t("invalidEmail");
       case "INVALID_TOKEN":
         return t("invalidToken");
+      case "INVALID_NAME":
+        return t("nameRequired");
       default:
         // On montre le détail technique pour aider à comprendre le problème.
         return detail || code ? `${t("generic")} (${[code, detail].filter(Boolean).join(" : ")})` : t("generic");
@@ -46,7 +50,7 @@ export function LoginForm() {
           setError(null);
           const { error } = await authClient.signIn.email({ email: String(f.get("email")), password: String(f.get("password")) });
           setBusy(false);
-          if (error) return setError(errorText(error.code, error.message ?? `${error.status ?? ""} ${error.statusText ?? ""}`.trim()));
+          if (error) return setError(errorText(error.code, error.message ?? `${error.status ?? ""} ${error.statusText ?? ""}`.trim(), error.status));
           router.push("/dashboard");
           router.refresh();
         }}
@@ -96,7 +100,7 @@ export function SignupForm() {
           setError(null);
           const { error } = await authClient.signUp.email({ name, email: String(f.get("email")), password: String(f.get("password")) });
           setBusy(false);
-          if (error) return setError(errorText(error.code, error.message ?? `${error.status ?? ""} ${error.statusText ?? ""}`.trim()));
+          if (error) return setError(errorText(error.code, error.message ?? `${error.status ?? ""} ${error.statusText ?? ""}`.trim(), error.status));
           router.push("/dashboard");
           router.refresh();
         }}
@@ -193,7 +197,7 @@ export function ResetForm() {
             if (!token) return setError(errorText("INVALID_TOKEN"));
             const f = new FormData(e.currentTarget);
             const { error } = await authClient.resetPassword({ newPassword: String(f.get("password")), token });
-            if (error) return setError(errorText(error.code, error.message ?? `${error.status ?? ""} ${error.statusText ?? ""}`.trim()));
+            if (error) return setError(errorText(error.code, error.message ?? `${error.status ?? ""} ${error.statusText ?? ""}`.trim(), error.status));
             setDone(true);
           }}
         >

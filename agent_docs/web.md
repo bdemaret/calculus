@@ -28,6 +28,9 @@ messages/fr.json, en.json    Traductions
 - **Navigation** : importer `Link`, `redirect`, `useRouter`, `usePathname` depuis `@/i18n/navigation`, jamais depuis `next/link` / `next/navigation`, pour garder le préfixe de langue.
 - **Traductions** : aucun texte en dur dans l'UI. Toute nouvelle clé va dans **les deux** fichiers `messages/fr.json` et `messages/en.json`. Le français est la langue de référence (tutoiement, typographie française : `’`, espaces avant `: ; ! ?`, « guillemets »).
 - **Auth** : `getSession()` de `@/lib/auth` côté serveur (fichier `server-only`) ; `@/lib/auth-client` côté navigateur.
+  - Le pseudo est nettoyé et validé côté serveur (`databaseHooks` → `cleanName`, erreur `INVALID_NAME`) : l'API Better Auth est appelable sans passer par le formulaire.
+  - Rate limit Better Auth stocké en base (`rateLimit.storage: "database"`, table `rate_limit`), actif en production seulement ; réponse 429 → `auth.tooManyRequests`. `AUTH_RATE_LIMIT_DISABLED=1` le coupe, réservé aux tests e2e.
+  - En production : `BETTER_AUTH_URL` obligatoire (sinon erreur au démarrage), et sans `RESEND_API_KEY` le contenu des e-mails n'est jamais logué (il contient des liens de réinitialisation).
 - **Routes API** : valider le corps avec Zod (`safeParse`), répondre `{ error: "code" }` avec le bon statut HTTP.
 - **Accès base** : uniquement via `@calculus/db` (fonctions exportées ou `prisma`), jamais côté client.
 - **Style** : réutiliser les variables CSS de `globals.css` (`--ink`, `--paper`, `--hl`, `--margin-red`, `--font-display`, `--font-hand`…) plutôt que des couleurs en dur. Polices : Bricolage Grotesque + Caveat (Google Fonts, chargées dans `[locale]/layout.tsx`).

@@ -27,8 +27,12 @@ const ROUND_RESULT_MS = 2200;
 const LATENCY_GRACE_MS = 150;
 /** Temps laissé à un joueur déconnecté pour revenir, en secondes. */
 const RECONNECT_SECONDS = 30;
-/** Nombre maximal de messages par joueur et par seconde. */
-const MAX_MESSAGES_PER_SECOND = 10;
+/**
+ * Nombre maximal de messages par joueur et par seconde, tous types confondus.
+ * Assez large pour la saisie visible chiffre par chiffre suivie de la réponse ;
+ * deviner en rafale reste impossible (une seule réponse par calcul).
+ */
+const MAX_MESSAGES_PER_SECOND = 20;
 
 const activeCodes = new Set<string>();
 
@@ -84,12 +88,13 @@ export class GameRoom extends Room {
     this.code = generateCode();
     activeCodes.add(this.code);
     this.roomId = this.code;
+    // Salle privée : on n'y entre qu'avec son code (joinById), jamais par `join("game")` au hasard.
+    void this.setPrivate(true);
     this.settings = sanitizeSettings(options?.settings ?? {});
     this.autoDispose = true;
 
-    this.onMessage("settings", (client, msg: unknown) => {
-      const m = this.memberOf(client);
-      if (!m || m.id !== this.hostId || this.phase !== "lobby") return;
+    this.on("settings", (m, msg) => {
+      if (m.id !== this.hostId || this.phase !== "lobby") return;
       if (typeof msg !== "object" || msg === null) return;
       this.settings = sanitizeSettings({ ...this.settings, ...msg });
       // Les réglages ont changé : chacun doit confirmer qu'il est prêt.
@@ -97,69 +102,65 @@ export class GameRoom extends Room {
       this.broadcastSnapshot();
     });
 
-    this.onMessage("ready", (client, msg: unknown) => {
-      const m = this.memberOf(client);
+    this.on("ready", (m, msg) => {
       const parsed = readySchema.safeParse(msg);
-      if (!m || !parsed.success || this.phase !== "lobby") return;
+      if (!parsed.success || this.phase !== "lobby") return;
       m.ready = parsed.data.ready;
       this.broadcastSnapshot();
     });
 
-    this.onMessage("start", (client) => {
-      const m = this.memberOf(client);
-      if (!m || m.id !== this.hostId || this.phase !== "lobby") return;
+    this.on("start", (m) => {
+      if (m.id !== this.hostId || this.phase !== "lobby") return;
       this.startGame();
     });
 
-    this.onMessage("replay-same", (client) => {
-      const m = this.memberOf(client);
-      if (!m || m.id !== this.hostId || this.phase !== "finished") return;
+    this.on("replay-same", (m) => {
+      if (m.id !== this.hostId || this.phase !== "finished") return;
       this.startGame();
     });
 
-    this.onMessage("replay-new", (client) => {
-      const m = this.memberOf(client);
-      if (!m || m.id !== this.hostId || this.phase !== "finished") return;
+    this.on("replay-new", (m) => {
+      if (m.id !== this.hostId || this.phase !== "finished") return;
       this.backToLobby();
     });
 
-    this.onMessage("kick", (client, msg: unknown) => {
-      const m = this.memberOf(client);
+    this.on("kick", (m, msg) => {
       const parsed = kickSchema.safeParse(msg);
-      if (!m || !parsed.success || m.id !== this.hostId || this.phase !== "lobby") return;
+      if (!parsed.success || m.id !== this.hostId || this.phase !== "lobby") return;
       const target = this.members.get(parsed.data.playerId);
       if (target && target.id !== this.hostId) target.client.leave(4000);
     });
 
-    this.onMessage("answer", (client, msg: unknown) => this.handleAnswer(client, msg));
+    this.on("answer", (m, msg, client) => this.handleAnswer(m, client, msg));
 
-    this.onMessage("hello", (client) => {
-      const m = this.memberOf(client);
-      if (!m) return;
+    this.on("hello", (m, _msg, client) => {
       client.send("welcome", { playerId: m.id });
       client.send("snapshot", this.snapshot());
     });
 
-    this.onMessage("typing", (client, msg: unknown) => {
-      const m = this.memberOf(client);
+    this.on("typing", (m, msg, client) => {
       const parsed = typingSchema.safeParse(msg);
       const round = this.engine?.currentRound;
-      if (!m || !parsed.success || !round || round.activePlayerId !== m.id) return;
+      if (!parsed.success || !round || round.activePlayerId !== m.id) return;
       this.broadcast("typing", { playerId: m.id, value: parsed.data.value }, { except: client });
     });
   }
 
-  /** Vérifie le jeton remis par le site avant d'accepter un joueur. */
-  async onAuth(_client: Client, options: { token?: unknown }): Promise<GameIdentity> {
+  /**
+   * Vérifie le jeton remis par le site. Statique : Colyseus l'appelle pendant le matchmaking,
+   * avant de créer la salle ou de réserver une place, donc sans jeton on ne crée rien.
+   */
+  static async onAuth(_token: string, options: { token?: unknown }): Promise<GameIdentity> {
     const identity = await verifyGameToken(options?.token);
     if (!identity) throw new ServerError(JOIN_ERRORS.badToken, "bad-token");
-    if (this.phase !== "lobby") throw new ServerError(JOIN_ERRORS.inProgress, "in-progress");
-    if (this.members.has(identity.id)) throw new ServerError(JOIN_ERRORS.duplicate, "duplicate");
-    if (this.members.size >= MAX_PLAYERS) throw new ServerError(JOIN_ERRORS.full, "full");
     return identity;
   }
 
   onJoin(client: Client, _options: unknown, auth: GameIdentity) {
+    // Vérifications propres à la salle (l'authentification statique n'y a pas accès).
+    if (this.phase !== "lobby") throw new ServerError(JOIN_ERRORS.inProgress, "in-progress");
+    if (this.members.has(auth.id)) throw new ServerError(JOIN_ERRORS.duplicate, "duplicate");
+    if (this.members.size >= MAX_PLAYERS) throw new ServerError(JOIN_ERRORS.full, "full");
     this.members.set(auth.id, {
       id: auth.id,
       name: auth.name,
@@ -205,6 +206,15 @@ export class GameRoom extends Room {
   private memberOf(client: Client): Member | undefined {
     for (const m of this.members.values()) if (m.client.sessionId === client.sessionId) return m;
     return undefined;
+  }
+
+  /** Déclare un message : l'expéditeur doit être membre de la salle et respecter le rate limit. */
+  private on(type: string, handler: (m: Member, msg: unknown, client: Client) => void) {
+    this.onMessage(type, (client, msg: unknown) => {
+      const m = this.memberOf(client);
+      if (!m || !this.allowMessage(m, Date.now())) return;
+      handler(m, msg, client);
+    });
   }
 
   /** Limite le nombre de messages pour empêcher de « deviner » en rafale. */
@@ -274,12 +284,10 @@ export class GameRoom extends Room {
     this.timer = this.clock.setTimeout(() => this.closeRound(), round.timeLimitMs + LATENCY_GRACE_MS);
   }
 
-  private handleAnswer(client: Client, msg: unknown) {
+  private handleAnswer(m: Member, client: Client, msg: unknown) {
     const now = Date.now();
-    const m = this.memberOf(client);
     const engine = this.engine;
-    if (!m || !engine || this.phase !== "question") return;
-    if (!this.allowMessage(m, now)) return;
+    if (!engine || this.phase !== "question") return;
     const parsed = answerSchema.safeParse(msg);
     const round = engine.currentRound;
     if (!parsed.success || !round || parsed.data.questionIndex !== round.index) {

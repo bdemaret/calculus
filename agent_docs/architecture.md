@@ -30,7 +30,7 @@ game-core  ←  db  ←  web
 
 1. Le navigateur appelle `POST /api/game-token` (`apps/web/src/app/api/game-token/route.ts`) → JWT HS256 signé avec `GAME_TOKEN_SECRET` (issuer `calculus-web`, audience `calculus-game`, 2 h). Compte connecté : `sub` = id du compte ; invité : `sub` = `guest_<uuid>`.
 2. `apps/web/src/lib/colyseus.ts` se connecte à `NEXT_PUBLIC_GAME_SERVER_URL` avec ce jeton.
-3. `GameRoom.onAuth` vérifie le jeton (`apps/game-server/src/token.ts`). Erreurs de connexion : codes `JOIN_ERRORS` (`protocol.ts`).
+3. `GameRoom.onAuth` (statique, pendant le matchmaking) vérifie le jeton (`apps/game-server/src/token.ts`). Erreurs de connexion : codes `JOIN_ERRORS` (`protocol.ts`).
 4. Le serveur pilote tout : phases `lobby → countdown → question → round-result → … → finished`, envoie un `RoomSnapshot` complet à chaque changement (jamais la réponse avant la fin de la manche).
 5. En fin de partie, `persist.ts` appelle `saveGame` (les erreurs de persistance n'interrompent jamais le jeu).
 
@@ -52,7 +52,8 @@ Un seul `.env` à la racine (modèle : `.env.example`). Chargé par `dotenv -e .
 | `NEXT_PUBLIC_GAME_SERVER_URL` | web, côté navigateur (`ws://localhost:2567` en local) |
 | `GAME_SERVER_PORT` / `PORT` | game-server |
 | `WEB_ORIGIN` | game-server |
-| `RESEND_API_KEY`, `EMAIL_FROM` | web (e-mails ; sans clé, affichés dans le terminal) |
+| `RESEND_API_KEY`, `EMAIL_FROM` | web (e-mails ; sans clé, affichés dans le terminal, sauf en production où rien n'est envoyé ni affiché) |
+| `AUTH_RATE_LIMIT_DISABLED` | web, tests e2e uniquement (`"1"` coupe le rate limit de Better Auth) ; jamais en production |
 
 ## Déploiement
 

@@ -20,6 +20,8 @@ export const serverEnv: Record<string, string> = {
   WEB_ORIGIN: WEB_URL,
   // Sans clé, les e-mails sont seulement affichés : les tests lisent les jetons en base.
   RESEND_API_KEY: "",
+  // Tous les tests s'inscrivent depuis la même IP : le rate limit de Better Auth les bloquerait (build de production).
+  AUTH_RATE_LIMIT_DISABLED: "1",
   NEXT_DIST_DIR: ".next-e2e",
   NEXT_TELEMETRY_DISABLED: "1",
 };

@@ -259,6 +259,7 @@
     "invalidEmail": "Cette adresse e-mail n’est pas valide.",
     "invalidToken": "Ce lien a expiré ou a déjà servi. Demande-en un nouveau.",
     "nameRequired": "Choisis un pseudo.",
+    "tooManyRequests": "Trop de tentatives. Patiente un peu, puis réessaie.",
     "generic": "Quelque chose a échoué. Réessaie."
   },
   "profile": {
