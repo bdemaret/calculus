@@ -1,6 +1,6 @@
 "use client";
 import { Client, type Room } from "colyseus.js";
-import { JOIN_ERRORS, type GameSettings, type RoomSnapshot } from "@calculus/game-core";
+import { JOIN_ERRORS, type GameSettings, type PublicLobbyList, type RoomSnapshot } from "@calculus/game-core";
 
 /**
  * Connexion au serveur de jeu. La salle en cours est gardée ici pour survivre
@@ -11,10 +11,19 @@ let current: Room | null = null;
 
 const RECONNECT_KEY = "calculus:reconnect";
 
+const gameServerUrl = () => process.env.NEXT_PUBLIC_GAME_SERVER_URL ?? "ws://localhost:2567";
+
 function getClient(): Client {
-  const url = process.env.NEXT_PUBLIC_GAME_SERVER_URL ?? "ws://localhost:2567";
-  client = client ?? new Client(url);
+  client = client ?? new Client(gameServerUrl());
   return client;
+}
+
+/** Lobbys publics ouverts sur le serveur de jeu (route HTTP `/lobbies`, même adresse en http(s)). */
+export async function fetchPublicLobbies(signal?: AbortSignal): Promise<PublicLobbyList> {
+  const base = gameServerUrl().replace(/^ws/, "http").replace(/\/$/, "");
+  const res = await fetch(`${base}/lobbies`, { cache: "no-store", signal });
+  if (!res.ok) throw new Error(`lobbies ${res.status}`);
+  return (await res.json()) as PublicLobbyList;
 }
 
 export type JoinErrorCode = "locked" | "bad-token" | "in-progress" | "duplicate" | "full" | "not-found" | "server-down" | "name-required" | "generic";

@@ -24,7 +24,12 @@ export interface LobbyPlayer {
 export interface RoomSnapshot {
   code: string;
   phase: RoomPhase;
+  /** Vide pour un lobby public, qui n'a pas de propriétaire. */
   hostId: string;
+  /** Lobby public, créé automatiquement par le serveur. */
+  isPublic: boolean;
+  /** Lobby public en attente : lancement automatique, en heure serveur (ms). */
+  autoStartAt: number | null;
   settings: GameSettings;
   players: LobbyPlayer[];
   maxPlayers: number;

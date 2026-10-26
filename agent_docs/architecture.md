@@ -58,4 +58,4 @@ Un seul `.env` à la racine (modèle : `.env.example`). Chargé par `dotenv -e .
 
 ## Déploiement
 
-Web sur Vercel (racine `apps/web`), serveur de jeu sur Railway/Fly (`pnpm --filter @calculus/game-server start`, route `/health`), base sur Neon. Détails dans `README.md`.
+Web sur Vercel (racine `apps/web`), serveur de jeu sur Railway/Fly (`pnpm --filter @calculus/game-server start`, routes `/health` et `/lobbies`), base sur Neon. Détails dans `README.md`.

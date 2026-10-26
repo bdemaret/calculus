@@ -37,6 +37,16 @@
     "playSoloSub": "Five levels, from “7 + 4” to “125 × 8 − 36 ÷ 4”.",
     "modesTitle": "Two game modes"
   },
+  "publicLobbies": {
+    "title": "Open lobbies",
+    "kicker": "join in one click",
+    "loading": "Looking for lobbies…",
+    "unavailable": "Open lobbies are unavailable right now.",
+    "startsIn": "starts in {time}",
+    "starting": "starting now",
+    "join": "Join →",
+    "rule": "Starts after 2 minutes, or as soon as the lobby is full."
+  },
   "modes": {
     "battle-royale": {
       "name": "Battle royale",
@@ -150,7 +160,10 @@
     "rules": "Game rules",
     "waitingHost": "The host sets the rules and starts the game.",
     "hostHint": "You’re the host: set up the game, then start it when everyone is here.",
-    "everyoneReady": "Everyone is ready."
+    "everyoneReady": "Everyone is ready.",
+    "autoStartIn": "Starts in {time}",
+    "autoStartSoon": "Starting…",
+    "publicHint": "Open lobby, no host: the game starts on its own after 2 minutes, or as soon as {max} players are in."
   },
   "game": {
     "yourAnswer": "Your answer",
@@ -229,7 +242,9 @@
     "placementShort": "placement {played}/{total}",
     "ratingRevealed": "Placement done: your Elo is {rating}.",
     "ratingNew": "new",
-    "deletedPlayer": "Deleted account"
+    "deletedPlayer": "Deleted account",
+    "findLobby": "Find another lobby",
+    "publicEnd": "This lobby is over. More are waiting on the home page."
   },
   "auth": {
     "loginTitle": "Log in",

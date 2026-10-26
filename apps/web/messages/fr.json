@@ -37,6 +37,16 @@
     "playSoloSub": "Cinq niveaux, du « 7 + 4 » au « 125 × 8 − 36 ÷ 4 ».",
     "modesTitle": "Deux modes de jeu"
   },
+  "publicLobbies": {
+    "title": "Lobbys ouverts",
+    "kicker": "rejoins en un clic",
+    "loading": "Recherche de lobbys…",
+    "unavailable": "Les lobbys ouverts sont indisponibles pour le moment.",
+    "startsIn": "départ dans {time}",
+    "starting": "départ imminent",
+    "join": "Rejoindre →",
+    "rule": "Départ au bout de 2 minutes, ou dès que le lobby est plein."
+  },
   "modes": {
     "battle-royale": {
       "name": "Battle royale",
@@ -150,7 +160,10 @@
     "rules": "Règles de la partie",
     "waitingHost": "L’hôte choisit les règles et lance la partie.",
     "hostHint": "Tu es l’hôte : règle la partie, puis lance-la quand tout le monde est là.",
-    "everyoneReady": "Tout le monde est prêt."
+    "everyoneReady": "Tout le monde est prêt.",
+    "autoStartIn": "Départ dans {time}",
+    "autoStartSoon": "Départ imminent…",
+    "publicHint": "Lobby ouvert, sans hôte : la partie se lance seule au bout de 2 minutes, ou dès que {max} joueurs sont là."
   },
   "game": {
     "yourAnswer": "Ta réponse",
@@ -229,7 +242,9 @@
     "placementShort": "placement {played}/{total}",
     "ratingRevealed": "Placement terminé : ton Elo est de {rating}.",
     "ratingNew": "nouveau",
-    "deletedPlayer": "Compte supprimé"
+    "deletedPlayer": "Compte supprimé",
+    "findLobby": "Trouver un autre lobby",
+    "publicEnd": "Ce lobby est terminé. D’autres t’attendent sur l’accueil."
   },
   "auth": {
     "loginTitle": "Se connecter",

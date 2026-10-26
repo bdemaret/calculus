@@ -14,6 +14,7 @@ Logique pure, déterministe, sans I/O. Tout est réexporté par `src/index.ts`.
 | `report.ts` | `buildReport` : bilan de fin de partie (stats par joueur, par opération, revue des manches) |
 | `elo.ts` | Elo multijoueur : `computeRatingChanges` (duels deux à deux selon le rang, `ELO_K` = 32 divisé par le nombre d'adversaires), `INITIAL_RATING` = 1000. Placement : pendant `PLACEMENT_GAMES` = 5 parties, Elo caché, et le joueur ne compte pas comme adversaire pour les classés. `describeRatingChange` → `RatingChange` (`rated` / `placement` / `revealed`), seule forme montrée aux joueurs |
 | `protocol.ts` | Contrat réseau navigateur ↔ serveur : `RoomSnapshot`, `ClientMessages`, `ServerMessages`, `GameTokenPayload`, `JOIN_ERRORS`, codes de lobby |
+| `publicLobbies.ts` | Lobbys publics de l'accueil : `PUBLIC_LOBBY_COUNT` = 2, `PUBLIC_LOBBY_DURATION_MS` = 2 min, `randomPublicSettings(rng, avoid)` (jeu, façon de jouer et niveau au hasard, différents des lobbys déjà ouverts ; 5 calculs par joueur en « chacun son tour »), types `PublicLobbyInfo` / `PublicLobbyList` |
 
 ## Invariants à respecter
 

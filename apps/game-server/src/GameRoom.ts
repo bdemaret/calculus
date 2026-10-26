@@ -5,6 +5,7 @@ import {
   GameEngine,
   JOIN_ERRORS,
   MAX_PLAYERS,
+  PUBLIC_LOBBY_DURATION_MS,
   buildReport,
   randomSeed,
   sanitizeSettings,
@@ -19,6 +20,7 @@ import {
 import { z } from "zod";
 import { verifyGameToken, type GameIdentity } from "./token";
 import { persistGame } from "./persist";
+import { PUBLIC_LOBBY_KEY, publicLobbies } from "./publicLobbies";
 
 /** Durées des transitions, en ms. */
 const COUNTDOWN_MS = 3000;
@@ -64,6 +66,10 @@ const kickSchema = z.object({ playerId: z.string().max(100) });
 /**
  * Une salle de jeu = un lobby. Elle reste ouverte d'une partie à l'autre,
  * ce qui permet de rejouer sans perdre les joueurs.
+ *
+ * Un lobby public (créé par `publicLobbies`, jamais par un navigateur) n'a pas d'hôte :
+ * la partie se lance seule au bout de PUBLIC_LOBBY_DURATION_MS ou dès qu'il est plein,
+ * et il disparaît si personne n'est venu.
  */
 export class GameRoom extends Room {
   maxClients = MAX_PLAYERS;
@@ -83,15 +89,27 @@ export class GameRoom extends Room {
   private ratings: Record<string, RatingChange> | null = null;
   private gameNumber = 0;
   private timer: Delayed | null = null;
+  private isPublic = false;
+  /** Lobby public en attente : heure du lancement automatique (ms). */
+  private autoStartAt: number | null = null;
 
-  onCreate(options: { settings?: unknown }) {
+  onCreate(options: { settings?: unknown; publicKey?: unknown }) {
     this.code = generateCode();
     activeCodes.add(this.code);
     this.roomId = this.code;
     // Salle privée : on n'y entre qu'avec son code (joinById), jamais par `join("game")` au hasard.
     void this.setPrivate(true);
     this.settings = sanitizeSettings(options?.settings ?? {});
-    this.autoDispose = true;
+    this.isPublic = options?.publicKey === PUBLIC_LOBBY_KEY;
+    if (this.isPublic) {
+      // Le lobby public attend ses joueurs même vide ; il sera supprimé à la fin de l'attente.
+      this.autoDispose = false;
+      this.autoStartAt = Date.now() + PUBLIC_LOBBY_DURATION_MS;
+      this.timer = this.clock.setTimeout(() => this.autoStart(), PUBLIC_LOBBY_DURATION_MS);
+      this.publishLobby();
+    } else {
+      this.autoDispose = true;
+    }
 
     this.on("settings", (m, msg) => {
       if (m.id !== this.hostId || this.phase !== "lobby") return;
@@ -171,8 +189,14 @@ export class GameRoom extends Room {
       rateWindowStart: 0,
       rateCount: 0,
     });
-    if (!this.hostId) this.hostId = auth.id;
+    if (!this.hostId && !this.isPublic) this.hostId = auth.id;
     client.send("welcome", { playerId: auth.id });
+    if (this.isPublic && this.members.size >= MAX_PLAYERS) {
+      // Lobby public plein : on lance sans attendre (startGame diffuse l'état).
+      this.startGame();
+      return;
+    }
+    this.publishLobby();
     this.broadcastSnapshot();
   }
 
@@ -199,6 +223,7 @@ export class GameRoom extends Room {
   onDispose() {
     this.timer?.clear();
     activeCodes.delete(this.code);
+    if (this.isPublic) publicLobbies.release(this.code);
   }
 
   /* ---------------------------------------------------------------- */
@@ -246,7 +271,32 @@ export class GameRoom extends Room {
       const next = this.members.values().next();
       this.hostId = next.done ? "" : next.value.id;
     }
+    this.publishLobby();
     this.broadcastSnapshot();
+  }
+
+  /** Met à jour la fiche du lobby public sur l'accueil, tant qu'il attend ses joueurs. */
+  private publishLobby() {
+    if (!this.isPublic || this.autoStartAt === null) return;
+    publicLobbies.update({
+      code: this.code,
+      settings: this.settings,
+      players: this.members.size,
+      maxPlayers: MAX_PLAYERS,
+      startsAt: this.autoStartAt,
+    });
+  }
+
+  /** Fin de l'attente d'un lobby public : on lance avec ceux qui sont là, ou on supprime le lobby. */
+  private autoStart() {
+    const anyone = [...this.members.values()].some((m) => m.connected);
+    if (anyone) {
+      this.startGame();
+      return;
+    }
+    this.autoStartAt = null;
+    publicLobbies.release(this.code);
+    void this.disconnect();
   }
 
   private startGame() {
@@ -254,6 +304,12 @@ export class GameRoom extends Room {
     // Ceux qui ont quitté pendant la partie précédente ne sont pas repris.
     for (const [id, m] of this.members) if (!m.connected) this.members.delete(id);
     if (this.members.size === 0) return;
+    if (this.isPublic && this.autoStartAt !== null) {
+      // Le lobby public quitte l'accueil (un autre le remplace) et se ferme une fois vide, comme un lobby privé.
+      this.autoStartAt = null;
+      publicLobbies.release(this.code);
+      this.autoDispose = true;
+    }
     const players = [...this.members.values()].map((m) => ({ id: m.id, name: m.name }));
     this.guestById = new Map([...this.members.values()].map((m) => [m.id, m.guest]));
     this.engine = new GameEngine(this.settings, players, randomSeed());
@@ -401,6 +457,8 @@ export class GameRoom extends Room {
       code: this.code,
       phase: this.phase,
       hostId: this.hostId,
+      isPublic: this.isPublic,
+      autoStartAt: this.autoStartAt,
       settings: this.settings,
       players,
       maxPlayers: MAX_PLAYERS,

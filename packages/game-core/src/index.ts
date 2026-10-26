@@ -8,3 +8,4 @@ export * from "./engine";
 export * from "./report";
 export * from "./elo";
 export * from "./protocol";
+export * from "./publicLobbies";
