@@ -3,8 +3,9 @@
  * pour tourner à côté de `pnpm dev` sans toucher à la base de développement.
  * Ce ne sont que des valeurs de test, jamais utilisées en production.
  */
-export const WEB_PORT = 3100;
-export const GAME_PORT = 2667;
+// Surchargeables pour lancer deux suites en même temps (autre copie du dépôt, par exemple).
+export const WEB_PORT = Number(process.env.E2E_WEB_PORT ?? 3100);
+export const GAME_PORT = Number(process.env.E2E_GAME_PORT ?? 2667);
 export const WEB_URL = `http://localhost:${WEB_PORT}`;
 export const GAME_HTTP_URL = `http://localhost:${GAME_PORT}`;
 export const DATABASE_URL = process.env.E2E_DATABASE_URL ?? "postgresql://calculus:calculus@127.0.0.1:5433/calculus_e2e";

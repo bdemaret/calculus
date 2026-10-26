@@ -53,6 +53,13 @@ test.describe("la bombe", () => {
     const forBot = saved.questions.find((q) => q.forPlayerKey === keyOf("Bot"))!;
     expect(forBot.authorPlayerKey).toBe(keyOf("Alice"));
     expect(forBot.text).toBe(`${tiles[0]} + ${tiles[1]}`);
+
+    // Le rapport rechargé depuis la base montre la bombe reçue par chacun.
+    await page.goto(`/fr/report/${saved.id}`);
+    // (Les deux bombes peuvent être identiques : on compare avec ce qui est en base.)
+    const expected = saved.questions.map((q) => `${q.text} = ${q.answer}`).sort();
+    await expect(page.locator(".rv-bomb")).toHaveCount(2);
+    expect((await page.locator(".rv-bomb").allTextContents()).map((x) => x.trim()).sort()).toEqual(expected);
   });
 
   test("sans bombe à temps, une bombe de secours part à sa place", async ({ host, bots }) => {

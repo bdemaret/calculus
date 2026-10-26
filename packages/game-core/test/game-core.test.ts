@@ -5,6 +5,8 @@ import {
   buildReport,
   PLACEMENT_GAMES,
   computeRatingChanges,
+  createRng,
+  randomPublicSettings,
   describeRatingChange,
   defaultSettings,
   evaluateText,
@@ -286,5 +288,35 @@ describe("Elo", () => {
     expect(describeRatingChange(1000, 1016, 1)).toEqual({ status: "placement", played: 1 });
     expect(describeRatingChange(1040, 1056, PLACEMENT_GAMES)).toEqual({ status: "revealed", after: 1056 });
     expect(describeRatingChange(1056, 1040, PLACEMENT_GAMES + 1)).toEqual({ status: "rated", before: 1056, after: 1040 });
+  });
+});
+
+describe("lobbys publics", () => {
+  it("tire des réglages valides et reproductibles", () => {
+    for (let i = 0; i < 200; i++) {
+      const s = randomPublicSettings(createRng(`pub-${i}`));
+      expect(sanitizeSettings(s)).toEqual(s);
+      expect(randomPublicSettings(createRng(`pub-${i}`))).toEqual(s);
+      // En « chacun son tour », chaque joueur reçoit `rounds` calculs : la partie reste courte.
+      if (s.turnStyle === "turns") expect(s.rounds).toBeLessThanOrEqual(5);
+    }
+  });
+
+  it("fait varier le jeu, la façon de jouer et le niveau", () => {
+    const rng = createRng("variete");
+    const drawn = Array.from({ length: 200 }, () => randomPublicSettings(rng));
+    expect(new Set(drawn.map((s) => s.mode)).size).toBe(2);
+    expect(new Set(drawn.map((s) => s.turnStyle)).size).toBe(2);
+    expect(new Set(drawn.map((s) => s.difficulty)).size).toBe(5);
+    // Tous les jeux qui se jouent seul ; jamais la bombe (deux joueurs au moins).
+    expect([...new Set(drawn.map((s) => s.game))].sort()).toEqual(["missing", "right-count", "standard"]);
+  });
+
+  it("évite de proposer le même lobby que ceux déjà ouverts", () => {
+    for (let i = 0; i < 200; i++) {
+      const open = randomPublicSettings(createRng(`ouvert-${i}`));
+      const next = randomPublicSettings(createRng(`suivant-${i}`), [open]);
+      expect([next.game, next.mode, next.turnStyle, next.difficulty]).not.toEqual([open.game, open.mode, open.turnStyle, open.difficulty]);
+    }
   });
 });

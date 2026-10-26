@@ -61,8 +61,9 @@ Un seul `.env` à la racine (modèle : `.env.example`). Chargé par `dotenv -e .
 | `WEB_ORIGIN` | game-server |
 | `RESEND_API_KEY`, `EMAIL_FROM` | web (e-mails ; sans clé, affichés dans le terminal, sauf en production où rien n'est envoyé ni affiché) |
 | `LEGAL_PUBLISHER`, `LEGAL_CONTACT_EMAIL` | web (mentions légales : éditeur, vide = particulier anonyme ; e-mail de contact affiché dans les pages légales) |
+| `ADMIN_EMAILS` | web (e-mails des administrateurs, séparés par des virgules ; vide = pas de panel admin) |
 | `AUTH_RATE_LIMIT_DISABLED` | web, tests e2e uniquement (`"1"` coupe le rate limit de Better Auth) ; jamais en production |
 
 ## Déploiement
 
-Web sur Vercel (racine `apps/web`), serveur de jeu sur Railway/Fly (`pnpm --filter @calculus/game-server start`, route `/health`), base sur Neon. Détails dans `README.md`.
+Web sur Vercel (racine `apps/web`), serveur de jeu sur Railway/Fly (`pnpm --filter @calculus/game-server start`, routes `/health` et `/lobbies`), base sur Neon. Détails dans `README.md`.

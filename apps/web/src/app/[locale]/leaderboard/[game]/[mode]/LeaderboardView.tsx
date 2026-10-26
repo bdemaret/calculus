@@ -174,7 +174,9 @@ function BoardTable({ entries, viewerId, label, anchorMe }: { entries: Leaderboa
             <tr key={e.userId} className={e.userId === viewerId ? "me" : undefined} id={anchorMe && e.userId === viewerId ? "board-me" : undefined}>
               <td className="rk">{e.rank}</td>
               <td>
-                {e.name}
+                <Link className="player-link" href={`/player/${e.userId}`}>
+                  {e.name}
+                </Link>
                 {e.userId === viewerId ? <span className="muted"> {t("leaderboard.you")}</span> : null}
               </td>
               <td>

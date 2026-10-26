@@ -22,7 +22,8 @@ Site édité depuis la France, gratuit, avec des comptes : **pas de CGV** (rien 
 - `Session` : **adresse IP et user-agent** (enregistrés par Better Auth), 30 jours.
 - `RateLimit` : la clé contient l'**adresse IP** (compteurs du rate limit, production seulement).
 - `Verification` : jetons de réinitialisation (1 h), liés à l'id du compte.
-- Parties : `Game`, `GamePlayer` (pseudo au moment de la partie, y compris celui des **invités**), `Question`, `Answer`, `Rating`, `UserStats`.
+- Parties : `Game`, `GamePlayer` (pseudo au moment de la partie, y compris celui des **invités**), `Question`, `Answer` (nombre, opérateur ou expression saisis), `Rating`, `UserStats`. À la bombe, le calcul construit par un joueur est montré à un autre joueur et gardé avec son auteur (`Question.authorPlayerKey`) : il ne contient que des chiffres, des opérateurs et des parenthèses (validé par `parseExpression`), donc aucun texte libre à modérer. Couvert par « calculs posés, réponses » dans `legal.privacy`.
+- Retours : `Feedback` (message libre, page, langue, e-mail facultatif d'un invité ; détaché du compte à sa suppression). Lisibles par les administrateurs (`ADMIN_EMAILS`), qui voient aussi pseudo, e-mail et statistiques de chaque compte dans le panel.
 - Social : `Friendship` (recherche possible par e-mail, jamais affiché), `GameInvite` (10 min).
 - Navigateur seulement (`localStorage`) : thème, son, réglages.
 
@@ -32,7 +33,7 @@ Prestataires (sous-traitants) : Vercel (site, US), Neon (base, région Europe), 
 
 Classés du plus au moins important.
 
-1. **Pas de purge des données expirées.** Les sessions expirées (IP + user-agent), les lignes `rate_limit` (IP) et les jetons `verification` expirés restent en base indéfiniment : Better Auth ne les supprime pas lui-même. La politique annonce « 30 jours au plus » pour les sessions. À faire : une tâche planifiée (cron Vercel ou serveur de jeu) qui supprime `session` où `expiresAt < now`, `verification` expirées, et `rate_limit` où `lastRequest` a plus de quelques heures.
+1. **Pas de purge des données expirées.** Les retours (`feedback`) sont annoncés « supprimés au plus tard un an après » dans la politique : la même tâche doit supprimer ceux de plus d'un an (aujourd'hui, à la main depuis le panel admin). Les sessions expirées (IP + user-agent), les lignes `rate_limit` (IP) et les jetons `verification` expirés restent en base indéfiniment : Better Auth ne les supprime pas lui-même. La politique annonce « 30 jours au plus » pour les sessions. À faire : une tâche planifiée (cron Vercel ou serveur de jeu) qui supprime `session` où `expiresAt < now`, `verification` expirées, et `rate_limit` où `lastRequest` a plus de quelques heures.
 2. **Google Fonts chargé depuis Google** (`FONTS_URL` dans `[locale]/layout.tsx`) : chaque visite envoie l'IP à Google. Mentionné dans la politique, mais jugé contraire au RGPD par certains tribunaux (LG München, 2022). Solution simple : `next/font/google`, qui sert les polices depuis le site ; retirer ensuite la ligne Google Fonts de `legal.privacy`.
 3. **Consentement aux CGU vérifié côté client seulement.** L'API `/api/auth/sign-up/email` reste appelable sans la case. Acceptable (accepter les CGU = utiliser le site), mais pour une preuve d'acceptation il faudrait un champ `termsAcceptedAt` sur `User`, exigé par un `databaseHooks.user.create`.
 4. **Pas d'export des données (droit à la portabilité).** Aujourd'hui, la politique renvoie à l'e-mail de contact. Une route `GET /api/me/export` (JSON : compte, parties, stats, amis) le rendrait automatique.

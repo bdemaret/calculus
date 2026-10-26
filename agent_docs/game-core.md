@@ -18,10 +18,11 @@ Logique pure, déterministe, sans I/O. Tout est réexporté par `src/index.ts`.
 | `report.ts` | `buildReport` : bilan de fin de partie (stats par joueur, par opération, revue des manches) |
 | `elo.ts` | Elo multijoueur : `computeRatingChanges` (duels deux à deux selon le rang, `ELO_K` = 32 divisé par le nombre d'adversaires), `INITIAL_RATING` = 1000. Placement : pendant `PLACEMENT_GAMES` = 5 parties, Elo caché, et le joueur ne compte pas comme adversaire pour les classés. `describeRatingChange` → `RatingChange` (`rated` / `placement` / `revealed`), seule forme montrée aux joueurs |
 | `protocol.ts` | Contrat réseau navigateur ↔ serveur : `RoomSnapshot`, `ClientMessages`, `ServerMessages`, `GameTokenPayload`, `JOIN_ERRORS`, codes de lobby |
+| `publicLobbies.ts` | Lobbys publics de l'accueil : `PUBLIC_LOBBY_COUNT` = 2, `PUBLIC_LOBBY_DURATION_MS` = 2 min, `randomPublicSettings(rng, avoid)` (jeu, mode, façon de jouer et niveau au hasard, différents des lobbys déjà ouverts ; seulement les jeux jouables à un, donc jamais la bombe, puisqu'un lobby public peut se lancer avec un seul joueur ; réglages par défaut du jeu et du niveau ; 5 calculs par joueur en « chacun son tour »), types `PublicLobbyInfo` / `PublicLobbyList` |
 
 ## Invariants à respecter
 
-- **Déterminisme** : un calcul dépend uniquement de `(seed, index, settings)`. Ne jamais utiliser `Math.random()` ni `Date.now()` dans game-core (sauf `randomSeed`). C'est ce qui permet au site de rejouer une partie solo pour la vérifier.
+- **Déterminisme** : un calcul dépend uniquement de `(seed, index, settings)`. Ne jamais utiliser `Math.random()` ni `Date.now()` dans game-core (sauf `randomSeed`). C'est ce qui permet au site de rejouer une partie solo pour la vérifier. Seule exception : les bombes, construites par les joueurs (en ligne seulement, jamais rejouées) ; le tirage, les bombes de secours et l'attribution restent déterministes.
 - **Le temps est un paramètre** : `GameEngine` reçoit toujours `now` (ms) ; c'est l'appelant (serveur ou route API) qui fournit l'horloge.
 - **Jamais la solution côté client** : `Question.puzzle` est envoyé pendant la manche, il ne doit donc jamais contenir la solution ; `answer` et `solution` ne partent qu'en fin de manche.
 - **Calculs valides** : résultats entiers, ≥ 0, et `evaluateText(q.text) === q.answer`. Les opérations demandées sont les seules utilisées ; pas de parenthèses si `parentheses: false`.
@@ -34,8 +35,13 @@ Logique pure, déterministe, sans I/O. Tout est réexporté par `src/index.ts`.
 const engine = new GameEngine(settings, players, seed);
 const round = engine.startRound(now);          // null si partie finie
 engine.submit(playerId, answer, now);          // PlayerAnswer ({ value } | { expr } | { op }) ou un nombre ; SubmitResult { accepted, correct, roundCanClose, … }
-engine.closeRound();                           // applique rules.resolveRound
+engine.closeRound();                           // applique rules.resolveRound puis game.resolveExtras
 engine.isOver; engine.standings(); engine.history;
+
+// La bombe : la manche commence par la construction
+engine.submitBomb(playerId, expr);             // BombSubmitResult { accepted, reason?, text?, value?, allBuilt }
+engine.closeBuild(solveAt);                    // secours, attribution, désamorçage à partir de solveAt
+engine.questionFor(round, playerId);           // le calcul propre à ce joueur
 ```
 
 - Battle royale : `totalRounds` = `BATTLE_ROYALE_ROUND_CAP`, élimination à la première erreur ; si tous les survivants échouent en simultané, personne n'est éliminé (`round.spared`). Le temps accélère via `timeFactor`.
@@ -72,8 +78,9 @@ Une réponse d'une autre forme que `game.answerKind(question)` (la forme peut ch
 
 1. Créer un `GameDefinition` dans `games/<jeu>.ts` : `modes`, `solo`, `minPlayers`, `turns`, `operationStats`, `timeRange`, `defaults(difficulty)`, `answerKind(question)`, `generate` (déterministe), `isValid` (facultatif), `check` et `resolveExtras` (facultatif).
 2. Ajouter l'id à `GameId` (`types.ts`), sa variante à `Puzzle` si besoin, puis à `GAMES` et `GAME_IDS` (`games/index.ts`). Un réglage propre au jeu va dans `GameSettings`, toujours présent avec une valeur par défaut (`defaultSettings`, `sanitizeSettings`).
-3. Côté site : saisie adaptée (`lib/answer.ts`, `CalcLine`), affichage du `puzzle`, séparateur énoncé / solution (`revealSeparator`) ; textes `games.<id>.{name,short,long}` dans `fr.json` et `en.json` ; `revealSeparator` complété.
-4. Tests dans `packages/game-core/test/` (génération exhaustive, `check`).
+3. Côté site : saisie adaptée (`lib/answer.ts`, puis `CalcLine`, `ExpressionBuilder` / `TileExpression` ou un composant à lui, branché dans `SoloGame` et `LobbyClient`), affichage du `puzzle`, séparateur énoncé / solution (`REVEAL_SEPARATOR`, `lib/answer.ts`) ; textes `games.<id>.{name,short,long}` dans `fr.json` et `en.json`.
+4. e2e : l'oracle (`solveText`) doit savoir répondre à ce jeu, et le bot l'envoyer sous la bonne forme.
+5. Tests dans `packages/game-core/test/` (génération exhaustive, `check`).
 
 ## Ajouter un mode de jeu
 
@@ -84,4 +91,4 @@ Une réponse d'une autre forme que `game.answerKind(question)` (la forme peut ch
 
 ## Tests
 
-`pnpm --filter @calculus/game-core test` (Vitest, `test/game-core.test.ts`, `test/expression.test.ts`, `test/missing.test.ts`, `test/right-count.test.ts`, `test/bomb.test.ts`). Les tests du générateur balaient tous les niveaux × combinaisons d'opérations × parenthèses : à garder exhaustifs quand on touche `generator.ts` ou `levels.ts`.
+`pnpm --filter @calculus/game-core test` (Vitest, `test/game-core.test.ts`, `test/expression.test.ts`, `test/missing.test.ts`, `test/right-count.test.ts`, `test/bomb.test.ts`). Les tests des générateurs balaient tous les niveaux × combinaisons d'opérations (× parenthèses, × type de trou) : à garder exhaustifs quand on touche `generator.ts`, `levels.ts` ou un jeu. Le solveur du bon compte et la génération de la bombe tiennent en quelques millisecondes par manche : à remesurer si on agrandit les tirages.

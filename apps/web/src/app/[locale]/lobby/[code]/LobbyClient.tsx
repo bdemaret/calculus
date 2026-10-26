@@ -16,7 +16,7 @@ import { SettingsForm } from "@/components/SettingsForm";
 import { TimerBar } from "@/components/TimerBar";
 import { JoinError, joinLobby, leaveLobby, readRoom, subscribeRoom, type LobbyState } from "@/lib/colyseus";
 import { answerFromInput, answerKindOfPuzzle, revealSeparator, shownAnswer } from "@/lib/answer";
-import { formatSeconds } from "@/lib/format";
+import { formatCountdown, formatSeconds } from "@/lib/format";
 import { cleanName } from "@/lib/names";
 import { celebrate, sfx } from "@/lib/sound";
 import { local } from "@/lib/storage";
@@ -103,9 +103,9 @@ export function LobbyClient({ code, accountName }: Props) {
     <ConnectedLobby
       room={room}
       signedIn={!!accountName}
-      onLeave={() => {
+      onLeave={(to = "/online") => {
         leaveLobby();
-        router.push("/online");
+        router.push(to);
       }}
     />
   );
@@ -119,11 +119,16 @@ function useRoomState(room: Room): LobbyState | null {
   );
 }
 
-function ConnectedLobby({ room, signedIn, onLeave }: { room: Room; signedIn: boolean; onLeave: () => void }) {
+/** Quitte le lobby, puis va à `to` (« Jouer en ligne » par défaut). */
+type LeaveFn = (to?: "/" | "/online") => void;
+
+function ConnectedLobby({ room, signedIn, onLeave: leave }: { room: Room; signedIn: boolean; onLeave: LeaveFn }) {
   const t = useTranslations();
   const state = useRoomState(room);
   const snap = state?.snapshot ?? null;
   const me = state?.playerId ?? null;
+  // On revient d'un lobby public vers l'accueil, où sont les suivants.
+  const onLeave = () => leave(snap?.isPublic ? "/" : "/online");
 
   if (state?.left) {
     return (
@@ -139,7 +144,8 @@ function ConnectedLobby({ room, signedIn, onLeave }: { room: Room; signedIn: boo
   if (!snap || !state) return <p className="status">{t("lobby.connecting")}</p>;
 
   const isHost = snap.hostId === me;
-  if (snap.phase === "lobby") return <WaitingRoom room={room} snap={snap} me={me} isHost={isHost} signedIn={signedIn} onLeave={onLeave} />;
+  if (snap.phase === "lobby")
+    return <WaitingRoom room={room} snap={snap} me={me} isHost={isHost} signedIn={signedIn} clockOffset={state.clockOffset} onLeave={onLeave} />;
   if (snap.phase === "finished") return <Finished room={room} snap={snap} me={me} isHost={isHost} onLeave={onLeave} />;
   return <Playing room={room} state={state} snap={snap} me={me} onLeave={onLeave} />;
 }
@@ -154,6 +160,7 @@ function WaitingRoom({
   me,
   isHost,
   signedIn,
+  clockOffset,
   onLeave,
 }: {
   room: Room;
@@ -161,6 +168,7 @@ function WaitingRoom({
   me: string | null;
   isHost: boolean;
   signedIn: boolean;
+  clockOffset: number;
   onLeave: () => void;
 }) {
   const t = useTranslations();
@@ -239,29 +247,43 @@ function WaitingRoom({
           </div>
         </div>
 
-        <div className="actions">
-          {isHost ? (
-            <button className="btn" type="button" disabled={!enoughPlayers} onClick={() => room.send("start", {})}>
-              {t("lobby.start")}
-            </button>
-          ) : (
-            <button className="btn" type="button" onClick={() => room.send("ready", { ready: !mine?.ready })}>
-              {mine?.ready ? t("lobby.notReady") : t("lobby.imReady")}
-            </button>
-          )}
-          <button className="btn ghost" type="button" onClick={onLeave}>
-            {t("lobby.leave")}
-          </button>
-        </div>
-        <p className="note">
-          {!enoughPlayers
-            ? t("lobby.notEnoughPlayers", { count: minPlayers })
-            : isHost
-              ? allReady
-                ? t("lobby.everyoneReady")
-                : t("lobby.hostHint")
-              : t("lobby.waitingHost")}
-        </p>
+        {snap.isPublic ? (
+          <>
+            <div className="actions">
+              <AutoStart at={snap.autoStartAt} clockOffset={clockOffset} />
+              <button className="btn ghost" type="button" onClick={onLeave}>
+                {t("lobby.leave")}
+              </button>
+            </div>
+            <p className="note">{t("lobby.publicHint", { max: MAX_PLAYERS })}</p>
+          </>
+        ) : (
+          <>
+            <div className="actions">
+              {isHost ? (
+                <button className="btn" type="button" disabled={!enoughPlayers} onClick={() => room.send("start", {})}>
+                  {t("lobby.start")}
+                </button>
+              ) : (
+                <button className="btn" type="button" onClick={() => room.send("ready", { ready: !mine?.ready })}>
+                  {mine?.ready ? t("lobby.notReady") : t("lobby.imReady")}
+                </button>
+              )}
+              <button className="btn ghost" type="button" onClick={onLeave}>
+                {t("lobby.leave")}
+              </button>
+            </div>
+            <p className="note">
+              {!enoughPlayers
+                ? t("lobby.notEnoughPlayers", { count: minPlayers })
+                : isHost
+                  ? allReady
+                    ? t("lobby.everyoneReady")
+                    : t("lobby.hostHint")
+                  : t("lobby.waitingHost")}
+            </p>
+          </>
+        )}
         {signedIn && snap.players.length < MAX_PLAYERS ? <InviteFriends code={snap.code} presentIds={snap.players.map((p) => p.id)} /> : null}
       </div>
 
@@ -270,6 +292,22 @@ function WaitingRoom({
         <SettingsForm id="lobby-settings" settings={snap.settings} onChange={updateSettings} online readOnly={!isHost} />
       </div>
     </section>
+  );
+}
+
+/** Compte à rebours avant le lancement automatique d'un lobby public. */
+function AutoStart({ at, clockOffset }: { at: number | null; clockOffset: number }) {
+  const t = useTranslations();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const left = at === null ? 0 : at - clockOffset - now;
+  return (
+    <p className="auto-start" role="timer" aria-live="off">
+      {left > 0 ? t("lobby.autoStartIn", { time: formatCountdown(left) }) : t("lobby.autoStartSoon")}
+    </p>
   );
 }
 
@@ -503,7 +541,11 @@ function Finished({ room, snap, me, isHost, onLeave }: { room: Room; snap: RoomS
         actions={
           <>
             <div className="actions">
-              {isHost ? (
+              {snap.isPublic ? (
+                <button className="btn" type="button" onClick={onLeave}>
+                  {t("report.findLobby")}
+                </button>
+              ) : isHost ? (
                 <>
                   <button className="btn" type="button" onClick={() => room.send("replay-same", {})}>
                     {t("report.again")}
@@ -513,11 +555,13 @@ function Finished({ room, snap, me, isHost, onLeave }: { room: Room; snap: RoomS
                   </button>
                 </>
               ) : null}
-              <button className="link-btn" type="button" onClick={onLeave}>
-                {t("lobby.leave")}
-              </button>
+              {snap.isPublic ? null : (
+                <button className="link-btn" type="button" onClick={onLeave}>
+                  {t("lobby.leave")}
+                </button>
+              )}
             </div>
-            <p className="note">{isHost ? t("report.keepPlayers") : t("report.waitHost")}</p>
+            <p className="note">{snap.isPublic ? t("report.publicEnd") : isHost ? t("report.keepPlayers") : t("report.waitHost")}</p>
           </>
         }
       />

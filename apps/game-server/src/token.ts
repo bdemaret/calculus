@@ -24,3 +24,18 @@ export async function verifyGameToken(token: unknown): Promise<GameIdentity | nu
     return null;
   }
 }
+
+/**
+ * Vérifie le jeton d'administration (émis par le site pour un compte administrateur, valable 1 minute),
+ * qui donne accès à la liste des parties en cours.
+ */
+export async function verifyAdminToken(header: string | undefined): Promise<boolean> {
+  const token = header?.startsWith("Bearer ") ? header.slice(7) : "";
+  if (!token || token.length > 2000) return false;
+  try {
+    const { payload } = await jwtVerify(token, secret(), { issuer: "calculus-web", audience: "calculus-admin" });
+    return payload.admin === true;
+  } catch {
+    return false;
+  }
+}

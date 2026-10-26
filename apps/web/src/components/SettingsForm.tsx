@@ -66,6 +66,7 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
             </button>
           ))}
         </div>
+        <p className="explain">{t(`games.${s.game}.long`)}</p>
       </fieldset>
 
       <fieldset className="field" disabled={readOnly}>
@@ -78,7 +79,8 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
             </button>
           ))}
         </div>
-        <p className="explain">{t(online ? `modes.${s.mode}.long` : `modes.${s.mode}.solo`)}</p>
+        {/* Un jeu à un seul mode (la bombe) a ses propres règles, déjà expliquées au-dessus. */}
+        {GAMES[s.game].modes.length > 1 ? <p className="explain">{t(online ? `modes.${s.mode}.long` : `modes.${s.mode}.solo`)}</p> : null}
       </fieldset>
 
       <fieldset className="field" disabled={readOnly}>

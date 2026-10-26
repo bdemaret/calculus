@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { acceptFriendRequest, getFriends, removeFriendship, sendFriendRequest } from "@calculus/db";
+import { acceptFriendRequest, getFriends, removeFriendship, sendFriendRequest, sendFriendRequestTo } from "@calculus/db";
 import { getSession } from "@/lib/auth";
 
-const requestBody = z.object({ handle: z.string().trim().min(1).max(254) });
 const otherBody = z.object({ userId: z.string().min(1).max(64) });
+/** Par pseudo ou e-mail (page « Mes amis »), ou par id (profil public d'un joueur). */
+const requestBody = z.union([z.object({ handle: z.string().trim().min(1).max(254) }), otherBody]);
 
 async function readBody<T>(req: Request, schema: z.ZodType<T>): Promise<T | null> {
   const parsed = schema.safeParse(await req.json().catch(() => null));
@@ -18,13 +19,13 @@ export async function GET() {
   return NextResponse.json(await getFriends(session.user.id));
 }
 
-/** Envoie une demande d'ami à partir d'un pseudo ou d'un e-mail. */
+/** Envoie une demande d'ami à partir d'un pseudo, d'un e-mail ou d'un id de compte. */
 export async function POST(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const body = await readBody(req, requestBody);
   if (!body) return NextResponse.json({ error: "bad-request" }, { status: 400 });
-  const result = await sendFriendRequest(session.user.id, body.handle);
+  const result = "handle" in body ? await sendFriendRequest(session.user.id, body.handle) : await sendFriendRequestTo(session.user.id, body.userId);
   if (!("name" in result)) {
     const status = result.status === "not-found" ? 404 : result.status === "too-many" ? 429 : 400;
     return NextResponse.json({ error: result.status }, { status });

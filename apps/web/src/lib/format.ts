@@ -12,3 +12,9 @@ export function formatSigned(n: number, locale: string): string {
   const abs = Math.abs(n).toLocaleString(locale);
   return n > 0 ? `+${abs}` : n < 0 ? `−${abs}` : abs;
 }
+
+/** Temps restant au format « 1:05 » (minutes:secondes), arrondi à la seconde supérieure. */
+export function formatCountdown(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
