@@ -390,3 +390,19 @@ a { color: var(--ink); }
 .board .rk { width: 64px; font-weight: 700; }
 .board tr.me td { background: color-mix(in srgb, var(--hl) 35%, var(--surface)); }
 .board tr#board-me { scroll-margin-top: 80px; }
+/* Suppression de compte */
+.danger-zone { border: 1.5px solid var(--ko); border-radius: 14px; padding: 18px; }
+.btn.danger { background: var(--ko); border-color: var(--ko); color: var(--paper); box-shadow: none; }
+.btn.danger:hover { background: var(--ko); }
+/* Case à cocher des CGU (inscription) */
+.auth label.check-row { display: flex; align-items: flex-start; gap: 10px; font-weight: 500; }
+.check-row input { width: 18px; height: 18px; margin-top: 3px; flex: none; accent-color: var(--ink); }
+/* Pages légales */
+.legal { display: grid; gap: 22px; max-width: 72ch; padding-top: 8px; }
+.legal section { display: grid; gap: 10px; }
+.legal ul { margin: 0; padding-left: 22px; list-style: disc; display: grid; gap: 4px; }
+.legal a { color: var(--ink); }
+/* Pied de page */
+.site-footer { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 64px; padding-top: 16px; border-top: 1.5px solid var(--line-strong); font-size: 14px; color: var(--muted); }
+.site-footer a { color: var(--muted); }
+.site-footer a:hover { color: var(--ink); }

@@ -23,6 +23,7 @@ Prisma 6 + PostgreSQL. Schéma : `packages/db/prisma/schema.prisma`. Client et r
 | `getFriends(userId)` | Amis (avec parties, victoires, réussite), demandes reçues et envoyées |
 | `sendFriendRequest(fromId, handle)` | Demande par pseudo (insensible à la casse ; `ambiguous` si plusieurs comptes) ou e-mail ; accepte directement une demande croisée |
 | `acceptFriendRequest` / `removeFriendship` | Accepter ; retirer, refuser ou annuler (supprime aussi les invitations entre les deux) |
+| `eraseUserGames(userId)` | Avant suppression d'un compte : supprime ses parties solo et vide son pseudo dans les parties en ligne |
 | `sendGameInvite` / `getGameInvites` / `dismissGameInvite` | Invitations à un lobby, réservées aux amis acceptés |
 
 ## Migrations

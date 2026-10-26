@@ -1,5 +1,5 @@
 import { WEB_URL } from "../../env";
-import { resetTokenFor } from "../../fixtures/db";
+import { gameWithPlayers, resetTokenFor, seedGamesFor, userExists } from "../../fixtures/db";
 import { t } from "../../fixtures/i18n";
 import { expect, newUser, signUp, test } from "../../fixtures/test";
 import { AuthPages } from "../../pages/AuthPages";
@@ -128,5 +128,42 @@ test.describe("profil", () => {
     // Requête avec cookie de session : Better Auth exige l'en-tête Origin (protection CSRF).
     const update = await request.post("/api/auth/update-user", { data: { name: "<<>>" }, headers: { origin: WEB_URL } });
     expect(update.status()).toBe(400);
+  });
+
+  test("l'inscription demande d'accepter les conditions d'utilisation", async ({ page }) => {
+    const user = newUser();
+    await page.goto("/fr/signup");
+    await page.getByLabel(t("auth.name")).fill(user.name);
+    await page.getByLabel(t("auth.email")).fill(user.email);
+    await page.getByLabel(t("auth.password")).fill(user.password);
+    await page.getByRole("button", { name: t("auth.signupBtn") }).click();
+    await expect(page.getByRole("checkbox")).toHaveJSProperty("validity.valueMissing", true);
+    await expect(page).toHaveURL(/\/fr\/signup$/);
+    expect(await userExists(user.email)).toBe(false);
+  });
+
+  test("supprimer son compte demande le bon mot de passe puis efface tout", async ({ page, user }) => {
+    const auth = new AuthPages(page);
+    const games = await seedGamesFor(user.email);
+    await page.goto("/fr/profile");
+    await page.getByRole("button", { name: t("profile.deleteOpen") }).click();
+    const password = page.getByLabel(t("profile.deletePassword"));
+    await password.fill("pas-le-bon-mot-de-passe");
+    await page.getByRole("button", { name: t("profile.deleteBtn") }).click();
+    await expect(page.getByText(t("profile.deleteWrongPassword"))).toBeVisible();
+    expect(await userExists(user.email)).toBe(true);
+
+    await password.fill(user.password);
+    await page.getByRole("button", { name: t("profile.deleteBtn") }).click();
+    await page.waitForURL(/\/fr$/);
+    await expect(auth.loginLink()).toBeVisible();
+    expect(await userExists(user.email)).toBe(false);
+    // Partie solo effacée ; partie en ligne gardée pour l'invité, sans le pseudo du compte supprimé.
+    expect(await gameWithPlayers(games.soloId)).toBeNull();
+    const online = await gameWithPlayers(games.onlineId);
+    expect(online?.players.map((p) => [p.displayName, p.userId])).toEqual([["", null], ["Invité", null]]);
+
+    await auth.login(user.email, user.password);
+    await expect(page.getByText(t("auth.invalidCreds"))).toBeVisible();
   });
 });

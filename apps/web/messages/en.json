@@ -228,7 +228,8 @@
     "placement": "Placement: {played}/{total}. Your Elo will show after {total} games.",
     "placementShort": "placement {played}/{total}",
     "ratingRevealed": "Placement done: your Elo is {rating}.",
-    "ratingNew": "new"
+    "ratingNew": "new",
+    "deletedPlayer": "Deleted account"
   },
   "auth": {
     "loginTitle": "Log in",
@@ -261,7 +262,8 @@
     "invalidToken": "This link has expired or was already used. Ask for a new one.",
     "nameRequired": "Pick a nickname.",
     "tooManyRequests": "Too many attempts. Wait a moment, then try again.",
-    "generic": "Something failed. Try again."
+    "generic": "Something failed. Try again.",
+    "acceptTerms": "I accept the <terms>terms of use</terms> and have read the <privacy>privacy policy</privacy>."
   },
   "profile": {
     "title": "My profile",
@@ -278,7 +280,15 @@
     "inputVoiceUnsupported": "Your browser doesn’t support speech recognition (try Chrome, Edge or Safari).",
     "inputSaved": "Preference saved.",
     "friends": "My friends",
-    "friendRequests": "{count, plural, one {# friend request} other {# friend requests}}"
+    "friendRequests": "{count, plural, one {# friend request} other {# friend requests}}",
+    "deleteOpen": "Delete my account",
+    "deleteTitle": "Delete my account",
+    "deleteText": "Your account, statistics, Elo, friends and solo games will be erased for good. Your username will be removed from online games. This cannot be undone.",
+    "deletePassword": "Your password, to confirm",
+    "deleteBtn": "Delete permanently",
+    "deleteCancel": "Cancel",
+    "deleteWrongPassword": "Wrong password.",
+    "deleteError": "Deletion failed. Try again."
   },
   "friends": {
     "title": "My friends",
@@ -374,5 +384,248 @@
     "player": "Player",
     "games": "Games",
     "you": "(you)"
+  },
+  "legal": {
+    "updated": "Last updated: {date}",
+    "anonymousPublisher": "a private individual, on a non-professional basis. In accordance with article 6-III-2 of French law no. 2004-575 of 21 June 2004 (LCEN), their name and address have been provided to the site’s host",
+    "missingContact": "[contact address to be configured]",
+    "notice": {
+      "title": "Legal notice",
+      "sections": [
+        {
+          "title": "Publisher",
+          "body": [
+            "Calculus is published by {publisher}.",
+            "Contact: {contact}"
+          ]
+        },
+        {
+          "title": "Publication director",
+          "body": [
+            "The publication director is the site’s publisher."
+          ]
+        },
+        {
+          "title": "Hosting",
+          "body": [
+            [
+              "Website: Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, United States (vercel.com).",
+              "Online game server: Railway Corporation, United States (railway.com).",
+              "Database: Neon, servers located in Europe (neon.tech)."
+            ]
+          ]
+        },
+        {
+          "title": "Intellectual property",
+          "body": [
+            "The texts, design and code of Calculus belong to its publisher. Any reproduction without permission is prohibited.",
+            "The Bricolage Grotesque and Caveat fonts are used under the SIL Open Font License."
+          ]
+        },
+        {
+          "title": "Report content",
+          "body": [
+            "Offensive username or abusive behaviour? Write to {contact} with the username in question: it will be handled promptly."
+          ]
+        },
+        {
+          "title": "Personal data",
+          "body": [
+            "How your data is processed is described in the privacy policy.",
+            "This English translation is provided for convenience; the French version prevails."
+          ]
+        }
+      ]
+    },
+    "privacy": {
+      "title": "Privacy policy",
+      "sections": [
+        {
+          "title": "Who is responsible for your data?",
+          "body": [
+            "The data controller is the site’s publisher, {publisher}. For any question about your data: {contact}."
+          ]
+        },
+        {
+          "title": "The data we collect",
+          "body": [
+            [
+              "Your account: username, email address, password (stored hashed, never in plain text), sign-up date and input preference (keyboard or voice).",
+              "Your games: settings, questions asked, answers, response times, scores, rank, Elo and statistics.",
+              "Your friends: requests sent and received, friendships, game invitations.",
+              "Technical data: the IP address and browser linked to each sign-in, and your IP address to limit repeated attempts (abuse protection)."
+            ],
+            "Without an account, you play as a guest: nothing is saved in solo games. Online, your guest name is saved with the game if other players have an account.",
+            "Theme, sound and some settings are kept in your browser (local storage) and are never sent to us."
+          ]
+        },
+        {
+          "title": "Why, and on what legal basis",
+          "body": [
+            [
+              "Running the service (account, games, statistics, leaderboard, friends): performance of the terms of use (GDPR article 6.1.b).",
+              "Securing the site (sessions, rate limiting, result checks): legitimate interest (GDPR article 6.1.f).",
+              "Sending the emails your account needs (forgotten password): performance of the terms of use."
+            ],
+            "No advertising, no audience measurement, no resale: your data is only used to run Calculus."
+          ]
+        },
+        {
+          "title": "What other players can see",
+          "body": [
+            [
+              "Your username, Elo, leaderboard position, number of games and win rate are public.",
+              "Results of an online game are visible to the players who took part.",
+              "Your email address is never displayed. A player who already knows it can use it to send you a friend request."
+            ]
+          ]
+        },
+        {
+          "title": "Our service providers",
+          "body": [
+            "Your data is processed by technical providers, only to run the site:",
+            [
+              "Vercel (website hosting, United States);",
+              "Neon (database, servers in Europe);",
+              "Railway (online game server, United States);",
+              "Resend (email delivery, United States);",
+              "Google Fonts (site fonts): your browser contacts Google’s servers, which receive your IP address;",
+              "voice input, if you turn it on: speech recognition is done by your browser, which may send the audio to its vendor (Google for Chrome, Apple for Safari, Microsoft for Edge). Calculus only receives the recognised number, never the audio."
+            ],
+            "Transfers to the United States are covered by the EU–US Data Privacy Framework or by the European Commission’s standard contractual clauses."
+          ]
+        },
+        {
+          "title": "How long we keep it",
+          "body": [
+            [
+              "Account, games, statistics and friends: as long as your account exists.",
+              "Sign-in sessions (IP address, browser): 30 days at most.",
+              "Password reset link: 1 hour. Game invitation: 10 minutes."
+            ],
+            "When you delete your account, everything is erased: account, sessions, statistics, Elo, friends and solo games. Online games remain for the other players, but your username is removed from them."
+          ]
+        },
+        {
+          "title": "Cookies",
+          "body": [
+            "Calculus only uses essential cookies: the one that keeps you signed in (30 days) and a session cache (5 minutes). No advertising or analytics cookies, which is why there is no banner to accept."
+          ]
+        },
+        {
+          "title": "Children",
+          "body": [
+            "Calculus may be used by children, and we ask for as little data as possible. If you are under 15, ask a parent before creating an account. A parent can write to {contact} to have their child’s account deleted."
+          ]
+        },
+        {
+          "title": "Your rights",
+          "body": [
+            "You can at any time access your data, correct it, have it erased, get a copy, object to or restrict its processing, and give instructions about what happens to it after your death.",
+            [
+              "Change your username: from your profile.",
+              "Delete your account: “Delete my account” button in your profile.",
+              "Any other request: write to {contact}. We reply within one month."
+            ],
+            "If you believe your rights are not respected, you can lodge a complaint with the CNIL, the French data protection authority (cnil.fr).",
+            "This English translation is provided for convenience; the French version prevails."
+          ]
+        },
+        {
+          "title": "Security",
+          "body": [
+            "Traffic with the site is encrypted (HTTPS), passwords are hashed and database access is restricted."
+          ]
+        }
+      ]
+    },
+    "terms": {
+      "title": "Terms of use",
+      "sections": [
+        {
+          "title": "Purpose",
+          "body": [
+            "These terms govern the use of Calculus, a free mental arithmetic site published by {publisher}. Using the site, and in particular creating an account, means you accept these terms."
+          ]
+        },
+        {
+          "title": "The service",
+          "body": [
+            "Calculus is free. You can play without an account, as a guest; an account keeps your statistics, history, Elo and friends.",
+            "The service is provided as is. It may be interrupted for maintenance, changed or discontinued, and the publisher does not guarantee continuous availability."
+          ]
+        },
+        {
+          "title": "Your account",
+          "body": [
+            [
+              "Use a valid email address: it is how you recover your account.",
+              "Keep your password to yourself: you are responsible for what is done with your account.",
+              "If you are under 15, ask a parent before signing up."
+            ]
+          ]
+        },
+        {
+          "title": "Game and conduct rules",
+          "body": [
+            "Your username must not be offensive, hateful, discriminatory or sexual, impersonate anyone, or contain contact details. It is also forbidden to:",
+            [
+              "cheat, in particular with a program that answers for you;",
+              "exploit a flaw in the site or try to disrupt it;",
+              "create several accounts to distort the leaderboard or Elo."
+            ]
+          ]
+        },
+        {
+          "title": "Sanctions",
+          "body": [
+            "If these rules are broken, the publisher may change the username, reset statistics and Elo, or suspend or delete the account. Except for serious misconduct, a warning is sent first."
+          ]
+        },
+        {
+          "title": "Leaderboard and Elo",
+          "body": [
+            "The leaderboard and Elo are for information only and carry no reward. They may be corrected or recalculated, for example after cheating."
+          ]
+        },
+        {
+          "title": "Deleting your account",
+          "body": [
+            "You can delete your account at any time from your profile. Deletion is immediate and permanent."
+          ]
+        },
+        {
+          "title": "Intellectual property",
+          "body": [
+            "The site, its texts, design and code belong to its publisher. You may not copy or reuse them without permission."
+          ]
+        },
+        {
+          "title": "Liability",
+          "body": [
+            "The publisher does their best to keep the site working, but cannot be held liable for service interruptions or data loss (statistics, history), within the limits set by law."
+          ]
+        },
+        {
+          "title": "Personal data",
+          "body": [
+            "How your data is processed is described in the privacy policy."
+          ]
+        },
+        {
+          "title": "Changes to these terms",
+          "body": [
+            "These terms may change. Significant changes will be announced on the site; continuing to use it afterwards means you accept the new version."
+          ]
+        },
+        {
+          "title": "Governing law",
+          "body": [
+            "These terms are governed by French law. In case of disagreement, first write to {contact} to seek an amicable solution. Failing that, the dispute will be brought before the competent courts.",
+            "This English translation is provided for convenience; the French version prevails."
+          ]
+        }
+      ]
+    }
   }
 }

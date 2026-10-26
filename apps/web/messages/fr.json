@@ -228,7 +228,8 @@
     "placement": "Placement : {played}/{total}. Ton Elo s’affichera au bout de {total} parties.",
     "placementShort": "placement {played}/{total}",
     "ratingRevealed": "Placement terminé : ton Elo est de {rating}.",
-    "ratingNew": "nouveau"
+    "ratingNew": "nouveau",
+    "deletedPlayer": "Compte supprimé"
   },
   "auth": {
     "loginTitle": "Se connecter",
@@ -261,7 +262,8 @@
     "invalidToken": "Ce lien a expiré ou a déjà servi. Demande-en un nouveau.",
     "nameRequired": "Choisis un pseudo.",
     "tooManyRequests": "Trop de tentatives. Patiente un peu, puis réessaie.",
-    "generic": "Quelque chose a échoué. Réessaie."
+    "generic": "Quelque chose a échoué. Réessaie.",
+    "acceptTerms": "J’accepte les <terms>conditions d’utilisation</terms> et j’ai lu la <privacy>politique de confidentialité</privacy>."
   },
   "profile": {
     "title": "Mon profil",
@@ -278,7 +280,15 @@
     "inputVoiceUnsupported": "Ton navigateur ne gère pas la reconnaissance vocale (essaie Chrome, Edge ou Safari).",
     "inputSaved": "Préférence enregistrée.",
     "friends": "Mes amis",
-    "friendRequests": "{count, plural, one {# demande d’ami} other {# demandes d’ami}}"
+    "friendRequests": "{count, plural, one {# demande d’ami} other {# demandes d’ami}}",
+    "deleteOpen": "Supprimer mon compte",
+    "deleteTitle": "Supprimer mon compte",
+    "deleteText": "Ton compte, tes statistiques, ton Elo, tes amis et tes parties solo seront effacés pour de bon. Dans les parties en ligne, ton pseudo sera retiré. Impossible de revenir en arrière.",
+    "deletePassword": "Ton mot de passe, pour confirmer",
+    "deleteBtn": "Supprimer définitivement",
+    "deleteCancel": "Annuler",
+    "deleteWrongPassword": "Mot de passe incorrect.",
+    "deleteError": "La suppression a échoué. Réessaie."
   },
   "friends": {
     "title": "Mes amis",
@@ -374,5 +384,245 @@
     "player": "Joueur",
     "games": "Parties",
     "you": "(toi)"
+  },
+  "legal": {
+    "updated": "Dernière mise à jour : {date}",
+    "anonymousPublisher": "un particulier, à titre non professionnel. Conformément à l’article 6-III-2 de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l’économie numérique (LCEN), ses nom et adresse ont été communiqués à l’hébergeur du site",
+    "missingContact": "[adresse de contact à configurer]",
+    "notice": {
+      "title": "Mentions légales",
+      "sections": [
+        {
+          "title": "Éditeur",
+          "body": [
+            "Le site Calculus est édité par {publisher}.",
+            "Contact : {contact}"
+          ]
+        },
+        {
+          "title": "Directeur de la publication",
+          "body": [
+            "Le directeur de la publication est l’éditeur du site."
+          ]
+        },
+        {
+          "title": "Hébergement",
+          "body": [
+            [
+              "Site : Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis (vercel.com).",
+              "Serveur des parties en ligne : Railway Corporation, États-Unis (railway.com).",
+              "Base de données : Neon, serveurs situés en Europe (neon.tech)."
+            ]
+          ]
+        },
+        {
+          "title": "Propriété intellectuelle",
+          "body": [
+            "Les textes, le design et le code de Calculus appartiennent à son éditeur. Toute reproduction sans autorisation est interdite.",
+            "Les polices Bricolage Grotesque et Caveat sont utilisées sous licence SIL Open Font License."
+          ]
+        },
+        {
+          "title": "Signaler un contenu",
+          "body": [
+            "Un pseudo injurieux ou un comportement abusif ? Écris à {contact} en indiquant le pseudo concerné : il sera traité rapidement."
+          ]
+        },
+        {
+          "title": "Données personnelles",
+          "body": [
+            "Le traitement de tes données est décrit dans la politique de confidentialité."
+          ]
+        }
+      ]
+    },
+    "privacy": {
+      "title": "Politique de confidentialité",
+      "sections": [
+        {
+          "title": "Qui est responsable de tes données ?",
+          "body": [
+            "Le responsable du traitement est l’éditeur du site, {publisher}. Pour toute question sur tes données : {contact}."
+          ]
+        },
+        {
+          "title": "Les données que nous collectons",
+          "body": [
+            [
+              "Ton compte : pseudo, adresse e-mail, mot de passe (enregistré sous forme hachée, jamais en clair), date d’inscription et préférence de saisie (clavier ou voix).",
+              "Tes parties : réglages, calculs posés, réponses, temps de réponse, scores, rang, Elo et statistiques.",
+              "Tes amis : demandes envoyées et reçues, liens d’amitié, invitations à une partie.",
+              "Données techniques : l’adresse IP et le navigateur associés à chaque connexion, et ton adresse IP pour limiter les tentatives répétées (protection contre les abus)."
+            ],
+            "Sans compte, tu joues en invité : rien n’est enregistré en solo. En ligne, ton pseudo d’invité est enregistré avec la partie si d’autres joueurs ont un compte.",
+            "Le thème, le son et certains réglages sont gardés dans ton navigateur (stockage local) et ne nous sont jamais envoyés."
+          ]
+        },
+        {
+          "title": "Pourquoi et sur quelle base",
+          "body": [
+            [
+              "Faire fonctionner le service (compte, parties, statistiques, classement, amis) : exécution des conditions d’utilisation (article 6.1.b du RGPD).",
+              "Sécuriser le site (sessions, limitation des tentatives, contrôle des résultats) : intérêt légitime (article 6.1.f du RGPD).",
+              "T’envoyer les e-mails nécessaires au compte (mot de passe oublié) : exécution des conditions d’utilisation."
+            ],
+            "Pas de publicité, pas de mesure d’audience, pas de revente : tes données ne servent qu’à faire marcher Calculus."
+          ]
+        },
+        {
+          "title": "Ce qui est visible par les autres joueurs",
+          "body": [
+            [
+              "Ton pseudo, ton Elo, ta place au classement, ton nombre de parties et ton pourcentage de victoires sont publics.",
+              "Les résultats d’une partie en ligne sont visibles par les joueurs qui y ont participé.",
+              "Ton adresse e-mail n’est jamais affichée. Un joueur qui la connaît déjà peut s’en servir pour t’envoyer une demande d’ami."
+            ]
+          ]
+        },
+        {
+          "title": "Nos prestataires",
+          "body": [
+            "Tes données sont traitées par des prestataires techniques, seulement pour faire fonctionner le site :",
+            [
+              "Vercel (hébergement du site, États-Unis) ;",
+              "Neon (base de données, serveurs en Europe) ;",
+              "Railway (serveur des parties en ligne, États-Unis) ;",
+              "Resend (envoi des e-mails, États-Unis) ;",
+              "Google Fonts (polices du site) : ton navigateur contacte les serveurs de Google, qui reçoivent ton adresse IP ;",
+              "dictée vocale, si tu l’actives : la reconnaissance vocale est faite par ton navigateur, qui peut envoyer le son à son éditeur (Google pour Chrome, Apple pour Safari, Microsoft pour Edge). Calculus ne reçoit que le nombre reconnu, jamais le son."
+            ],
+            "Les transferts vers les États-Unis sont encadrés par le Data Privacy Framework UE–États-Unis ou par les clauses contractuelles types de la Commission européenne."
+          ]
+        },
+        {
+          "title": "Combien de temps nous les gardons",
+          "body": [
+            [
+              "Compte, parties, statistiques et amis : tant que ton compte existe.",
+              "Sessions de connexion (adresse IP, navigateur) : 30 jours au plus.",
+              "Lien de nouveau mot de passe : 1 heure. Invitation à une partie : 10 minutes."
+            ],
+            "Quand tu supprimes ton compte, tout est effacé : compte, sessions, statistiques, Elo, amis et parties solo. Les parties en ligne restent pour les autres joueurs, mais ton pseudo en est retiré."
+          ]
+        },
+        {
+          "title": "Cookies",
+          "body": [
+            "Calculus n’utilise que des cookies indispensables : celui qui garde ta connexion (30 jours) et un cache de session (5 minutes). Aucun cookie de publicité ni de mesure d’audience : c’est pour ça qu’il n’y a pas de bandeau à accepter."
+          ]
+        },
+        {
+          "title": "Enfants",
+          "body": [
+            "Calculus peut être utilisé par des enfants, et nous demandons le moins de données possible. Si tu as moins de 15 ans, demande l’accord d’un parent avant de créer un compte. Un parent peut nous écrire à {contact} pour faire supprimer le compte de son enfant."
+          ]
+        },
+        {
+          "title": "Tes droits",
+          "body": [
+            "Tu peux à tout moment accéder à tes données, les rectifier, les faire effacer, en demander une copie, t’opposer à leur traitement ou le limiter, et donner des directives sur leur sort après ton décès.",
+            [
+              "Modifier ton pseudo : depuis ton profil.",
+              "Supprimer ton compte : bouton « Supprimer mon compte » dans ton profil.",
+              "Toute autre demande : écris à {contact}. Nous répondons sous un mois."
+            ],
+            "Si tu estimes que tes droits ne sont pas respectés, tu peux adresser une réclamation à la CNIL (cnil.fr)."
+          ]
+        },
+        {
+          "title": "Sécurité",
+          "body": [
+            "Les échanges avec le site sont chiffrés (HTTPS), les mots de passe sont hachés et l’accès à la base de données est restreint."
+          ]
+        }
+      ]
+    },
+    "terms": {
+      "title": "Conditions d’utilisation",
+      "sections": [
+        {
+          "title": "Objet",
+          "body": [
+            "Ces conditions encadrent l’utilisation de Calculus, site gratuit de calcul mental édité par {publisher}. Utiliser le site, et en particulier créer un compte, vaut acceptation de ces conditions."
+          ]
+        },
+        {
+          "title": "Le service",
+          "body": [
+            "Calculus est gratuit. Tu peux jouer sans compte, en invité ; un compte garde tes statistiques, ton historique, ton Elo et tes amis.",
+            "Le service est fourni tel quel. Il peut être interrompu pour maintenance, modifié ou arrêté, sans que l’éditeur garantisse une disponibilité continue."
+          ]
+        },
+        {
+          "title": "Ton compte",
+          "body": [
+            [
+              "Indique une adresse e-mail valide : elle sert à récupérer ton compte.",
+              "Garde ton mot de passe pour toi : tu es responsable de ce qui est fait avec ton compte.",
+              "Si tu as moins de 15 ans, demande l’accord d’un parent avant de t’inscrire."
+            ]
+          ]
+        },
+        {
+          "title": "Règles de jeu et de conduite",
+          "body": [
+            "Ton pseudo ne doit pas être injurieux, haineux, discriminatoire ou à caractère sexuel, ni usurper l’identité de quelqu’un, ni contenir de coordonnées. Il est aussi interdit de :",
+            [
+              "tricher, notamment avec un programme qui répond à ta place ;",
+              "exploiter une faille du site ou chercher à perturber son fonctionnement ;",
+              "créer plusieurs comptes pour fausser le classement ou l’Elo."
+            ]
+          ]
+        },
+        {
+          "title": "Sanctions",
+          "body": [
+            "Si ces règles ne sont pas respectées, l’éditeur peut changer le pseudo, remettre à zéro les statistiques et l’Elo, suspendre ou supprimer le compte. Sauf faute grave, un avertissement est envoyé avant."
+          ]
+        },
+        {
+          "title": "Classement et Elo",
+          "body": [
+            "Le classement et l’Elo sont donnés à titre indicatif et ne donnent droit à aucune récompense. Ils peuvent être corrigés ou recalculés, par exemple après une triche."
+          ]
+        },
+        {
+          "title": "Supprimer ton compte",
+          "body": [
+            "Tu peux supprimer ton compte à tout moment depuis ton profil. La suppression est immédiate et définitive."
+          ]
+        },
+        {
+          "title": "Propriété intellectuelle",
+          "body": [
+            "Le site, ses textes, son design et son code appartiennent à son éditeur. Tu n’as pas le droit de les copier ou de les réutiliser sans autorisation."
+          ]
+        },
+        {
+          "title": "Responsabilité",
+          "body": [
+            "L’éditeur fait de son mieux pour que le site fonctionne bien, mais ne peut être tenu responsable d’une interruption du service ou d’une perte de données (statistiques, historique), dans les limites prévues par la loi."
+          ]
+        },
+        {
+          "title": "Données personnelles",
+          "body": [
+            "La façon dont tes données sont traitées est décrite dans la politique de confidentialité."
+          ]
+        },
+        {
+          "title": "Modification des conditions",
+          "body": [
+            "Ces conditions peuvent évoluer. Les changements importants seront signalés sur le site ; continuer à l’utiliser ensuite vaut acceptation de la nouvelle version."
+          ]
+        },
+        {
+          "title": "Droit applicable",
+          "body": [
+            "Ces conditions sont soumises au droit français. En cas de désaccord, écris d’abord à {contact} pour chercher une solution à l’amiable. À défaut, le litige sera porté devant les tribunaux compétents."
+          ]
+        }
+      ]
+    }
   }
 }

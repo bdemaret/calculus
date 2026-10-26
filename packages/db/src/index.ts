@@ -683,3 +683,19 @@ export async function getGameInvites(userId: string, now: Date): Promise<GameInv
 export async function dismissGameInvite(userId: string, inviteId: string): Promise<void> {
   await prisma.gameInvite.deleteMany({ where: { id: inviteId, toId: userId } });
 }
+
+/* ------------------------------------------------------------------ */
+/* Suppression de compte (RGPD)                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Efface les traces d'un joueur avant la suppression de son compte : ses parties solo disparaissent,
+ * et son pseudo est retiré des parties en ligne (laissé vide), qui restent pour les autres joueurs.
+ * Le reste (sessions, Elo, statistiques, amis, invitations) part en cascade avec la ligne `user`.
+ */
+export async function eraseUserGames(userId: string): Promise<void> {
+  await prisma.$transaction([
+    prisma.game.deleteMany({ where: { solo: true, players: { some: { userId } } } }),
+    prisma.gamePlayer.updateMany({ where: { userId }, data: { displayName: "" } }),
+  ]);
+}

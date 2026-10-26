@@ -11,6 +11,8 @@ export class AuthPages {
     await this.page.getByLabel(t("auth.name")).fill(user.name);
     await this.page.getByLabel(t("auth.email")).fill(user.email);
     await this.page.getByLabel(t("auth.password")).fill(user.password);
+    // Case « J'accepte les conditions d'utilisation » : son libellé contient des liens.
+    await this.page.getByRole("checkbox").check();
     await this.page.getByRole("button", { name: t("auth.signupBtn") }).click();
   }
 

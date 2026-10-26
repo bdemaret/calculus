@@ -4,7 +4,7 @@ import { APIError } from "better-auth/api";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { headers } from "next/headers";
-import { prisma } from "@calculus/db";
+import { eraseUserGames, prisma } from "@calculus/db";
 import { sendEmail } from "./email";
 import { cleanName } from "./names";
 
@@ -40,6 +40,8 @@ export const auth = betterAuth({
       /** Préférence de saisie : dicter les réponses au lieu de les taper. */
       voiceInput: { type: "boolean", required: false, defaultValue: false },
     },
+    // Droit à l'effacement (RGPD) : le profil demande le mot de passe, Better Auth le vérifie.
+    deleteUser: { enabled: true, beforeDelete: async (user) => eraseUserGames(user.id) },
   },
   databaseHooks: {
     user: {

@@ -53,6 +53,7 @@ Un seul `.env` à la racine (modèle : `.env.example`). Chargé par `dotenv -e .
 | `GAME_SERVER_PORT` / `PORT` | game-server |
 | `WEB_ORIGIN` | game-server |
 | `RESEND_API_KEY`, `EMAIL_FROM` | web (e-mails ; sans clé, affichés dans le terminal, sauf en production où rien n'est envoyé ni affiché) |
+| `LEGAL_PUBLISHER`, `LEGAL_CONTACT_EMAIL` | web (mentions légales : éditeur, vide = particulier anonyme ; e-mail de contact affiché dans les pages légales) |
 | `AUTH_RATE_LIMIT_DISABLED` | web, tests e2e uniquement (`"1"` coupe le rate limit de Better Auth) ; jamais en production |
 
 ## Déploiement

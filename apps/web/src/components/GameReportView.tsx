@@ -16,8 +16,10 @@ interface Props {
 }
 
 /** Rapport de fin de partie : verdict, classement, statistiques, graphique de progression. */
-export function GameReportView({ report, meId, online, mode, timePerQuestion, ratings, actions }: Props) {
+export function GameReportView({ report: raw, meId, online, mode, timePerQuestion, ratings, actions }: Props) {
   const t = useTranslations("report");
+  // Pseudo vide : le compte de ce joueur a été supprimé depuis la partie.
+  const report: GameReport = { ...raw, players: raw.players.map((pl) => (pl.name ? pl : { ...pl, name: t("deletedPlayer") })) };
   const tOps = useTranslations("ops");
   const locale = useLocale();
   const s = (ms: number) => formatSeconds(ms, locale);

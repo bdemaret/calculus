@@ -120,6 +120,15 @@ export function SignupForm() {
             {t("passwordRule")}
           </span>
         </label>
+        <label className="check-row">
+          <input name="terms" type="checkbox" required />
+          <span>
+            {t.rich("acceptTerms", {
+              terms: (chunks) => <Link href="/terms">{chunks}</Link>,
+              privacy: (chunks) => <Link href="/privacy">{chunks}</Link>,
+            })}
+          </span>
+        </label>
         <button className="btn" type="submit" disabled={busy}>
           {t("signupBtn")}
         </button>

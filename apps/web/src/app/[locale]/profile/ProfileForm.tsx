@@ -74,6 +74,58 @@ export function ProfileForm({ name, voiceInput }: { name: string; voiceInput: bo
       >
         {t("logout")}
       </button>
+      <DeleteAccount />
     </>
+  );
+}
+
+/** Suppression définitive du compte, confirmée par le mot de passe. */
+function DeleteAccount() {
+  const t = useTranslations("profile");
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!open)
+    return (
+      <p>
+        <button className="link-btn" type="button" onClick={() => setOpen(true)}>
+          {t("deleteOpen")}
+        </button>
+      </p>
+    );
+
+  return (
+    <form
+      className="danger-zone"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        const f = new FormData(e.currentTarget);
+        setBusy(true);
+        setError(null);
+        const { error } = await authClient.deleteUser({ password: String(f.get("password")) });
+        setBusy(false);
+        if (error) return setError(error.code === "INVALID_PASSWORD" ? t("deleteWrongPassword") : t("deleteError"));
+        router.push("/");
+        router.refresh();
+      }}
+    >
+      <h3>{t("deleteTitle")}</h3>
+      <p className="muted">{t("deleteText")}</p>
+      <label>
+        {t("deletePassword")}
+        <input className="text-input" name="password" type="password" autoComplete="current-password" required />
+      </label>
+      <p className="actions">
+        <button className="btn danger" type="submit" disabled={busy}>
+          {t("deleteBtn")}
+        </button>
+        <button className="btn ghost" type="button" onClick={() => setOpen(false)}>
+          {t("deleteCancel")}
+        </button>
+      </p>
+      {error ? <p className="form-error">{error}</p> : null}
+    </form>
   );
 }
