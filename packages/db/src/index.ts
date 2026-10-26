@@ -322,3 +322,192 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
     })),
   };
 }
+
+/* ------------------------------------------------------------------ */
+/* Amis                                                                 */
+/* ------------------------------------------------------------------ */
+
+/** Demandes d'ami en attente qu'un joueur peut avoir envoyées en même temps (limite le spam). */
+const MAX_PENDING_REQUESTS = 50;
+/** Durée de validité d'une invitation à une partie, en ms. */
+export const INVITE_TTL_MS = 10 * 60 * 1000;
+
+export interface FriendSummary {
+  id: string;
+  name: string;
+  gamesPlayed: number;
+  /** Victoires en ligne */
+  wins: number;
+  /** Part de bonnes réponses (0 à 1), null sans aucune réponse */
+  accuracy: number | null;
+}
+
+export interface FriendsData {
+  friends: FriendSummary[];
+  /** Demandes reçues, à accepter ou refuser */
+  incoming: { id: string; name: string }[];
+  /** Demandes envoyées, pas encore acceptées */
+  outgoing: { id: string; name: string }[];
+}
+
+export type FriendRequestResult =
+  | { status: "sent" | "accepted" | "already-sent" | "already-friends"; name: string }
+  | { status: "not-found" | "ambiguous" | "self" | "too-many" };
+
+const friendUserSelect = {
+  id: true,
+  name: true,
+  stats: { select: { gamesPlayed: true, wins: true, answered: true, correct: true } },
+} as const;
+
+/** Amis, demandes reçues et demandes envoyées d'un joueur. */
+export async function getFriends(userId: string): Promise<FriendsData> {
+  const rows = await prisma.friendship.findMany({
+    where: { OR: [{ requesterId: userId }, { addresseeId: userId }] },
+    include: { requester: { select: friendUserSelect }, addressee: { select: friendUserSelect } },
+  });
+  const data: FriendsData = { friends: [], incoming: [], outgoing: [] };
+  for (const r of rows) {
+    const other = r.requesterId === userId ? r.addressee : r.requester;
+    if (r.status === "accepted") {
+      const s = other.stats;
+      data.friends.push({
+        id: other.id,
+        name: other.name,
+        gamesPlayed: s?.gamesPlayed ?? 0,
+        wins: s?.wins ?? 0,
+        accuracy: s?.answered ? s.correct / s.answered : null,
+      });
+    } else if (r.requesterId === userId) data.outgoing.push({ id: other.id, name: other.name });
+    else data.incoming.push({ id: other.id, name: other.name });
+  }
+  const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
+  data.friends.sort(byName);
+  data.incoming.sort(byName);
+  data.outgoing.sort(byName);
+  return data;
+}
+
+/**
+ * Envoie une demande d'ami à partir d'un pseudo ou d'un e-mail.
+ * Si l'autre joueur nous avait déjà fait une demande, elle est acceptée directement.
+ * Les pseudos n'étant pas uniques, un pseudo partagé par plusieurs comptes renvoie « ambiguous ».
+ */
+export async function sendFriendRequest(fromId: string, handle: string): Promise<FriendRequestResult> {
+  const h = handle.trim();
+  const matches = await prisma.user.findMany({
+    where: h.includes("@") ? { email: { equals: h, mode: "insensitive" } } : { name: { equals: h, mode: "insensitive" } },
+    select: { id: true, name: true },
+    take: 2,
+  });
+  if (matches.length === 0) return { status: "not-found" };
+  if (matches.length > 1) return { status: "ambiguous" };
+  const target = matches[0]!;
+  if (target.id === fromId) return { status: "self" };
+
+  const existing = await prisma.friendship.findFirst({
+    where: {
+      OR: [
+        { requesterId: fromId, addresseeId: target.id },
+        { requesterId: target.id, addresseeId: fromId },
+      ],
+    },
+  });
+  if (existing?.status === "accepted") return { status: "already-friends", name: target.name };
+  if (existing && existing.requesterId === fromId) return { status: "already-sent", name: target.name };
+  if (existing) {
+    await prisma.friendship.update({ where: { id: existing.id }, data: { status: "accepted", acceptedAt: new Date() } });
+    return { status: "accepted", name: target.name };
+  }
+
+  const pending = await prisma.friendship.count({ where: { requesterId: fromId, status: "pending" } });
+  if (pending >= MAX_PENDING_REQUESTS) return { status: "too-many" };
+  try {
+    await prisma.friendship.create({ data: { requesterId: fromId, addresseeId: target.id } });
+  } catch (err) {
+    // Double clic : la demande existe déjà.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") return { status: "already-sent", name: target.name };
+    throw err;
+  }
+  return { status: "sent", name: target.name };
+}
+
+/** Accepte la demande que `fromId` a envoyée à `userId`. Renvoie false s'il n'y en a pas. */
+export async function acceptFriendRequest(userId: string, fromId: string): Promise<boolean> {
+  const { count } = await prisma.friendship.updateMany({
+    where: { requesterId: fromId, addresseeId: userId, status: "pending" },
+    data: { status: "accepted", acceptedAt: new Date() },
+  });
+  return count > 0;
+}
+
+/** Retire un ami, refuse ou annule une demande : supprime le lien dans les deux sens, et les invitations entre eux. */
+export async function removeFriendship(userId: string, otherId: string): Promise<void> {
+  await prisma.$transaction([
+    prisma.friendship.deleteMany({
+      where: {
+        OR: [
+          { requesterId: userId, addresseeId: otherId },
+          { requesterId: otherId, addresseeId: userId },
+        ],
+      },
+    }),
+    prisma.gameInvite.deleteMany({
+      where: {
+        OR: [
+          { fromId: userId, toId: otherId },
+          { fromId: otherId, toId: userId },
+        ],
+      },
+    }),
+  ]);
+}
+
+async function areFriends(a: string, b: string): Promise<boolean> {
+  const row = await prisma.friendship.findFirst({
+    where: {
+      status: "accepted",
+      OR: [
+        { requesterId: a, addresseeId: b },
+        { requesterId: b, addresseeId: a },
+      ],
+    },
+    select: { id: true },
+  });
+  return !!row;
+}
+
+/** Invite un ami dans un lobby (remplace l'invitation précédente). Renvoie false si ce n'est pas un ami. */
+export async function sendGameInvite(fromId: string, toId: string, code: string, now: Date): Promise<boolean> {
+  if (fromId === toId || !(await areFriends(fromId, toId))) return false;
+  const expiresAt = new Date(now.getTime() + INVITE_TTL_MS);
+  await prisma.gameInvite.upsert({
+    where: { fromId_toId: { fromId, toId } },
+    create: { fromId, toId, code, createdAt: now, expiresAt },
+    update: { code, createdAt: now, expiresAt },
+  });
+  return true;
+}
+
+export interface GameInviteSummary {
+  id: string;
+  code: string;
+  fromName: string;
+  createdAt: string;
+}
+
+/** Invitations encore valables reçues par un joueur ; efface au passage les siennes qui ont expiré. */
+export async function getGameInvites(userId: string, now: Date): Promise<GameInviteSummary[]> {
+  await prisma.gameInvite.deleteMany({ where: { toId: userId, expiresAt: { lte: now } } });
+  const rows = await prisma.gameInvite.findMany({
+    where: { toId: userId },
+    orderBy: { createdAt: "desc" },
+    include: { from: { select: { name: true } } },
+  });
+  return rows.map((r) => ({ id: r.id, code: r.code, fromName: r.from.name, createdAt: r.createdAt.toISOString() }));
+}
+
+/** Supprime une invitation reçue (rejointe ou ignorée). */
+export async function dismissGameInvite(userId: string, inviteId: string): Promise<void> {
+  await prisma.gameInvite.deleteMany({ where: { id: inviteId, toId: userId } });
+}

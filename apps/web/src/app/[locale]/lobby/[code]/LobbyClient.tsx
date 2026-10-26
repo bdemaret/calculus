@@ -7,6 +7,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { CalcLine } from "@/components/CalcLine";
 import { Check } from "@/components/Check";
 import { GameReportView } from "@/components/GameReportView";
+import { InviteFriends } from "@/components/InviteFriends";
 import { Margin, MarginNote } from "@/components/Margin";
 import { Avatar, PlayerChips, type ChipPlayer } from "@/components/PlayerChips";
 import { SettingsForm } from "@/components/SettingsForm";
@@ -98,6 +99,7 @@ export function LobbyClient({ code, accountName }: Props) {
   return (
     <ConnectedLobby
       room={room}
+      signedIn={!!accountName}
       onLeave={() => {
         leaveLobby();
         router.push("/online");
@@ -114,7 +116,7 @@ function useRoomState(room: Room): LobbyState | null {
   );
 }
 
-function ConnectedLobby({ room, onLeave }: { room: Room; onLeave: () => void }) {
+function ConnectedLobby({ room, signedIn, onLeave }: { room: Room; signedIn: boolean; onLeave: () => void }) {
   const t = useTranslations();
   const state = useRoomState(room);
   const snap = state?.snapshot ?? null;
@@ -134,7 +136,7 @@ function ConnectedLobby({ room, onLeave }: { room: Room; onLeave: () => void }) 
   if (!snap || !state) return <p className="status">{t("lobby.connecting")}</p>;
 
   const isHost = snap.hostId === me;
-  if (snap.phase === "lobby") return <WaitingRoom room={room} snap={snap} me={me} isHost={isHost} onLeave={onLeave} />;
+  if (snap.phase === "lobby") return <WaitingRoom room={room} snap={snap} me={me} isHost={isHost} signedIn={signedIn} onLeave={onLeave} />;
   if (snap.phase === "finished") return <Finished room={room} snap={snap} me={me} isHost={isHost} onLeave={onLeave} />;
   return <Playing room={room} state={state} snap={snap} me={me} onLeave={onLeave} />;
 }
@@ -143,7 +145,21 @@ function ConnectedLobby({ room, onLeave }: { room: Room; onLeave: () => void }) 
 /* Salle d'attente                                                       */
 /* ------------------------------------------------------------------ */
 
-function WaitingRoom({ room, snap, me, isHost, onLeave }: { room: Room; snap: RoomSnapshot; me: string | null; isHost: boolean; onLeave: () => void }) {
+function WaitingRoom({
+  room,
+  snap,
+  me,
+  isHost,
+  signedIn,
+  onLeave,
+}: {
+  room: Room;
+  snap: RoomSnapshot;
+  me: string | null;
+  isHost: boolean;
+  signedIn: boolean;
+  onLeave: () => void;
+}) {
   const t = useTranslations();
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
   const mine = snap.players.find((p) => p.id === me);
@@ -232,6 +248,7 @@ function WaitingRoom({ room, snap, me, isHost, onLeave }: { room: Room; snap: Ro
           </button>
         </div>
         <p className="note">{isHost ? (allReady ? t("lobby.everyoneReady") : t("lobby.hostHint")) : t("lobby.waitingHost")}</p>
+        {signedIn && snap.players.length < MAX_PLAYERS ? <InviteFriends code={snap.code} presentIds={snap.players.map((p) => p.id)} /> : null}
       </div>
 
       <div className="stack">
