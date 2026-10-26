@@ -54,6 +54,9 @@ export function GameReportView({ report, meId, online, mode, timePerQuestion, ac
         </p>
       </div>
 
+      {/* Les actions juste sous le verdict, pour rejouer sans avoir à faire défiler le détail. */}
+      {actions}
+
       {online ? (
         <ol className="ranking">
           {report.players.map((pl) => (
@@ -131,8 +134,6 @@ export function GameReportView({ report, meId, online, mode, timePerQuestion, ac
       ) : null}
 
       {report.review?.length ? <Review report={report} meId={mine?.playerId ?? null} online={online} mode={mode} /> : null}
-
-      {actions}
     </section>
   );
 }
