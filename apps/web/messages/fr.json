@@ -626,5 +626,21 @@
         }
       ]
     }
+  },
+  "player": {
+    "title": "{name} · profil",
+    "notFound": "Joueur introuvable",
+    "rankingsTitle": "Classement",
+    "mode": "Mode",
+    "rankOf": "{rank} / {total}",
+    "unranked": "Pas encore classé : il faut finir ses parties de placement dans un mode et une difficulté pour y apparaître.",
+    "backToLeaderboard": "Retour au classement",
+    "loginToAdd": "Connecte-toi pour l’ajouter en ami",
+    "self": "C’est ton profil public, tel que les autres le voient.",
+    "myProfile": "Mon compte",
+    "add": "Ajouter en ami",
+    "outgoing": "Demande envoyée à {name}.",
+    "incoming": "{name} t’a envoyé une demande d’ami.",
+    "friends": "Vous êtes amis."
   }
 }

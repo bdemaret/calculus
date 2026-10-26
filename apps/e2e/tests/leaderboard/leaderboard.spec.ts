@@ -49,6 +49,8 @@ async function rankedGame(userId: string, rank: number, ratingGames: number) {
 }
 
 test.describe("classement", () => {
+  // Un seul worker pour ce fichier : chaque worker relancerait `beforeAll` et doublerait le classement semé.
+  test.describe.configure({ mode: "default" });
   const run = randomUUID().slice(0, 6);
   const ids = Array.from({ length: SEEDED }, (_, i) => `e2e-board-${run}-${i + 1}`);
   /** Le n-ième joueur créé : plus n est grand, meilleur est l'Elo (le 1er finit 101e). */
@@ -123,5 +125,35 @@ test.describe("classement", () => {
     await page.goto(`/fr/leaderboard/${MODE}?difficulty=5&q=${encodeURIComponent(user.name)}`);
     await expect(page.getByText(t("leaderboard.noResults"))).toBeVisible();
     await expect(page.getByText(t("leaderboard.mePlacement", { played: 4, total: 5 }))).toBeVisible();
+  });
+
+  test("cliquer sur un pseudo ouvre son profil, d'où l'ajouter en ami", async ({ page, user }) => {
+    const best = nameOf(SEEDED);
+    await page.goto(`/fr/leaderboard/${MODE}?difficulty=${DIFFICULTY}`);
+    await page.getByRole("table", { name: t("leaderboard.topTitle", { count: 100 }) }).getByRole("link", { name: best }).click();
+    await expect(page).toHaveURL(new RegExp(`/fr/player/${ids[SEEDED - 1]}$`));
+    await expect(page.getByRole("heading", { name: best })).toBeVisible();
+
+    // Ses places publiques : 1er en battle royale niveau 4, Elo visible, sans e-mail.
+    const rankings = page.getByRole("table", { name: t("player.rankingsTitle") }).locator("tbody tr");
+    await expect(rankings).toHaveCount(1);
+    await expect(rankings.locator("td").nth(2)).toHaveText(/^1 \/ \d+$/);
+    await expect(rankings.locator("td").nth(3)).toHaveText(String(BASE_RATING + SEEDED));
+    await expect(page.getByText("@calculus.test")).toHaveCount(0);
+
+    // Demande d'ami envoyée depuis le profil, puis annulable.
+    await page.getByRole("button", { name: t("player.add") }).click();
+    await expect(page.getByText(t("player.outgoing", { name: best }))).toBeVisible();
+    const me = await prisma.user.findUniqueOrThrow({ where: { email: user.email } });
+    await expect.poll(() => prisma.friendship.count({ where: { requesterId: me.id, addresseeId: ids[SEEDED - 1], status: "pending" } })).toBe(1);
+    await page.getByRole("button", { name: t("friends.cancel") }).click();
+    await expect(page.getByRole("button", { name: t("player.add") })).toBeVisible();
+  });
+
+  test("un visiteur voit le profil et un lien de connexion", async ({ page }) => {
+    await page.goto(`/fr/player/${ids[0]}`);
+    await expect(page.getByRole("heading", { name: nameOf(1) })).toBeVisible();
+    await expect(page.getByRole("link", { name: t("player.loginToAdd") })).toBeVisible();
+    await expect(page.getByRole("button", { name: t("player.add") })).toHaveCount(0);
   });
 });

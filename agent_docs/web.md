@@ -10,12 +10,12 @@ src/
   i18n/                      routing (locales fr, en ; défaut fr), navigation, request
   app/
     [locale]/                Toutes les pages : accueil, modes, solo, online, lobby/[code],
-                             report/[id], dashboard, leaderboard/[mode], profile, friends, login, signup, forgot/reset-password,
+                             report/[id], dashboard, leaderboard/[mode], player/[id], profile, friends, login, signup, forgot/reset-password,
                              legal, privacy, terms (textes légaux)
     api/auth/[...all]/       Handler Better Auth
     api/game-token/          Émet le JWT pour rejoindre un lobby
     api/solo-results/        Rejoue et enregistre une partie solo (connecté uniquement)
-    api/friends/             GET liste, POST demande ({ handle }), PATCH accepter / DELETE retirer ({ userId })
+    api/friends/             GET liste, POST demande ({ handle } ou { userId }), PATCH accepter / DELETE retirer ({ userId })
     api/invites/             GET invitations reçues, POST inviter un ami ({ userId, code }), DELETE ignorer ({ id })
     globals.css              Thème « cahier Seyès » (variables CSS)
   components/                Composants partagés (Keypad, TimerBar, CalcLine, GameReportView…)
@@ -41,6 +41,7 @@ messages/fr.json, en.json    Traductions
 - **Joueurs connectés** : `OnlineCount` (dans le layout, en bas de la marge, collé pendant le défilement) lit `subscribeOnline` / `readOnline` de `@/lib/colyseus`, qui rejoint la salle de présence tant qu'un composant écoute et retente toutes les 15 s si le serveur de jeu est injoignable (rien n'est affiché alors). Le compte est par onglet, pas par personne. Les notes de page (`Margin`) vont dans `#margin-notes`, au-dessus.
 - **Elo** : `GameReportView` reçoit `ratings` (snapshot du lobby ou `loadGameReport`) et affiche « Elo : avant → après » sous le verdict et dans le classement (`EloDelta`, vert / rouge), « placement n/5 » pendant le placement, puis l'Elo dévoilé à la 5e partie. Le tableau de bord montre la grille mode × difficulté et la variation de chaque partie récente.
 - **Classement** : `/leaderboard` redirige vers `/leaderboard/<premier mode>`. Sous-menu par mode (onglets `.board-tabs`), difficulté et recherche dans l'URL (`?difficulty=1..5&q=pseudo`, validés par Zod, valeur invalide → défaut). Colonnes : place, joueur, Elo, parties, % de victoires. Page publique ; connecté, un bloc « Ta place » montre toujours sa ligne (place sur le nombre de classés, lien vers sa ligne `#board-me` s'il est dans le top), ou l'avancée de son placement.
+- **Profil public** : `/player/[id]`, ouvert en cliquant un pseudo du classement. Ne montre que ce que le classement rend déjà public (pseudo, et pour chaque mode × difficulté classé : place, Elo, parties, % de victoires), via `getPlayerProfile`. Bouton d'ami selon le lien (`FriendshipState`) : ajouter (`POST { userId }`), annuler, accepter / refuser, ou « vous êtes amis » ; visiteur → lien de connexion.
 - **Textes légaux** : `/legal` (mentions légales), `/privacy` (confidentialité), `/terms` (CGU), rendus par `LegalPage` depuis `legal.<doc>.sections` des messages (`t.raw` : paragraphes, ou tableaux = listes ; marqueurs `{publisher}` / `{contact}` remplis depuis `@/lib/legal`). Liens dans `Footer` et case obligatoire à l'inscription. Changer `LEGAL_UPDATED` à chaque modification de fond, et mettre la politique de confidentialité à jour à chaque nouvelle donnée collectée ou nouveau prestataire.
 - **Suppression de compte** : `user.deleteUser` de Better Auth (mot de passe demandé dans le profil). `beforeDelete` appelle `eraseUserGames` (db) : parties solo supprimées, pseudo vidé dans les parties en ligne (`GameReportView` affiche alors `report.deletedPlayer`) ; le reste part en cascade.
 - **Dictée** : réglage de compte `User.voiceInput` (champ additionnel Better Auth, modifiable depuis le profil). `CalcLine` lance `useVoiceInput` (Web Speech API, pas de Firefox) qui remplit la case via `parseSpokenNumber` ; la validation reste à la touche Entrée (ou OK sur le pavé).

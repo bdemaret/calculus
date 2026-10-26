@@ -495,6 +495,57 @@ export async function searchLeaderboard(mode: string, difficulty: number, query:
   return rows.map((r, i) => toEntry(r, ranks[i]!, wins));
 }
 
+/** Classement d'un joueur dans un mode et une difficulté où il a fini son placement. */
+export interface PlayerRanking {
+  mode: string;
+  difficulty: number;
+  rank: number;
+  /** Joueurs classés dans ce mode et cette difficulté */
+  total: number;
+  rating: number;
+  games: number;
+  wins: number;
+}
+
+export interface PlayerProfile {
+  id: string;
+  name: string;
+  /** Uniquement là où le placement est terminé : l'Elo caché ne quitte jamais la base. */
+  rankings: PlayerRanking[];
+  /** Lien avec le joueur connecté, null pour un visiteur */
+  friendship: FriendshipState | null;
+}
+
+/**
+ * Profil public d'un joueur, ouvert depuis le classement. Ne montre que ce que le classement rend déjà public
+ * (pseudo, Elo, place, parties, % de victoires), jamais l'e-mail ni les statistiques privées.
+ */
+export async function getPlayerProfile(userId: string, viewerId?: string): Promise<PlayerProfile | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      ratings: { where: { games: { gte: PLACEMENT_GAMES } }, orderBy: [{ mode: "asc" }, { difficulty: "asc" }] },
+    },
+  });
+  if (!user) return null;
+  const [rankings, friendship] = await Promise.all([
+    Promise.all(
+      user.ratings.map(async (r) => {
+        const [rank, total, wins] = await Promise.all([
+          rankOf(r.mode, r.difficulty, r.rating),
+          prisma.rating.count({ where: rankedWhere(r.mode, r.difficulty) }),
+          winsOf(r.mode, r.difficulty, [userId]),
+        ]);
+        return { mode: r.mode, difficulty: r.difficulty, rank, total, rating: r.rating, games: r.games, wins: wins.get(userId) ?? 0 };
+      }),
+    ),
+    viewerId ? friendshipState(viewerId, userId) : null,
+  ]);
+  return { id: user.id, name: user.name, rankings, friendship };
+}
+
 /* ------------------------------------------------------------------ */
 /* Amis                                                                 */
 /* ------------------------------------------------------------------ */
@@ -574,7 +625,17 @@ export async function sendFriendRequest(fromId: string, handle: string): Promise
   });
   if (matches.length === 0) return { status: "not-found" };
   if (matches.length > 1) return { status: "ambiguous" };
-  const target = matches[0]!;
+  return requestFriendship(fromId, matches[0]!);
+}
+
+/** Envoie une demande d'ami à un joueur désigné par son id (depuis son profil public). */
+export async function sendFriendRequestTo(fromId: string, targetId: string): Promise<FriendRequestResult> {
+  const target = await prisma.user.findUnique({ where: { id: targetId }, select: { id: true, name: true } });
+  if (!target) return { status: "not-found" };
+  return requestFriendship(fromId, target);
+}
+
+async function requestFriendship(fromId: string, target: { id: string; name: string }): Promise<FriendRequestResult> {
   if (target.id === fromId) return { status: "self" };
 
   const existing = await prisma.friendship.findFirst({
@@ -633,6 +694,25 @@ export async function removeFriendship(userId: string, otherId: string): Promise
       },
     }),
   ]);
+}
+
+/** Lien entre le joueur connecté et un autre : `outgoing` = demande envoyée, `incoming` = demande reçue. */
+export type FriendshipState = "self" | "none" | "outgoing" | "incoming" | "friends";
+
+async function friendshipState(viewerId: string, otherId: string): Promise<FriendshipState> {
+  if (viewerId === otherId) return "self";
+  const row = await prisma.friendship.findFirst({
+    where: {
+      OR: [
+        { requesterId: viewerId, addresseeId: otherId },
+        { requesterId: otherId, addresseeId: viewerId },
+      ],
+    },
+    select: { requesterId: true, status: true },
+  });
+  if (!row) return "none";
+  if (row.status === "accepted") return "friends";
+  return row.requesterId === viewerId ? "outgoing" : "incoming";
 }
 
 async function areFriends(a: string, b: string): Promise<boolean> {

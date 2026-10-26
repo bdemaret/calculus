@@ -629,5 +629,21 @@
         }
       ]
     }
+  },
+  "player": {
+    "title": "{name} · profile",
+    "notFound": "Player not found",
+    "rankingsTitle": "Rankings",
+    "mode": "Mode",
+    "rankOf": "{rank} / {total}",
+    "unranked": "Not ranked yet: finish your placement games in a mode and difficulty to appear on the leaderboard.",
+    "backToLeaderboard": "Back to the leaderboard",
+    "loginToAdd": "Log in to add them as a friend",
+    "self": "This is your public profile, as others see it.",
+    "myProfile": "My account",
+    "add": "Add friend",
+    "outgoing": "Friend request sent to {name}.",
+    "incoming": "{name} sent you a friend request.",
+    "friends": "You are friends."
   }
 }
