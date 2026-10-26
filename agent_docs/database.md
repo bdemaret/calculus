@@ -6,6 +6,7 @@ Prisma 6 + PostgreSQL. Schéma : `packages/db/prisma/schema.prisma`. Client et r
 
 - **Comptes (gérés par Better Auth, ne pas renommer les champs)** : `User`, `Session`, `Account`, `Verification`, `RateLimit` (compteurs du rate limit, partagés entre instances serverless). Tables en minuscules via `@@map`.
 - **Parties** : `Game` (réglages JSON + colonnes dénormalisées `game` (défaut `standard`), `mode`, `difficulty`, `turnStyle`, `seed`) → `GamePlayer` (`playerKey` = id utilisé en jeu, `userId` null pour un invité) → `Question` (`tags` : `add|sub|mul|div|paren` ; `solution` et `puzzle` propres au jeu, null avant les jeux ; `forPlayerKey` / `authorPlayerKey` quand chacun a son calcul : à la bombe, une ligne par désamorceur avec la bombe qu'il a reçue, le tirage dans `puzzle` ; unicité `[gameId, position, forPlayerKey]` ; `loadGameReport` regroupe les lignes d'une manche. Le statut « bombe de secours » n'est pas gardé en base) → `Answer` (`value` si la réponse est un nombre, sinon `text` ; les deux null si temps écoulé).
+- **Retours** : `Feedback` (`kind` `bug|idea|other`, `message`, `contact` e-mail facultatif d'un invité, `page`, `locale`, `resolved`). `userId` passe à null à la suppression du compte.
 - **Elo** : `Rating` (clé `userId` + `game` + `mode` + `difficulty`, `rating` et `games`), créé à la première partie classée. `GamePlayer.ratingBefore` / `ratingDelta` / `ratingGames` gardent l'effet de chaque partie (null si non classée). Pendant les 5 parties de placement, l'Elo bouge mais reste caché : `saveGame`, `loadGameReport` et `getDashboard` ne renvoient que des `RatingChange` (via `describeRatingChange`) et `rating: null`, jamais la valeur cachée. Une partie est classée si elle est en ligne et compte au moins deux comptes inscrits ; les invités sont ignorés (ni Elo, ni adversaires).
 - **`UserStats`** : agrégats incrémentés par `saveGame` dans la même transaction, pour un dashboard rapide.
 - **Amis** : `Friendship` (une ligne par paire, `requesterId` → `addresseeId`, statut `pending` puis `accepted`) et `GameInvite` (invitation à un lobby, une seule par paire, valable `INVITE_TTL_MS` = 10 min).
@@ -26,6 +27,10 @@ Prisma 6 + PostgreSQL. Schéma : `packages/db/prisma/schema.prisma`. Client et r
 | `acceptFriendRequest` / `removeFriendship` | Accepter ; retirer, refuser ou annuler (supprime aussi les invitations entre les deux) |
 | `eraseUserGames(userId)` | Avant suppression d'un compte : supprime ses parties solo et vide son pseudo dans les parties en ligne |
 | `sendGameInvite` / `getGameInvites` / `dismissGameInvite` | Invitations à un lobby, réservées aux amis acceptés |
+| `createFeedback(input, now)` | Enregistre un retour ; false si la limite horaire est atteinte (constantes dans `src/feedback.ts`, exporté aussi en `@calculus/db/feedback` pour le client) |
+| `getAdminOverview(now)` | Panel admin : inscrits (total, 7 et 30 jours, par jour), parties, retours à traiter |
+| `listUsers(query, page)` / `getAdminUser(id)` | Panel admin : comptes paginés (`ADMIN_PAGE_SIZE` = 50) filtrés par pseudo ou e-mail ; fiche d'un compte |
+| `listFeedback(resolved, page)` / `setFeedbackResolved` / `deleteFeedback` | Panel admin : retours |
 
 ## Migrations
 
