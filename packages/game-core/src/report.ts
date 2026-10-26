@@ -42,6 +42,8 @@ export interface RoundReview {
   scorers: string[];
   /** Vrai si tous les survivants se sont trompés et que personne n'est sorti. */
   spared: boolean;
+  /** La bombe : qui a construit quoi, pour qui, et sa valeur (`text` est alors le tirage). */
+  bombs?: { authorId: string; defuserId: string; text: string; answer: number; fallback: boolean }[];
 }
 
 export interface GameReport {
@@ -54,6 +56,9 @@ export interface GameReport {
   fastest: { playerId: string; name: string; text: string; timeMs: number } | null;
 }
 
+/** Le calcul d'un joueur dans une manche (le sien à la bombe). */
+const questionOf = (r: RoundRecord, playerId: string) => r.personal?.[playerId]?.question ?? r.question;
+
 export function buildReport(standings: Standing[], history: RoundRecord[]): GameReport {
   const players: PlayerReport[] = standings.map(({ rank, player }) => playerReport(rank, player, history));
 
@@ -61,13 +66,16 @@ export function buildReport(standings: Standing[], history: RoundRecord[]): Game
   let fastest: GameReport["fastest"] = null;
   const nameOf = (id: string) => standings.find((s) => s.player.id === id)?.player.name ?? "?";
   for (const r of history) {
-    const misses = r.answers.filter((a) => !a.correct).length;
-    if (misses > 0 && (!hardest || misses > hardest.misses)) {
-      hardest = { text: r.question.text, answer: r.question.answer, solution: r.question.solution, misses };
+    // À la bombe, chaque joueur a son propre calcul : le plus raté se cherche calcul par calcul.
+    for (const q of r.personal ? Object.entries(r.personal).map(([id, p]) => ({ q: p.question, ids: [id] })) : [{ q: r.question, ids: null }]) {
+      const misses = r.answers.filter((a) => !a.correct && (!q.ids || q.ids.includes(a.playerId))).length;
+      if (misses > 0 && (!hardest || misses > hardest.misses)) {
+        hardest = { text: q.q.text, answer: q.q.answer, solution: q.q.solution, misses };
+      }
     }
     for (const a of r.answers) {
       if (a.correct && (!fastest || a.timeMs < fastest.timeMs)) {
-        fastest = { playerId: a.playerId, name: nameOf(a.playerId), text: r.question.text, timeMs: a.timeMs };
+        fastest = { playerId: a.playerId, name: nameOf(a.playerId), text: questionOf(r, a.playerId).text, timeMs: a.timeMs };
       }
     }
   }
@@ -80,6 +88,17 @@ export function buildReport(standings: Standing[], history: RoundRecord[]): Game
     answers: r.answers.map((a) => ({ playerId: a.playerId, value: a.value, text: a.text, correct: a.correct, timeMs: a.timeMs })),
     scorers: [...r.scorers],
     spared: r.spared,
+    ...(r.personal
+      ? {
+          bombs: Object.entries(r.personal).map(([defuserId, p]) => ({
+            authorId: p.authorId,
+            defuserId,
+            text: p.question.text,
+            answer: p.question.answer,
+            fallback: r.bombs?.[p.authorId]?.fallback ?? false,
+          })),
+        }
+      : {}),
   }));
   return { rounds: history.length, review, players, hardest, fastest };
 }
@@ -93,7 +112,7 @@ function playerReport(rank: number, player: PlayerState, history: RoundRecord[])
     if (!a) continue;
     timeline.push({ round: r.index + 1, timeMs: a.correct ? a.timeMs : null, correct: a.correct });
     if (a.correct && (fastestMs === null || a.timeMs < fastestMs)) fastestMs = a.timeMs;
-    for (const tag of r.question.tags) {
+    for (const tag of questionOf(r, player.id).tags) {
       const s = ops.get(tag) ?? { tag, attempts: 0, correct: 0 };
       s.attempts += 1;
       if (a.correct) s.correct += 1;

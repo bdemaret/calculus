@@ -66,6 +66,11 @@
       "name": "Missing number",
       "short": "Complete the equation.",
       "long": "The result is given, but a number or an operator is missing from the calculation: “23 + ? = 41”, “12 ? 4 = 3”. Find what’s missing."
+    },
+    "bomb": {
+      "name": "The bomb",
+      "short": "Rig a calculation, defuse someone else’s.",
+      "long": "Everyone gets the same tiles and builds a calculation: their bomb. Once everyone is ready, each bomb goes to another player, who must find its result. One mistake and you’re out; if your bomb blows someone up, you score a point. Online, two players or more."
     }
   },
   "gamesPage": {
@@ -113,7 +118,8 @@
     "seconds": "{n} s",
     "answers": "Answers",
     "simultaneous": "All at once",
-    "turns": "Taking turns"
+    "turns": "Taking turns",
+    "buildTime": "Time to build your bomb"
   },
   "solo": {
     "title": "Play solo",
@@ -218,7 +224,38 @@
     "tiles": "Tiles",
     "openParen": "Opening bracket",
     "closeParen": "Closing bracket",
-    "useAllTiles": "On target! Some tiles are left: use them all."
+    "useAllTiles": "On target! Some tiles are left: use them all.",
+    "bomb": {
+      "building": "Build your bomb with these tiles.",
+      "buildTitle": "Tiles",
+      "rules": "At least {min} tiles, each once at most · result ≤ {max}",
+      "parenYes": "brackets allowed",
+      "parenNo": "no brackets",
+      "sent": "Your bomb: {bomb}",
+      "ready": "{count} / {total} bombs ready",
+      "youDefuse": "You defuse {name}’s bomb",
+      "yourBombGoes": "Your bomb goes to {name}.",
+      "pair": "{author} → {defuser}",
+      "defusing": "{name}’s bomb: find its result.",
+      "defused": "defused",
+      "exploded": "blew up",
+      "explodedWith": "blew up ({value})",
+      "fallback": "backup bomb",
+      "errors": {
+        "syntax": "Unfinished calculation.",
+        "tiles": "Only the tiles drawn, each once at most.",
+        "min-tiles": "Use more tiles.",
+        "operations": "Operation not allowed.",
+        "parentheses": "No brackets at this level.",
+        "invalid": "Whole, positive intermediate results and exact divisions only.",
+        "too-big": "Result too big.",
+        "already-answered": "Your bomb has already been sent.",
+        "not-allowed": "You can no longer build a bomb.",
+        "no-round": "Building is over.",
+        "unknown-player": "Unknown player.",
+        "invalid-value": "Invalid calculation."
+      }
+    }
   },
   "report": {
     "pageTitle": "Game report",

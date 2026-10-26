@@ -1,6 +1,6 @@
 "use client";
 import { Client, type Room } from "colyseus.js";
-import { JOIN_ERRORS, type GameSettings, type RoomSnapshot } from "@calculus/game-core";
+import { JOIN_ERRORS, type GameSettings, type RoomSnapshot, type ServerMessages } from "@calculus/game-core";
 
 /**
  * Connexion au serveur de jeu. La salle en cours est gardée ici pour survivre
@@ -70,6 +70,8 @@ export interface LobbyState {
   clockOffset: number;
   lastAck: { correct: boolean; timeMs: number; questionIndex: number } | null;
   typing: { playerId: string; value: string } | null;
+  /** La bombe : réponse du serveur à la dernière bombe envoyée. */
+  bombAck: ServerMessages["bomb-ack"] | null;
   left: boolean;
 }
 
@@ -77,7 +79,7 @@ const stores = new WeakMap<Room, { state: LobbyState; listeners: Set<() => void>
 
 function attach(room: Room) {
   const store = {
-    state: { playerId: null, snapshot: null, clockOffset: 0, lastAck: null, typing: null, left: false } as LobbyState,
+    state: { playerId: null, snapshot: null, clockOffset: 0, lastAck: null, typing: null, bombAck: null, left: false } as LobbyState,
     listeners: new Set<() => void>(),
   };
   const update = (patch: Partial<LobbyState>) => {
@@ -92,6 +94,7 @@ function attach(room: Room) {
   });
   room.onMessage("answer-ack", (ack: LobbyState["lastAck"]) => update({ lastAck: ack }));
   room.onMessage("answer-refused", () => {});
+  room.onMessage("bomb-ack", (ack: ServerMessages["bomb-ack"]) => update({ bombAck: ack }));
   room.onMessage("typing", (t: { playerId: string; value: string }) => update({ typing: t }));
   room.onMessage("error", () => {});
   room.onLeave(() => update({ left: true }));

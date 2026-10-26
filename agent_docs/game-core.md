@@ -5,9 +5,9 @@ Logique pure, déterministe, sans I/O. Tout est réexporté par `src/index.ts`.
 | Fichier | Rôle |
 | --- | --- |
 | `types.ts` | Types de base : `GameSettings`, `Question` (+ `solution`, `puzzle`), `PlayerAnswer`, `PlayerState`, `RoundRecord`, `Standing`, `GameId`, `GameModeId`… |
-| `games/` | Les jeux : `GameDefinition` (`types.ts`), `standardGame` (`standard.ts`), `rightCountGame` + `RIGHT_COUNT_LEVELS` (`right-count.ts`), `missingGame` (`missing.ts`), `GAMES` et `GAME_IDS` (`index.ts`), `answerOfRecord` pour rejouer une réponse enregistrée |
+| `games/` | Les jeux : `GameDefinition` (`types.ts`), `standardGame` (`standard.ts`), `rightCountGame` + `RIGHT_COUNT_LEVELS` (`right-count.ts`), `missingGame` (`missing.ts`), `bombGame` + `BOMB_LEVELS`, `bombValue`, `fallbackBomb`, `assignBombs` (`bomb.ts`), `GAMES` et `GAME_IDS` (`index.ts`), `answerOfRecord` pour rejouer une réponse enregistrée |
 | `solver.ts` | `solveTiles(tiles, operations, maxValue)` : valeurs atteignables avec toutes les plaques, une fois chacune (programmation dynamique sur les sous-ensembles, ~10 ms pour 6 plaques) et une solution lisible pour chacune |
-| `limits.ts` | Bornes communes (`MAX_PLAYERS`, manches, temps du calcul standard, `BATTLE_ROYALE_ROUND_CAP`), réexportées par `settings.ts` |
+| `limits.ts` | Bornes communes (`MAX_PLAYERS`, manches, temps du calcul standard, temps de construction de la bombe, `BATTLE_ROYALE_ROUND_CAP`), réexportées par `settings.ts` |
 | `expression.ts` | Expressions saisies par les joueurs : `parseExpression` (stricte, `MAX_EXPRESSION_LENGTH` = 64), `evaluateStrict` (intermédiaires entiers ≥ 0, divisions exactes, opérations permises), `numbersOf`, `fitsTiles` (plaques utilisées au plus une fois), `operatorOfSymbol` (« + », « - », « x », « ÷ »… → opération), `formatExpression` (arbre → texte avec le minimum de parenthèses) |
 | `rng.ts` | RNG à graine (`createRng`, `hashSeed`, `randInt`, `pick`, `randomSeed`) |
 | `levels.ts` | Les 5 niveaux (`LEVELS`, `DIFFICULTIES`, `ALL_OPERATIONS`) : bornes, opérations et temps par défaut |
@@ -50,6 +50,16 @@ Une réponse d'une autre forme que `game.answerKind(question)` (la forme peut ch
 - Réponse : une expression (`answerKind` = `expr`). `isValid` refuse sans consommer l'essai une expression mal formée, qui oublie, répète ou invente une plaque ; `check` compare le total à la cible. N'importe quelle solution est acceptée ; `solution` en donne une.
 - `text` = « 75 50 3 6 8 2 → 412 », `puzzle` = `{ tiles, target, operations }`, pas de tags (`operationStats: false`). Temps 20–180 s (`timeRange`), 45 à 90 s par défaut.
 
+## La bombe (`games/bomb.ts`)
+
+- Une manche en deux temps, dans le même `RoundRecord` (`stage`) :
+  1. **Construction** (`stage: "build"`, durée `settings.buildTime`) : `round.question` est le tirage commun (`puzzle` : `tiles`, `operations`, `minTiles`, `maxResult`, `parentheses`). `engine.submitBomb(id, expr)` valide avec `bombValue` (plaques au plus une fois, au moins `minTiles`, opérations et parenthèses permises, résultat entier entre 0 et `maxResult` ; sinon une raison `BombError`) et garde la bombe réécrite (`formatExpression`) dans `round.bombs`. Une bombe par joueur.
+  2. **Désamorçage** : `engine.closeBuild(solveAt)` donne une bombe de secours (`fallbackBomb`, déterministe) à qui n'a rien envoyé, attribue les bombes par un cycle tiré au hasard (`assignBombs` : personne ne reçoit la sienne, chacun en reçoit une), remplit `round.personal[désamorceur] = { question, authorId }` (un calcul standard) et repart le chrono à `solveAt`. `submit` vérifie contre la question de ce joueur (`engine.questionFor`).
+- Points : le mode battle royale élimine les désamorceurs qui ratent (+1 à ceux qui réussissent, `spared` si tous ratent) ; `bombGame.resolveExtras` donne +1 à l'auteur d'une bombe qui explose (pas pour une bombe de secours).
+- Une partie finie pendant la construction (départs) annule la manche (`closeRound` renvoie null, rien dans l'historique).
+- Le rapport (`RoundReview.bombs`) et les statistiques utilisent la question de chaque joueur.
+- Réglages : `buildTime` (15–120 s, 45 par défaut), temps de désamorçage 5–60 s, toujours en simultané (`turns: false`).
+
 ## Nombre manquant (`games/missing.ts`)
 
 - Part d'un calcul du générateur standard (mêmes niveaux, opérations, parenthèses), en cache un nombre ou un opérateur : `23 + ? = 41`, `12 ? 4 = 3`. Réglage `missingKind` : `number`, `operator` ou `mixed` (opérateur une fois sur trois) ; défaut `number` aux niveaux 1–2, `mixed` au-delà.
@@ -58,7 +68,7 @@ Une réponse d'une autre forme que `game.answerKind(question)` (la forme peut ch
 
 ## Ajouter un jeu
 
-1. Créer un `GameDefinition` dans `games/<jeu>.ts` : `modes`, `solo`, `minPlayers`, `operationStats`, `timeRange`, `defaults(difficulty)`, `answerKind(question)`, `generate` (déterministe), `isValid` (facultatif) et `check`.
+1. Créer un `GameDefinition` dans `games/<jeu>.ts` : `modes`, `solo`, `minPlayers`, `turns`, `operationStats`, `timeRange`, `defaults(difficulty)`, `answerKind(question)`, `generate` (déterministe), `isValid` (facultatif), `check` et `resolveExtras` (facultatif).
 2. Ajouter l'id à `GameId` (`types.ts`), sa variante à `Puzzle` si besoin, puis à `GAMES` et `GAME_IDS` (`games/index.ts`). Un réglage propre au jeu va dans `GameSettings`, toujours présent avec une valeur par défaut (`defaultSettings`, `sanitizeSettings`).
 3. Côté site : saisie adaptée (`lib/answer.ts`, `CalcLine`), affichage du `puzzle`, séparateur énoncé / solution (`revealSeparator`) ; textes `games.<id>.{name,short,long}` dans `fr.json` et `en.json` ; `revealSeparator` complété.
 4. Tests dans `packages/game-core/test/` (génération exhaustive, `check`).
@@ -72,4 +82,4 @@ Une réponse d'une autre forme que `game.answerKind(question)` (la forme peut ch
 
 ## Tests
 
-`pnpm --filter @calculus/game-core test` (Vitest, `test/game-core.test.ts`, `test/expression.test.ts`, `test/missing.test.ts`, `test/right-count.test.ts`). Les tests du générateur balaient tous les niveaux × combinaisons d'opérations × parenthèses : à garder exhaustifs quand on touche `generator.ts` ou `levels.ts`.
+`pnpm --filter @calculus/game-core test` (Vitest, `test/game-core.test.ts`, `test/expression.test.ts`, `test/missing.test.ts`, `test/right-count.test.ts`, `test/bomb.test.ts`). Les tests du générateur balaient tous les niveaux × combinaisons d'opérations × parenthèses : à garder exhaustifs quand on touche `generator.ts` ou `levels.ts`.

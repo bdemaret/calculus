@@ -1,6 +1,6 @@
 import { GAME_IDS, GAMES } from "./games";
 import { ALL_OPERATIONS } from "./levels";
-import { MAX_ROUNDS, MIN_ROUNDS } from "./limits";
+import { DEFAULT_BUILD_TIME, MAX_BUILD_TIME, MAX_ROUNDS, MIN_BUILD_TIME, MIN_ROUNDS } from "./limits";
 import type { Difficulty, GameId, GameModeId, GameSettings, MissingKind, Operation, TurnStyle } from "./types";
 
 export * from "./limits";
@@ -20,6 +20,7 @@ export function defaultSettings(difficulty: Difficulty = 2, mode: GameModeId = "
     turnStyle: "simultaneous",
     // Aux premiers niveaux, on ne cache qu'un nombre ; ensuite, un nombre ou un opérateur.
     missingKind: difficulty <= 2 ? "number" : "mixed",
+    buildTime: DEFAULT_BUILD_TIME,
   };
 }
 
@@ -40,7 +41,8 @@ export function sanitizeSettings(input: unknown): GameSettings {
   const wanted = GAME_MODES.includes(raw.mode as GameModeId) ? (raw.mode as GameModeId) : base.mode;
   const mode = allowed.includes(wanted) ? wanted : allowed[0]!;
   const missingKind = MISSING_KINDS.includes(raw.missingKind as MissingKind) ? (raw.missingKind as MissingKind) : base.missingKind;
-  const turnStyle = TURN_STYLES.includes(raw.turnStyle as TurnStyle) ? (raw.turnStyle as TurnStyle) : base.turnStyle;
+  // Un jeu sans « chacun son tour » se joue toujours en simultané.
+  const turnStyle = GAMES[game].turns && TURN_STYLES.includes(raw.turnStyle as TurnStyle) ? (raw.turnStyle as TurnStyle) : base.turnStyle;
   const ops = Array.isArray(raw.operations)
     ? [...new Set(raw.operations.filter((o): o is Operation => ALL_OPERATIONS.includes(o as Operation)))]
     : base.operations;
@@ -50,6 +52,8 @@ export function sanitizeSettings(input: unknown): GameSettings {
     mode,
     turnStyle,
     missingKind,
+    buildTime:
+      typeof raw.buildTime === "number" && Number.isFinite(raw.buildTime) ? clamp(raw.buildTime, MIN_BUILD_TIME, MAX_BUILD_TIME) : base.buildTime,
     operations: ops.length > 0 ? ops : base.operations,
     parentheses: typeof raw.parentheses === "boolean" ? raw.parentheses : base.parentheses,
     rounds: typeof raw.rounds === "number" && Number.isFinite(raw.rounds) ? clamp(raw.rounds, MIN_ROUNDS, MAX_ROUNDS) : base.rounds,

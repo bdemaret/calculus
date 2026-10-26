@@ -6,7 +6,14 @@ import type { RatingChange } from "./elo";
 import type { GameReport } from "./report";
 import type { GameSettings, PlayerAnswer, Puzzle } from "./types";
 
-export type RoomPhase = "lobby" | "countdown" | "question" | "round-result" | "finished";
+/** `build` et `assign` : construction des bombes, puis qui reçoit quoi (la bombe seulement). */
+export type RoomPhase = "lobby" | "countdown" | "build" | "assign" | "question" | "round-result" | "finished";
+
+/** Qui a construit la bombe que désamorce qui. */
+export interface BombPair {
+  authorId: string;
+  defuserId: string;
+}
 
 export interface LobbyPlayer {
   id: string;
@@ -30,8 +37,13 @@ export interface RoomSnapshot {
   maxPlayers: number;
   roundIndex: number;
   totalRounds: number | null;
-  /** Calcul en cours (jamais la réponse) : énoncé lisible et données propres au jeu. */
+  /**
+   * Calcul en cours (jamais la réponse) : énoncé lisible et données propres au jeu. À la bombe, c'est le
+   * tirage pendant la construction, puis la bombe que ce joueur doit désamorcer (chacun reçoit la sienne).
+   */
   question: { index: number; text: string; puzzle: Puzzle } | null;
+  /** La bombe : qui a déjà envoyé sa bombe, la sienne, et les paires une fois attribuées (sans les bombes). */
+  bomb: { built: string[]; mine: string | null; pairs: BombPair[] | null } | null;
   activePlayerId: string | null;
   /** Fin de la manche ou du compte à rebours, en heure serveur (ms). */
   deadline: number | null;
@@ -54,6 +66,8 @@ export interface RoundResultPayload {
   /** Données du calcul, pour le réafficher pendant le résultat de la manche. */
   puzzle: Puzzle;
   answers: { playerId: string; value: number | null; text: string | null; correct: boolean; timeMs: number }[];
+  /** La bombe : chaque bombe, son auteur, son désamorceur et sa valeur. */
+  bombs?: (BombPair & { text: string; answer: number; fallback: boolean })[];
   eliminated: string[];
   scorers: string[];
   spared: boolean;
@@ -71,6 +85,8 @@ export interface ClientMessages {
   "replay-same": Record<string, never>;
   "replay-new": Record<string, never>;
   kick: { playerId: string };
+  /** La bombe : le calcul construit pendant la construction (une seule fois par manche). */
+  bomb: { roundIndex: number; expr: string };
   /** Une saisie en cours (chiffres, ou un symbole d'opérateur), montrée aux autres en mode « chacun son tour ». */
   typing: { value: string };
 }
@@ -82,6 +98,8 @@ export interface ServerMessages {
   snapshot: RoomSnapshot;
   "answer-ack": { correct: boolean; timeMs: number; questionIndex: number };
   "answer-refused": { reason: string };
+  /** La bombe : bombe acceptée (telle qu'elle sera montrée, avec sa valeur) ou refusée (règle enfreinte). */
+  "bomb-ack": { roundIndex: number; accepted: boolean; reason?: string; text?: string; value?: number };
   typing: { playerId: string; value: string };
   error: { code: RoomError };
 }

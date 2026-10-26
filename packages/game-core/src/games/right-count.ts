@@ -85,6 +85,7 @@ export const rightCountGame: GameDefinition = {
   modes: ["battle-royale", "speed-race"],
   solo: true,
   minPlayers: 1,
+  turns: true,
   operationStats: false,
   timeRange: { min: 20, max: 180 },
   defaults: (d) => ({ operations: [...RIGHT_COUNT_LEVELS[d].defaultOperations], parentheses: true, timePerQuestion: RIGHT_COUNT_LEVELS[d].defaultTime }),

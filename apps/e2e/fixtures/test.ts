@@ -31,6 +31,7 @@ export async function presetSolo(page: Page, settings: Partial<GameSettings>) {
   const full: GameSettings = {
     game: "standard",
     missingKind: "number",
+    buildTime: 15,
     difficulty: 1,
     mode: "speed-race",
     operations: ["add"],

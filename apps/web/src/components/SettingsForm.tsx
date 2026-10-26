@@ -6,7 +6,9 @@ import {
   DIFFICULTIES,
   GAMES,
   GAME_IDS,
+  MAX_BUILD_TIME,
   MAX_ROUNDS,
+  MIN_BUILD_TIME,
   MIN_ROUNDS,
   MISSING_KINDS,
   defaultSettings,
@@ -190,7 +192,28 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
         </div>
       </div>
 
-      {online ? (
+      {s.game === "bomb" ? (
+        <div className="field">
+          <label className="field-label" htmlFor={`${id}-build`}>
+            {t("settings.buildTime")}
+          </label>
+          <div className="range-row">
+            <input
+              type="range"
+              id={`${id}-build`}
+              min={MIN_BUILD_TIME}
+              max={MAX_BUILD_TIME}
+              step={5}
+              value={s.buildTime}
+              disabled={readOnly}
+              onChange={(e) => set({ buildTime: Number(e.target.value) })}
+            />
+            <span className="range-value">{t("settings.seconds", { n: s.buildTime })}</span>
+          </div>
+        </div>
+      ) : null}
+
+      {online && GAMES[s.game].turns ? (
         <fieldset className="field" disabled={readOnly}>
           <legend>{t("settings.answers")}</legend>
           <div className="seg" role="group">

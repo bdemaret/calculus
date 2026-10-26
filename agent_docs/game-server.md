@@ -11,12 +11,15 @@ Serveur Colyseus 0.16 (`@colyseus/core` + `ws-transport`), lancé avec `tsx` (pa
 
 ## GameRoom
 
-- **Phases** (`RoomPhase`) : `lobby → countdown (3 s) → question → round-result (2,2 s) → … → finished`.
+- **Phases** (`RoomPhase`) : `lobby → countdown (3 s) → question → round-result (2,2 s) → … → finished`. À la bombe, chaque manche commence par `build` (jusqu'à `buildTime`, ou dès que tous les joueurs en lice ont envoyé leur bombe) puis `assign` (`ASSIGN_MS` = 3 s, on montre qui désamorce quoi) avant `question`.
+- **Snapshots personnalisés** : `broadcastSnapshot` envoie à chaque membre son propre `snapshot(id)`. À la bombe, `question` est le tirage pendant `build`, puis la bombe de ce joueur seulement (null pour un spectateur) ; `bomb` donne qui a construit, sa propre bombe et les paires (sans les bombes). Les bombes et leurs valeurs n'arrivent qu'en `round-result` (`lastRound.bombs`).
+- **Message `bomb`** (`bombSchema` : `roundIndex`, `expr` ≤ 64) : seulement en phase `build`, une fois par joueur ; réponse `bomb-ack` (acceptée avec le texte et la valeur, ou refusée avec la raison).
 - **Autorité serveur** : questions générées côté serveur, chronométrage à la réception (+ `LATENCY_GRACE_MS` = 150 ms), une seule réponse par joueur et par calcul, réponse jamais incluse dans le snapshot avant la fin de manche.
 - **Authentification** : `static onAuth` vérifie le jeton pendant le matchmaking, donc avant de créer une salle ou de réserver une place (sans jeton valide, rien n'est créé). Les vérifications propres à la salle (`in-progress`, `duplicate`, `full`) sont dans `onJoin`.
 - **Salles privées** : `setPrivate(true)` dans `onCreate` ; on n'entre qu'avec le code (`joinById`), jamais par `join("game")`.
 - **Anti-abus** : tous les messages passent par `this.on(type, handler)`, qui vérifie que l'expéditeur est membre et applique `MAX_MESSAGES_PER_SECOND` = 20 par joueur, tous types confondus. Chaque message est ensuite validé par un schéma Zod (`answerSchema` : `value` | `expr` | `op`, la forme attendue par le jeu étant vérifiée par le moteur ; `readySchema` ; `typingSchema` : chiffres, symbole d'opérateur ou expression, 64 caractères au plus ; `kickSchema`) ou `sanitizeSettings`. Tout nouveau message doit suivre ce modèle.
 - **État envoyé** : un `RoomSnapshot` complet (`broadcastSnapshot()`) après chaque changement, plutôt que le state synchronisé de Colyseus.
+- **Départs à la bombe** : pendant `build`, partie finie → manche annulée et `finish()` ; sinon, si tous ceux qui restent ont construit, on passe à `assign`.
 - **Joueurs minimum** : `start` et `replay-same` sont refusés sous `GAMES[game].minPlayers` joueurs connectés (message `error` `not-enough-players` à l'hôte ; le site grise aussi le bouton).
 - **Hôte** : si l'hôte part, la main passe au membre arrivé le plus tôt (`members` est une `Map` ordonnée par arrivée).
 - **Reconnexion** : 30 s (`RECONNECT_SECONDS`).

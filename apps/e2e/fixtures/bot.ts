@@ -1,5 +1,5 @@
 import { Client, type Room } from "colyseus.js";
-import { operatorOfSymbol, type GameSettings, type RoomSnapshot } from "@calculus/game-core";
+import { fallbackBomb, operatorOfSymbol, type BombPuzzle, type GameSettings, type RoomSnapshot } from "@calculus/game-core";
 import { GAME_HTTP_URL, WEB_URL } from "../env";
 import { solveText } from "./oracle";
 
@@ -15,6 +15,9 @@ export interface BotPlan {
 
 export type BotPolicy = (q: { index: number; text: string }, snap: RoomSnapshot) => BotMove | BotPlan;
 
+/** La bombe : ce que le bot construit à chaque manche (une expression), ou rien. Par défaut, une bombe valide. */
+export type BombPolicy = (puzzle: BombPuzzle, index: number) => string | "idle";
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
@@ -28,7 +31,9 @@ export class Bot {
   /** Tous les instantanés reçus, dans l'ordre. */
   readonly snapshots: RoomSnapshot[] = [];
   policy: BotPolicy = () => "idle";
+  bombPolicy: BombPolicy = (puzzle, index) => fallbackBomb(puzzle, `bot-${index}`).expr;
   private answered = new Set<string>();
+  private built = new Set<string>();
 
   private constructor(
     readonly name: string,
@@ -36,7 +41,7 @@ export class Bot {
   ) {
     room.onMessage("welcome", (m: { playerId: string }) => (this.playerId = m.playerId));
     room.onMessage("snapshot", (s: RoomSnapshot) => this.onSnapshot(s));
-    for (const type of ["answer-ack", "answer-refused", "typing", "error"]) room.onMessage(type, () => {});
+    for (const type of ["answer-ack", "answer-refused", "bomb-ack", "typing", "error"]) room.onMessage(type, () => {});
     room.send("hello", {});
   }
 
@@ -69,6 +74,11 @@ export class Bot {
     this.policy = policy;
   }
 
+  /** La bombe : choisit ce que le bot construit. */
+  buildBombs(policy: BombPolicy) {
+    this.bombPolicy = policy;
+  }
+
   ready(ready = true) {
     this.room.send("ready", { ready });
   }
@@ -99,6 +109,15 @@ export class Bot {
     this.snapshot = s;
     this.snapshots.push(s);
     const q = s.question;
+    // La bombe : pendant la construction, le bot envoie sa bombe (une fois par manche).
+    if (s.phase === "build" && q?.puzzle.game === "bomb") {
+      const key = `${s.gameNumber}:${q.index}`;
+      if (this.built.has(key)) return;
+      this.built.add(key);
+      const expr = this.bombPolicy(q.puzzle as BombPuzzle, q.index);
+      if (expr !== "idle") this.room.send("bomb", { roundIndex: q.index, expr });
+      return;
+    }
     if (s.phase !== "question" || !q) return;
     if (s.settings.turnStyle === "turns" && s.activePlayerId !== this.playerId) return;
     const key = `${s.gameNumber}:${q.index}`;

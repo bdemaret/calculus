@@ -17,6 +17,7 @@ scripts/lancer.mjs  `pnpm lancer` : .env + Docker + install + migrations + dev
 
 - **Jeu** (`GameId`, `GameDefinition` dans `packages/game-core/src/games/`) : ce qu'on résout — génération du calcul, vérification de la réponse, forme de la réponse (nombre, expression ou opérateur), solo possible ou non, joueurs minimum.
 - **Mode** (`GameModeId`, `GameModeRules` dans `modes.ts`) : comment on gagne — battle royale ou course de vitesse, communs à tous les jeux.
+- La bombe se joue en ligne seulement (`solo: false`, 2 joueurs au moins), en battle royale, avec deux phases de plus par manche : `build` (chacun construit sa bombe) puis `assign` (qui reçoit quoi), avant `question` (chacun désamorce la bombe d'un autre).
 - `GameSettings.game` vaut `standard` par défaut : les anciens réglages (navigateur, base) restent valides. Chaque jeu liste ses modes, `sanitizeSettings` remplace un mode non proposé.
 
 ## Dépendances entre paquets

@@ -39,4 +39,5 @@ export const shownAnswer = (a: { value: number | null; text?: string | null }): 
  * Entre un énoncé et sa solution : « 7 + 4 = 11 » pour un calcul, « 23 + ? = 41 → 18 »
  * quand l'énoncé contient déjà son signe égal, « 75 50 3 6 8 2 → 412 : (75 + 2) × 6 − 50 » au bon compte.
  */
-export const revealSeparator = (game: GameId): string => ({ standard: "=", missing: "→", "right-count": ":" })[game];
+const REVEAL_SEPARATOR: Record<GameId, string> = { standard: "=", missing: "→", "right-count": ":", bomb: "=" };
+export const revealSeparator = (game: GameId): string => REVEAL_SEPARATOR[game];

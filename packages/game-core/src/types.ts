@@ -4,7 +4,7 @@ export type OpTag = Operation | "paren" | "hole-num" | "hole-op";
 
 export type Difficulty = 1 | 2 | 3 | 4 | 5;
 /** Le jeu : ce qu'on résout (voir `games/`). */
-export type GameId = "standard" | "missing" | "right-count";
+export type GameId = "standard" | "missing" | "right-count" | "bomb";
 /** Nombre manquant : ce qui peut être caché dans l'égalité. */
 export type MissingKind = "number" | "operator" | "mixed";
 /** Le mode : comment on gagne (voir `modes.ts`), commun à tous les jeux. */
@@ -24,6 +24,8 @@ export interface GameSettings {
   turnStyle: TurnStyle;
   /** Nombre manquant : un nombre, un opérateur, ou l'un ou l'autre. */
   missingKind: MissingKind;
+  /** La bombe : temps pour construire sa bombe, en secondes. */
+  buildTime: number;
 }
 
 /**
@@ -48,6 +50,17 @@ export type Puzzle =
       target: number;
       /** Opérations permises. */
       operations: Operation[];
+    }
+  | {
+      game: "bomb";
+      /** Plaques communes, chacune utilisable au plus une fois dans une bombe. */
+      tiles: number[];
+      operations: Operation[];
+      /** Plaques à utiliser au minimum. */
+      minTiles: number;
+      /** Résultat maximal d'une bombe. */
+      maxResult: number;
+      parentheses: boolean;
     };
 
 export interface Question {
@@ -112,6 +125,12 @@ export interface RoundRecord {
   scorers: string[];
   /** Vrai si tous les survivants ont échoué et que personne n'a été éliminé. */
   spared: boolean;
+  /** La bombe : construction, puis désamorçage. Absent pour les autres jeux. */
+  stage?: "build" | "solve";
+  /** La bombe : calcul construit par chaque joueur (secours : remplacé par le serveur). */
+  bombs?: Record<string, { expr: string; fallback: boolean }>;
+  /** Calcul propre à chaque joueur (la bombe) : celui qu'il doit désamorcer, et son auteur. */
+  personal?: Record<string, { question: Question; authorId: string }>;
 }
 
 export interface Standing {

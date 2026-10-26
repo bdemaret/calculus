@@ -13,6 +13,7 @@ import {
   type OpTag,
   type PlayerState,
   type Puzzle,
+  type Question,
   type RatingChange,
   type RoundRecord,
   type Standing,
@@ -134,26 +135,33 @@ export async function saveGame(input: SaveGameInput): Promise<SavedGame> {
       })),
     });
 
-    const questionRows = input.history.map((r) => ({
-      id: randomUUID(),
-      gameId,
-      position: r.index,
-      text: r.question.text,
-      answer: r.question.answer,
-      solution: r.question.solution,
-      puzzle: r.question.puzzle as unknown as Prisma.InputJsonValue,
-      tags: r.question.tags,
-      difficulty: r.question.difficulty,
-      timeLimitMs: r.timeLimitMs,
-      activePlayerKey: r.activePlayerId,
-    }));
+    // Un calcul par manche ; à la bombe, un par destinataire (avec son auteur), le tirage dans `puzzle`.
+    const questionRows = input.history.flatMap((r) =>
+      (r.personal ? Object.entries(r.personal) : [["", { question: r.question, authorId: null }] as const]).map(([forPlayerKey, { question, authorId }]) => ({
+        id: randomUUID(),
+        gameId,
+        position: r.index,
+        text: question.text,
+        answer: question.answer,
+        solution: question.solution,
+        puzzle: r.question.puzzle as unknown as Prisma.InputJsonValue,
+        tags: question.tags,
+        difficulty: question.difficulty,
+        timeLimitMs: r.timeLimitMs,
+        activePlayerKey: r.activePlayerId,
+        forPlayerKey,
+        authorPlayerKey: authorId,
+      })),
+    );
     if (questionRows.length) await tx.question.createMany({ data: questionRows });
+    const rowOf = (position: number, playerKey: string) =>
+      questionRows.find((q) => q.position === position && q.forPlayerKey === playerKey) ?? questionRows.find((q) => q.position === position)!;
 
-    const answerRows = input.history.flatMap((r, i) =>
+    const answerRows = input.history.flatMap((r) =>
       r.answers
         .filter((a) => playerRowId.has(a.playerId))
         .map((a) => ({
-          questionId: questionRows[i]!.id,
+          questionId: rowOf(r.index, a.playerId).id,
           playerId: playerRowId.get(a.playerId)!,
           value: a.value,
           text: a.text,
@@ -229,7 +237,7 @@ export async function loadGameReport(id: string): Promise<StoredGameReport | nul
     where: { id },
     include: {
       players: { orderBy: { rank: "asc" } },
-      questions: { orderBy: { position: "asc" }, include: { answers: true } },
+      questions: { orderBy: [{ position: "asc" }, { forPlayerKey: "asc" }], include: { answers: true } },
     },
   });
   if (!game) return null;
@@ -253,23 +261,38 @@ export async function loadGameReport(id: string): Promise<StoredGameReport | nul
   });
   // Les parties d'avant les jeux n'ont pas `game` dans leurs réglages : la colonne fait foi.
   const settings = { ...(game.settings as unknown as GameSettings), game: game.game as GameId };
-  const history: RoundRecord[] = game.questions.map((q) => {
-    const answers = q.answers
+  const toQuestion = (q: (typeof game.questions)[number]): Question => ({
+    index: q.position,
+    text: q.text,
+    answer: q.answer,
+    solution: q.solution ?? String(q.answer),
+    // À la bombe, `puzzle` est le tirage de la manche ; le calcul de chacun est un calcul standard.
+    puzzle: q.forPlayerKey ? { game: "standard" } : ((q.puzzle as Puzzle | null) ?? { game: "standard" }),
+    tags: q.tags as OpTag[],
+    difficulty: settings.difficulty,
+  });
+  // Les lignes d'une même manche (une par destinataire à la bombe) sont regroupées.
+  const byPosition = new Map<number, (typeof game.questions)[number][]>();
+  for (const q of game.questions) byPosition.set(q.position, [...(byPosition.get(q.position) ?? []), q]);
+  const history: RoundRecord[] = [...byPosition.values()].map((rows) => {
+    const q = rows[0]!;
+    const answers = rows
+      .flatMap((row) => row.answers)
       .map((a) => ({ playerId: keyByRow.get(a.playerId) ?? "?", value: a.value, text: a.text, correct: a.correct, timeMs: a.timeMs }))
       .sort((a, b) => a.timeMs - b.timeMs);
     // Course de vitesse : le point revient à la première bonne réponse arrivée.
     const first = settings.mode === "speed-race" ? answers.find((a) => a.correct) : undefined;
+    const draw = q.puzzle as Puzzle | null;
+    const personal = q.forPlayerKey
+      ? Object.fromEntries(rows.map((row) => [row.forPlayerKey, { question: toQuestion(row), authorId: row.authorPlayerKey ?? "?" }]))
+      : undefined;
     return {
       index: q.position,
-      question: {
-        index: q.position,
-        text: q.text,
-        answer: q.answer,
-        solution: q.solution ?? String(q.answer),
-        puzzle: (q.puzzle as Puzzle | null) ?? { game: "standard" },
-        tags: q.tags as OpTag[],
-        difficulty: settings.difficulty,
-      },
+      question:
+        personal && draw?.game === "bomb"
+          ? { index: q.position, text: draw.tiles.join(" "), answer: 0, solution: "", puzzle: draw, tags: [], difficulty: settings.difficulty }
+          : toQuestion(q),
+      ...(personal ? { personal } : {}),
       activePlayerId: q.activePlayerKey,
       startedAt: 0,
       timeLimitMs: q.timeLimitMs,

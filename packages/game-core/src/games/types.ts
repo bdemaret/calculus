@@ -1,5 +1,6 @@
 import { SYMBOL_OPERATION, type OpSymbol } from "../generator";
-import type { AnswerKind, AnswerRecord, Difficulty, GameId, GameModeId, GameSettings, Operation, PlayerAnswer, Question } from "../types";
+import type { GameEngine } from "../engine";
+import type { AnswerKind, AnswerRecord, Difficulty, GameId, GameModeId, GameSettings, Operation, PlayerAnswer, Question, RoundRecord } from "../types";
 
 /**
  * Un jeu décrit ce qu'on résout ; le mode (`modes.ts`) décide comment on gagne.
@@ -13,6 +14,8 @@ export interface GameDefinition {
   solo: boolean;
   /** Joueurs nécessaires pour lancer une partie en ligne. */
   minPlayers: number;
+  /** Jouable en « chacun son tour » (sinon toujours en simultané). */
+  turns: boolean;
   /** Les tags des calculs sont des opérations : statistiques par opération au rapport et au tableau de bord. */
   operationStats: boolean;
   /** Temps par calcul permis, en secondes. */
@@ -30,6 +33,8 @@ export interface GameDefinition {
   isValid?(question: Question, answer: PlayerAnswer): boolean;
   /** La réponse est-elle juste ? Appelé seulement avec une réponse de la forme `answerKind(question)`. */
   check(question: Question, answer: PlayerAnswer): boolean;
+  /** Points propres au jeu, après ceux du mode (la bombe : l'auteur d'une bombe qui explose). */
+  resolveExtras?(engine: GameEngine, round: RoundRecord): void;
 }
 
 /**

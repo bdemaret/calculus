@@ -9,6 +9,7 @@ export function onlineSettings(settings: Partial<GameSettings> = {}): GameSettin
   return {
     game: "standard",
     missingKind: "number",
+    buildTime: 15,
     difficulty: 1,
     mode: "speed-race",
     operations: ["add"],

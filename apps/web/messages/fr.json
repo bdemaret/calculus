@@ -66,6 +66,11 @@
       "name": "Nombre manquant",
       "short": "Complète l’égalité.",
       "long": "Le résultat est donné, mais il manque un nombre ou un opérateur dans le calcul : « 23 + ? = 41 », « 12 ? 4 = 3 ». Trouve ce qui manque."
+    },
+    "bomb": {
+      "name": "La bombe",
+      "short": "Piège un calcul, désamorce celui d’un autre.",
+      "long": "Tout le monde reçoit les mêmes plaques et construit un calcul : sa bombe. Quand tout le monde est prêt, chaque bombe part chez un autre joueur, qui doit trouver son résultat. Une erreur et tu sors ; si ta bombe fait sauter quelqu’un, tu marques un point. En ligne, à partir de deux joueurs."
     }
   },
   "gamesPage": {
@@ -113,7 +118,8 @@
     "seconds": "{n} s",
     "answers": "Réponses",
     "simultaneous": "Tous en même temps",
-    "turns": "Chacun son tour"
+    "turns": "Chacun son tour",
+    "buildTime": "Temps pour construire sa bombe"
   },
   "solo": {
     "title": "Jouer solo",
@@ -218,7 +224,38 @@
     "tiles": "Plaques",
     "openParen": "Parenthèse ouvrante",
     "closeParen": "Parenthèse fermante",
-    "useAllTiles": "Bonne cible ! Il reste des plaques : utilise-les toutes."
+    "useAllTiles": "Bonne cible ! Il reste des plaques : utilise-les toutes.",
+    "bomb": {
+      "building": "Construis ta bombe avec ces plaques.",
+      "buildTitle": "Plaques",
+      "rules": "Au moins {min} plaques, chacune une fois au plus · résultat ≤ {max}",
+      "parenYes": "parenthèses permises",
+      "parenNo": "sans parenthèses",
+      "sent": "Ta bombe : {bomb}",
+      "ready": "{count} / {total} bombes prêtes",
+      "youDefuse": "Tu désamorces la bombe de {name}",
+      "yourBombGoes": "Ta bombe part chez {name}.",
+      "pair": "{author} → {defuser}",
+      "defusing": "Bombe de {name} : trouve son résultat.",
+      "defused": "désamorcée",
+      "exploded": "a explosé",
+      "explodedWith": "a explosé ({value})",
+      "fallback": "bombe de secours",
+      "errors": {
+        "syntax": "Calcul incomplet.",
+        "tiles": "Seulement les plaques du tirage, chacune une fois au plus.",
+        "min-tiles": "Utilise plus de plaques.",
+        "operations": "Opération non permise.",
+        "parentheses": "Pas de parenthèses à ce niveau.",
+        "invalid": "Résultats intermédiaires entiers et positifs, divisions exactes.",
+        "too-big": "Résultat trop grand.",
+        "already-answered": "Ta bombe est déjà envoyée.",
+        "not-allowed": "Tu ne peux plus construire de bombe.",
+        "no-round": "La construction est terminée.",
+        "unknown-player": "Joueur inconnu.",
+        "invalid-value": "Calcul invalide."
+      }
+    }
   },
   "report": {
     "pageTitle": "Rapport de partie",

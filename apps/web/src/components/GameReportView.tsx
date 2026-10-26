@@ -228,9 +228,14 @@ function Review({ report, meId, online, game, mode }: { report: GameReport; meId
               <span className="rv-n">{r.round}</span>
               <p className="rv-q">
                 {r.text}
-                <span className="eq">{revealSeparator(game)}</span>
-                {/* Les rapports d'avant les jeux n'ont pas de solution : la réponse en tient lieu. */}
-                <b>{r.solution ?? r.answer}</b>
+                {/* À la bombe, la ligne montre le tirage ; chaque joueur a sa bombe, montrée avec sa réponse. */}
+                {r.bombs ? null : (
+                  <>
+                    <span className="eq">{revealSeparator(game)}</span>
+                    {/* Les rapports d'avant les jeux n'ont pas de solution : la réponse en tient lieu. */}
+                    <b>{r.solution ?? r.answer}</b>
+                  </>
+                )}
                 {mineA ? <span className={`mk ${mineA.correct ? "ok" : "ko"}`}>{mineA.correct ? t("reviewRight") : t("reviewWrong")}</span> : null}
                 {r.spared ? <span className="rv-spared"> · {t("reviewSpared")}</span> : null}
               </p>
@@ -241,6 +246,12 @@ function Review({ report, meId, online, game, mode }: { report: GameReport; meId
                   const isMe = pl.playerId === meId;
                   const who = isMe ? (online ? t("reviewYou") : t("reviewYourAnswer")) : pl.name;
                   const me = isMe ? " me" : "";
+                  const bomb = r.bombs?.find((b) => b.defuserId === pl.playerId);
+                  const bombLine = bomb ? (
+                    <span className="rv-bomb">
+                      {bomb.text} = {bomb.answer}
+                    </span>
+                  ) : null;
                   if (!a)
                     return (
                       <span key={pl.playerId} className={`rv-a none${me}`}>
@@ -254,12 +265,14 @@ function Review({ report, meId, online, game, mode }: { report: GameReport; meId
                     return (
                       <span key={pl.playerId} className={`rv-a ko${me}`}>
                         <span className="nm">{who}</span>
+                        {bombLine}
                         <span className="val">{t("reviewTimeout")}</span>
                       </span>
                     );
                   return (
                     <span key={pl.playerId} className={`rv-a ${a.correct ? "ok" : "ko"}${me}`}>
                       <span className="nm">{who}</span>
+                      {bombLine}
                       <span className="val">{a.correct ? <>{given} ✓</> : <><s>{given}</s> ✗</>}</span>
                       <span className="t">{formatSeconds(a.timeMs, locale)}</span>
                       {r.scorers.includes(pl.playerId) ? <span className="pt">+1</span> : null}

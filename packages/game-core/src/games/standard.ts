@@ -9,6 +9,7 @@ export const standardGame: GameDefinition = {
   modes: ["battle-royale", "speed-race"],
   solo: true,
   minPlayers: 1,
+  turns: true,
   operationStats: true,
   timeRange: { min: MIN_TIME, max: MAX_TIME },
   defaults: (d) => ({ operations: [...LEVELS[d].defaultOperations], parentheses: LEVELS[d].defaultParentheses, timePerQuestion: LEVELS[d].defaultTime }),
