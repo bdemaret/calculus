@@ -40,4 +40,4 @@ Gestionnaire de paquets : **pnpm 10** uniquement (`corepack enable`). Node ≥ 2
 
 - Mode entraînement ciblé sur les points faibles
 - Classements publics
-- Nouveaux jeux (le bon compte, nombre manquant, la bombe) : en cours, voir `plans/nouveaux-jeux.md` (socle commun et nombre manquant faits)
+- Nouveaux jeux (le bon compte, nombre manquant, la bombe) : en cours, voir `plans/nouveaux-jeux.md` (socle commun, nombre manquant et bon compte faits)

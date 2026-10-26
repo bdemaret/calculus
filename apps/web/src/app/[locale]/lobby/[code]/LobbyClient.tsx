@@ -6,6 +6,7 @@ import { GAMES, MAX_PLAYERS, type GameSettings, type RoomSnapshot } from "@calcu
 import { Link, useRouter } from "@/i18n/navigation";
 import { CalcLine } from "@/components/CalcLine";
 import { Check } from "@/components/Check";
+import { ExpressionBuilder } from "@/components/ExpressionBuilder";
 import { GameReportView } from "@/components/GameReportView";
 import { InviteFriends } from "@/components/InviteFriends";
 import { Margin, MarginNote } from "@/components/Margin";
@@ -360,6 +361,19 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
   });
 
   const displayedText = question?.text ?? last?.text ?? "";
+  const displayedPuzzle = question?.puzzle ?? last?.puzzle;
+  // Mêmes réglages de saisie pour la ligne de calcul et pour le bon compte.
+  const lineProps = {
+    value: last && lastActive && turns && lastActive.playerId !== me ? shownAnswer(lastActive) : shownValue,
+    onChange: onType,
+    onSubmit: submit,
+    disabled: !canAnswer,
+    status: (ack ? (ack.correct ? "right" : "wrong") : myLast ? (myLast.correct ? "right" : "wrong") : lastActive ? (lastActive.correct ? "right" : "wrong") : null) as
+      | "right"
+      | "wrong"
+      | null,
+    shake: !!ack && !ack.correct,
+  };
   const countLeft = localDeadline ? Math.max(1, Math.ceil((localDeadline - now) / 1000)) : 3;
 
   return (
@@ -379,19 +393,10 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
             {countLeft}
           </span>
         </div>
+      ) : displayedText && displayedPuzzle?.game === "right-count" ? (
+        <ExpressionBuilder text={displayedText} puzzle={displayedPuzzle} {...lineProps} />
       ) : displayedText ? (
-        <CalcLine
-          text={displayedText}
-          puzzle={question?.puzzle ?? last?.puzzle}
-          value={last && lastActive && turns && lastActive.playerId !== me ? shownAnswer(lastActive) : shownValue}
-          onChange={onType}
-          onSubmit={submit}
-          disabled={!canAnswer}
-          status={
-            ack ? (ack.correct ? "right" : "wrong") : myLast ? (myLast.correct ? "right" : "wrong") : lastActive ? (lastActive.correct ? "right" : "wrong") : null
-          }
-          shake={!!ack && !ack.correct}
-        />
+        <CalcLine text={displayedText} puzzle={displayedPuzzle} {...lineProps} />
       ) : null}
       <p className="result-line" aria-live="polite">
         {ack && snap.phase === "question" ? (

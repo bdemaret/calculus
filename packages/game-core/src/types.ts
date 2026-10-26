@@ -4,7 +4,7 @@ export type OpTag = Operation | "paren" | "hole-num" | "hole-op";
 
 export type Difficulty = 1 | 2 | 3 | 4 | 5;
 /** Le jeu : ce qu'on résout (voir `games/`). */
-export type GameId = "standard" | "missing";
+export type GameId = "standard" | "missing" | "right-count";
 /** Nombre manquant : ce qui peut être caché dans l'égalité. */
 export type MissingKind = "number" | "operator" | "mixed";
 /** Le mode : comment on gagne (voir `modes.ts`), commun à tous les jeux. */
@@ -40,13 +40,21 @@ export type Puzzle =
       tokens: (number | "+" | "−" | "×" | "÷" | "(" | ")" | "?")[];
       /** Membre de droite. */
       result: number;
+    }
+  | {
+      game: "right-count";
+      /** Plaques, chacune utilisable au plus une fois. */
+      tiles: number[];
+      target: number;
+      /** Opérations permises. */
+      operations: Operation[];
     };
 
 export interface Question {
   index: number;
   /** Énoncé lisible, ex. « (7 + 5) × 3 ». */
   text: string;
-  /** Valeur attendue : le résultat (calcul standard, opérateur manquant) ou le nombre manquant. */
+  /** Valeur attendue : le résultat (calcul standard, opérateur manquant), le nombre manquant ou la cible (bon compte). */
   answer: number;
   /** Solution de référence lisible, montrée en fin de manche. */
   solution: string;

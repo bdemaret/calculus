@@ -2,7 +2,7 @@
 
 Site de calcul mental en solo ou jusqu'à 12 joueurs en ligne, 5 niveaux, comptes avec statistiques, en français et en anglais.
 
-Vocabulaire : un **jeu** (`GameId`) dit ce qu'on résout (`standard`, le calcul mental, et `missing`, le nombre manquant ; d'autres arrivent, voir `plans/nouveaux-jeux.md`), un **mode** (`GameModeId`) dit comment on gagne (battle royale, course de vitesse). Chaque jeu déclare ses modes ; l'Elo et le classement sont propres à jeu × mode × difficulté.
+Vocabulaire : un **jeu** (`GameId`) dit ce qu'on résout (`standard`, le calcul mental ; `right-count`, le bon compte ; `missing`, le nombre manquant ; la bombe arrive, voir `plans/nouveaux-jeux.md`), un **mode** (`GameModeId`) dit comment on gagne (battle royale, course de vitesse). Chaque jeu déclare ses modes ; l'Elo et le classement sont propres à jeu × mode × difficulté.
 
 Monorepo pnpm + Turborepo, TypeScript strict :
 - `apps/web` : Next.js 15 (App Router, next-intl, Better Auth, Tailwind 4)

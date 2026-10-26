@@ -1,29 +1,22 @@
 import { GAME_IDS, GAMES } from "./games";
-import { ALL_OPERATIONS, LEVELS } from "./levels";
+import { ALL_OPERATIONS } from "./levels";
+import { MAX_ROUNDS, MIN_ROUNDS } from "./limits";
 import type { Difficulty, GameId, GameModeId, GameSettings, MissingKind, Operation, TurnStyle } from "./types";
 
-export const MAX_PLAYERS = 12;
-export const MIN_ROUNDS = 5;
-export const MAX_ROUNDS = 50;
-export const MIN_TIME = 3;
-export const MAX_TIME = 60;
-/** Nombre maximal de manches en battle royale, pour garantir une fin. */
-export const BATTLE_ROYALE_ROUND_CAP = 100;
+export * from "./limits";
 
 export const GAME_MODES: GameModeId[] = ["battle-royale", "speed-race"];
 export const TURN_STYLES: TurnStyle[] = ["simultaneous", "turns"];
 export const MISSING_KINDS: MissingKind[] = ["number", "operator", "mixed"];
 
 export function defaultSettings(difficulty: Difficulty = 2, mode: GameModeId = "speed-race", game: GameId = "standard"): GameSettings {
-  const cfg = LEVELS[difficulty];
   return {
     game,
     difficulty,
     mode,
-    operations: [...cfg.defaultOperations],
-    parentheses: cfg.defaultParentheses,
+    // Opérations, parenthèses et temps dépendent du jeu et du niveau.
+    ...GAMES[game].defaults(difficulty),
     rounds: 15,
-    timePerQuestion: cfg.defaultTime,
     turnStyle: "simultaneous",
     // Aux premiers niveaux, on ne cache qu'un nombre ; ensuite, un nombre ou un opérateur.
     missingKind: difficulty <= 2 ? "number" : "mixed",
@@ -40,7 +33,8 @@ export function sanitizeSettings(input: unknown): GameSettings {
   const raw = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   const difficulty = ([1, 2, 3, 4, 5].includes(Number(raw.difficulty)) ? Number(raw.difficulty) : 2) as Difficulty;
   const game = GAME_IDS.includes(raw.game as GameId) ? (raw.game as GameId) : GAME_IDS[0]!;
-  const base = defaultSettings(difficulty);
+  const base = defaultSettings(difficulty, undefined, game);
+  const time = GAMES[game].timeRange;
   // Un mode que ce jeu ne propose pas est remplacé par son mode par défaut.
   const allowed = GAMES[game].modes;
   const wanted = GAME_MODES.includes(raw.mode as GameModeId) ? (raw.mode as GameModeId) : base.mode;
@@ -61,7 +55,7 @@ export function sanitizeSettings(input: unknown): GameSettings {
     rounds: typeof raw.rounds === "number" && Number.isFinite(raw.rounds) ? clamp(raw.rounds, MIN_ROUNDS, MAX_ROUNDS) : base.rounds,
     timePerQuestion:
       typeof raw.timePerQuestion === "number" && Number.isFinite(raw.timePerQuestion)
-        ? clamp(raw.timePerQuestion, MIN_TIME, MAX_TIME)
+        ? clamp(raw.timePerQuestion, time.min, time.max)
         : base.timePerQuestion,
   };
 }

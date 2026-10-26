@@ -1,6 +1,6 @@
 # Plan : trois nouveaux jeux
 
-> Document de travail (étapes 1 et 2 faites, voir § 5). À supprimer ou archiver une fois le chantier terminé ; la doc durable reste dans `agent_docs/`.
+> Document de travail (étapes 1 à 3 faites, voir § 5). À supprimer ou archiver une fois le chantier terminé ; la doc durable reste dans `agent_docs/`.
 
 ## 0. Vocabulaire
 
@@ -95,7 +95,7 @@ L'Elo et le classement deviennent propres à **jeu × mode × difficulté**.
 
 ## 3. Le bon compte (`right-count`)
 
-**Principe** : des plaques (nombres) et une cible ; trouver une expression qui donne exactement la cible en utilisant chaque plaque au plus une fois. Toujours possible.
+**Principe** : des plaques (nombres) et une cible ; trouver une expression qui donne exactement la cible en utilisant toutes les plaques, chacune exactement une fois. Toujours possible.
 
 - **Solveur** (`solver.ts`, pur) : programmation dynamique sur les sous-ensembles de plaques (≤ 6 → 64 masques) : pour chaque masque, l'ensemble des valeurs atteignables avec une expression témoin, intermédiaires entiers ≥ 0, uniquement les opérations autorisées. Mesurer le temps (objectif < 20 ms par manche côté serveur) ; plafonner les valeurs à `maxTarget` pour borner la mémoire.
 - **Génération garantie** : tirer les plaques (graine), calculer l'ensemble atteignable, puis choisir la cible **parmi les valeurs atteignables** dans la plage du niveau, en exigeant un nombre minimal de plaques dans la solution la plus courte (sinon cible trop facile). La solution témoin devient `solution`. Aucun cas « impossible » par construction ; filet de sécurité comme dans `generateWithRng`.
@@ -172,7 +172,7 @@ countdown → build (buildTime) → assign (2,5 s) → question (timePerQuestion
 1. ✅ **Socle** : `GameId`, `GameDefinition`, `standard` derrière l'abstraction, `expression.ts`, protocole `puzzle`, migration, classement par jeu, choix du jeu dans l'UI (un seul jeu proposé tant que les autres n'existent pas). Aucun changement visible de règles.
    Reporté aux étapes des jeux qui en ont besoin : réglages `buildTime` / `missingKind`, bornes de temps par jeu, `turnStyle` forcé, section « jeux » de l'accueil, refonte des tags du rapport.
 2. ✅ **Nombre manquant** + `OperatorPad`. Différence avec le § 2 : `answerKind` est une fonction du calcul (la forme de la réponse change en « l'un ou l'autre ») et l'unicité d'un nombre caché est vérifiée sur ±30 autour de lui, pas sur toute la plage.
-3. **Le bon compte** + solveur + `ExpressionBuilder`.
+3. ✅ **Le bon compte** + solveur + `ExpressionBuilder`. Règle précisée en cours de route : **toutes les plaques, chacune exactement une fois** (le § 3 disait « au plus une fois ») ; il n'y a donc plus de « plaques min. » par niveau, et une expression qui oublie une plaque est irrecevable.
 4. **La bombe** (réutilise `expression.ts` et `ExpressionBuilder`).
 5. Passe finale de documentation et de couverture e2e.
 

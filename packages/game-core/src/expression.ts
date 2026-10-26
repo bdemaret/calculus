@@ -147,3 +147,24 @@ export function fitsTiles(numbers: readonly number[], tiles: readonly number[]):
   }
   return true;
 }
+
+const SYMBOL_OF: Record<Operation, string> = { add: "+", sub: "−", mul: "×", div: "÷" };
+const PRECEDENCE: Record<Operation, number> = { add: 1, sub: 1, mul: 2, div: 2 };
+
+/**
+ * Écrit un arbre avec les symboles affichés et le minimum de parenthèses :
+ * « (75 − 3) × 6 − 20 ». Relire le texte avec `parseExpression` redonne la même valeur.
+ */
+export function formatExpression(node: ExprNode): string {
+  if (node.kind === "num") return String(node.value);
+  const p = PRECEDENCE[node.op];
+  const side = (child: ExprNode, right: boolean) => {
+    const text = formatExpression(child);
+    if (child.kind === "num") return text;
+    const cp = PRECEDENCE[child.op];
+    // À droite d'un − ou d'un ÷, une opération de même priorité doit rester groupée.
+    const needs = cp < p || (right && cp === p && (node.op === "sub" || node.op === "div"));
+    return needs ? `(${text})` : text;
+  };
+  return `${side(node.left, false)} ${SYMBOL_OF[node.op]} ${side(node.right, true)}`;
+}

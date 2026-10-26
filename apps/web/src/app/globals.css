@@ -248,6 +248,21 @@ p { margin: 0; }
 .keypad button:active { transform: translateY(3px); box-shadow: 0 0 0 transparent; }
 .keypad .ok-key { background: var(--ink); color: var(--on-ink); border-color: var(--ink-deep); box-shadow: 0 3px 0 var(--ink-deep); }
 
+/* Le bon compte : la cible, les plaques, la saisie et son total */
+.count-board { display: grid; gap: 18px; }
+.count-target { display: flex; align-items: baseline; gap: 16px; margin: 0; }
+.count-label { font-family: var(--font-hand); font-size: clamp(24px, 3vw, 32px); color: var(--margin-red); }
+.tiles { display: flex; flex-wrap: wrap; gap: 10px; }
+.tile { min-width: 64px; height: 56px; padding: 0 14px; border-radius: 12px; border: 2px solid var(--line-strong); background: var(--surface); color: var(--ink); font-size: 26px; font-weight: 750; font-variant-numeric: tabular-nums; cursor: pointer; box-shadow: 0 3px 0 var(--line-strong); touch-action: manipulation; }
+.tile[aria-pressed="true"] { opacity: .35; text-decoration: line-through; box-shadow: none; }
+.tile:disabled { cursor: default; }
+.tile:not(:disabled):active { transform: translateY(3px); box-shadow: none; }
+.expr-input { width: min(100%, 16ch); font-size: clamp(32px, 6vw, 56px); }
+.count-total { font-size: clamp(32px, 6vw, 56px); font-weight: 700; font-variant-numeric: tabular-nums; }
+.expr-pad { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 480px; }
+.expr-pad button { font-size: 24px; }
+.expr-pad button:disabled, .tile:disabled:not([aria-pressed="true"]) { opacity: .4; cursor: default; box-shadow: none; }
+
 .margin-note { display: block; font-size: 26px; font-weight: 700; line-height: 1; margin-bottom: 18px; animation: pop .28s ease-out; }
 .margin-note small { display: block; font-size: 17px; opacity: .85; }
 .grade { display: inline-grid; place-items: center; width: 60px; height: 60px; border: 2.5px solid var(--margin-red); border-radius: 50%; font-size: 30px; font-weight: 700; transform: rotate(-6deg); box-shadow: inset 0 0 0 3px var(--paper), inset 0 0 0 4.5px var(--margin-red); animation: stamp .4s cubic-bezier(.3, 1.6, .5, 1); }

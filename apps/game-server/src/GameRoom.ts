@@ -68,8 +68,8 @@ const answerSchema = z.union([
   z.object({ questionIndex: z.number().int().min(0), op: z.enum(ALL_OPERATIONS as [Operation, ...Operation[]]) }).strict(),
 ]);
 const readySchema = z.object({ ready: z.boolean() });
-/** Saisie visible : des chiffres, ou un seul opérateur (nombre manquant). */
-const typingSchema = z.object({ value: z.string().max(8).regex(/^(\d*|[+−×÷])$/) });
+/** Saisie visible : des chiffres, un opérateur (nombre manquant) ou une expression (bon compte). */
+const typingSchema = z.object({ value: z.string().max(MAX_EXPRESSION_LENGTH).regex(/^[0-9+\-−×÷*x/:() ]*$/) });
 const kickSchema = z.object({ playerId: z.string().max(100) });
 
 /**

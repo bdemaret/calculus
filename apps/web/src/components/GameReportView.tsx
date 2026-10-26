@@ -1,7 +1,7 @@
 "use client";
 import { useState, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { PLACEMENT_GAMES, type GameId, type GameModeId, type GameReport, type PlayerReport, type RatingChange, type RoundReview } from "@calculus/game-core";
+import { GAMES, PLACEMENT_GAMES, type GameId, type GameModeId, type GameReport, type PlayerReport, type RatingChange, type RoundReview } from "@calculus/game-core";
 import { revealSeparator } from "@/lib/answer";
 import { formatPercent, formatSeconds, formatSigned } from "@/lib/format";
 
@@ -128,21 +128,26 @@ export function GameReportView({ report: raw, meId, online, game, mode, timePerQ
               <p className="callout">{t("timelineLegend")}</p>
             </div>
             <div className="stack">
-              <h3>{t("byOpTitle")}</h3>
-              <div className="bars">
-                {mine.byOperation.length === 0 ? <p className="muted">{t("noAnswer")}</p> : null}
-                {mine.byOperation.map((o) => (
-                  <div className="bar-row" key={o.tag}>
-                    <span>{tOps(o.tag)}</span>
-                    <span className="bar">
-                      <i style={{ width: `${o.attempts ? (o.correct / o.attempts) * 100 : 0}%` }} />
-                    </span>
-                    <span className="pc">
-                      {o.correct}/{o.attempts}
-                    </span>
+              {/* Le bon compte n'a pas d'opération imposée : pas de statistiques par opération. */}
+              {GAMES[game].operationStats ? (
+                <>
+                  <h3>{t("byOpTitle")}</h3>
+                  <div className="bars">
+                    {mine.byOperation.length === 0 ? <p className="muted">{t("noAnswer")}</p> : null}
+                    {mine.byOperation.map((o) => (
+                      <div className="bar-row" key={o.tag}>
+                        <span>{tOps(o.tag)}</span>
+                        <span className="bar">
+                          <i style={{ width: `${o.attempts ? (o.correct / o.attempts) * 100 : 0}%` }} />
+                        </span>
+                        <span className="pc">
+                          {o.correct}/{o.attempts}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              ) : null}
               {report.hardest ? (
                 <p className="callout">
                   {t("hardest")}

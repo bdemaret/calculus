@@ -57,6 +57,11 @@
       "short": "Trouve le résultat.",
       "long": "Un calcul s’affiche, tu tapes son résultat. Du « 7 + 4 » au « 125 × 8 − 36 ÷ 4 » selon le niveau."
     },
+    "right-count": {
+      "name": "Le bon compte",
+      "short": "Toutes les plaques, pile sur la cible.",
+      "long": "Des plaques et une cible : combine toutes les plaques, chacune exactement une fois, avec les opérations et des parenthèses pour tomber pile sur la cible. Il y a toujours une solution."
+    },
     "missing": {
       "name": "Nombre manquant",
       "short": "Complète l’égalité.",
@@ -208,7 +213,12 @@
       "sub": "moins",
       "mul": "fois",
       "div": "divisé par"
-    }
+    },
+    "target": "Cible",
+    "tiles": "Plaques",
+    "openParen": "Parenthèse ouvrante",
+    "closeParen": "Parenthèse fermante",
+    "useAllTiles": "Bonne cible ! Il reste des plaques : utilise-les toutes."
   },
   "report": {
     "pageTitle": "Rapport de partie",

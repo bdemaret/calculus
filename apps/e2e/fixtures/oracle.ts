@@ -1,17 +1,31 @@
 import type { Locator, Page } from "@playwright/test";
-import { ALL_OPERATIONS, OPERATION_SYMBOL, evaluateText } from "@calculus/game-core";
+import { ALL_OPERATIONS, OPERATION_SYMBOL, evaluateText, solveTiles, type Operation } from "@calculus/game-core";
 
 /** Le calcul affiché sur la ligne de cahier. */
 export const calcText = (page: Page): Locator => page.getByTestId("calc-text");
 
+/** Plus grande valeur intermédiaire explorée au bon compte. */
+const MAX_INTERMEDIATE = 100_000;
 /** Plus grand nombre essayé pour un nombre manquant. */
 const MAX_MISSING = 25_000;
 
 /**
- * La bonne réponse d'un énoncé (« 7 + 4 » ou, pour un nombre manquant, « 23 + ? = 41 » / « 12 ? 4 = 3 »),
- * recalculée avec le même évaluateur que le jeu, et une réponse sûrement fausse.
+ * La bonne réponse d'un énoncé (« 7 + 4 » ou, pour un nombre manquant, « 23 + ? = 41 » / « 12 ? 4 = 3 »,
+ * ou au bon compte « 75 50 3 6 8 2 → 412 » avec ses opérations permises), recalculée avec le même
+ * code que le jeu, et une réponse sûrement fausse.
  */
-export function solveText(text: string): { answer: string; wrong: string } {
+export function solveText(text: string, operations: Operation[] = ALL_OPERATIONS): { answer: string; wrong: string } {
+  if (text.includes("→")) {
+    // Le bon compte : n'importe quelle solution convient ; la fausse utilise aussi toutes les plaques.
+    const [left, right] = text.split(" → ");
+    const tiles = left!.split(" ").map(Number);
+    const target = Number(right);
+    const solved = solveTiles(tiles, operations, MAX_INTERMEDIATE);
+    const answer = solved.solution(target);
+    const other = solved.values.find((v) => v !== target);
+    if (!answer || other === undefined) throw new Error(`Cible introuvable : « ${text} »`);
+    return { answer, wrong: solved.solution(other)! };
+  }
   if (!text.includes("?")) {
     const answer = evaluateText(text);
     if (!Number.isInteger(answer)) throw new Error(`Calcul illisible : « ${text} »`);
@@ -37,5 +51,6 @@ export function solveText(text: string): { answer: string; wrong: string } {
  */
 export async function expectedAnswer(page: Page): Promise<{ text: string; answer: string; wrong: string }> {
   const text = ((await calcText(page).getAttribute("data-calc")) ?? (await calcText(page).textContent()) ?? "").trim();
-  return { text, ...solveText(text) };
+  const ops = await calcText(page).getAttribute("data-ops");
+  return { text, ...solveText(text, ops ? (ops.split(" ") as Operation[]) : undefined) };
 }

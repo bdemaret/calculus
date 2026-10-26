@@ -86,6 +86,21 @@ test.describe("nombre manquant en ligne", () => {
   });
 });
 
+test.describe("le bon compte en ligne", () => {
+  test("battle royale : une expression fausse élimine, le dernier en vie gagne", async ({ host, bots }) => {
+    const alice = await host("Alice", { game: "right-count", mode: "battle-royale", operations: ["add", "sub", "mul"], difficulty: 2, timePerQuestion: 60 });
+    const code = await alice.create();
+    const [bot] = await bots(code, ["Bot"]);
+    bot!.play(() => "wrong");
+    await expect(alice.slot("Bot")).toBeVisible();
+    await alice.start();
+
+    await alice.play("right");
+    await expect(alice.verdict).toHaveText(t("report.first"), { timeout: 20_000 });
+    await expect(alice.rankingRow("Bot")).toBeVisible();
+  });
+});
+
 test.describe("battle royale", () => {
   test("une erreur élimine, le dernier en vie gagne", async ({ host, bots }) => {
     const alice = await host("Alice", { mode: "battle-royale" });

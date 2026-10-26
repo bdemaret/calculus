@@ -18,6 +18,7 @@ import {
 import { Link } from "@/i18n/navigation";
 import { CalcLine } from "@/components/CalcLine";
 import { Check } from "@/components/Check";
+import { ExpressionBuilder } from "@/components/ExpressionBuilder";
 import { GameReportView } from "@/components/GameReportView";
 import { Margin, MarginNote } from "@/components/Margin";
 import { SettingsForm } from "@/components/SettingsForm";
@@ -249,6 +250,17 @@ export function SoloGame({ loggedIn, playerName }: Props) {
             {count}
           </span>
         </div>
+      ) : shown && shown.question.puzzle.game === "right-count" ? (
+        <ExpressionBuilder
+          text={shown.question.text}
+          puzzle={shown.question.puzzle}
+          value={value}
+          onChange={setValue}
+          onSubmit={submit}
+          disabled={phase !== "question"}
+          status={feedback ? (feedback.correct ? "right" : "wrong") : null}
+          shake={feedback ? !feedback.correct : false}
+        />
       ) : shown ? (
         <CalcLine
           text={shown.question.text}

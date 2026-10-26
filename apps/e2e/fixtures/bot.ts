@@ -110,8 +110,9 @@ export class Bot {
     void this.answer(q, plan);
   }
 
-  private async answer(q: { index: number; text: string }, plan: BotPlan) {
-    const solved = solveText(q.text);
+  private async answer(q: NonNullable<RoomSnapshot["question"]>, plan: BotPlan) {
+    const rightCount = q.puzzle.game === "right-count" ? q.puzzle : null;
+    const solved = solveText(q.text, rightCount?.operations);
     const value = plan.move === "right" ? solved.answer : solved.wrong;
     if (plan.typeFirst) {
       for (let i = 1; i <= value.length; i++) {
@@ -121,7 +122,8 @@ export class Bot {
     }
     if (plan.delayMs) await sleep(plan.delayMs);
     const op = operatorOfSymbol(value);
-    this.room.send("answer", op ? { op, questionIndex: q.index } : { value: Number(value), questionIndex: q.index });
+    if (rightCount) this.room.send("answer", { expr: value, questionIndex: q.index });
+    else this.room.send("answer", op ? { op, questionIndex: q.index } : { value: Number(value), questionIndex: q.index });
   }
 }
 

@@ -145,6 +145,10 @@ export class GameEngine {
       return { accepted: false, reason: "invalid-value", roundCanClose: false };
     }
 
+    if (this.game.isValid && !this.game.isValid(round.question, answer)) {
+      return { accepted: false, reason: "invalid-value", roundCanClose: false };
+    }
+
     const timeMs = Math.min(round.timeLimitMs, Math.max(0, now - round.startedAt));
     const correct = this.game.check(round.question, answer);
     const value = "value" in answer ? answer.value : null;

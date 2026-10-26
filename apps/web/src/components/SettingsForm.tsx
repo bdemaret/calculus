@@ -7,9 +7,7 @@ import {
   GAMES,
   GAME_IDS,
   MAX_ROUNDS,
-  MAX_TIME,
   MIN_ROUNDS,
-  MIN_TIME,
   MISSING_KINDS,
   defaultSettings,
   randomSeed,
@@ -60,7 +58,7 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
         <div className="mode-cards">
           {/* En solo, seuls les jeux jouables seul sont proposés. */}
           {GAME_IDS.filter((g) => online || GAMES[g].solo).map((g) => (
-            <button key={g} type="button" className="mode-card" aria-pressed={s.game === g} onClick={() => set({ game: g })}>
+            <button key={g} type="button" className="mode-card" aria-pressed={s.game === g} onClick={() => set({ game: g, ...GAMES[g].defaults(s.difficulty) })}>
               <strong>{t(`games.${g}.name`)}</strong>
               <span>{t(`games.${g}.short`)}</span>
             </button>
@@ -90,7 +88,7 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
               type="button"
               aria-pressed={s.difficulty === d}
               onClick={() => {
-                const base = defaultSettings(d);
+                const base = defaultSettings(d, s.mode, s.game);
                 set({
                   difficulty: d,
                   operations: base.operations,
@@ -125,15 +123,18 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
               {OP_SYMBOL[op]}
             </button>
           ))}
-          <button
-            type="button"
-            aria-pressed={s.parentheses}
-            aria-label={t("ops.paren")}
-            title={t("ops.paren")}
-            onClick={() => set({ parentheses: !s.parentheses })}
-          >
-            ( )
-          </button>
+          {/* Au bon compte, les parenthèses sont toujours permises. */}
+          {s.game !== "right-count" ? (
+            <button
+              type="button"
+              aria-pressed={s.parentheses}
+              aria-label={t("ops.paren")}
+              title={t("ops.paren")}
+              onClick={() => set({ parentheses: !s.parentheses })}
+            >
+              ( )
+            </button>
+          ) : null}
         </div>
       </fieldset>
 
@@ -179,8 +180,8 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
           <input
             type="range"
             id={`${id}-time`}
-            min={MIN_TIME}
-            max={MAX_TIME}
+            min={GAMES[s.game].timeRange.min}
+            max={GAMES[s.game].timeRange.max}
             value={s.timePerQuestion}
             disabled={readOnly}
             onChange={(e) => set({ timePerQuestion: Number(e.target.value) })}

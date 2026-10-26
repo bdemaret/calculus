@@ -1,5 +1,7 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import {
+  GAMES,
+  GAME_IDS,
   INITIAL_RATING,
   PLACEMENT_GAMES,
   buildReport,
@@ -335,7 +337,7 @@ export interface DashboardData {
 }
 
 /** Jeux comptés dans les statistiques par opération du tableau de bord. */
-const OPERATION_STATS_GAMES: GameId[] = ["standard", "missing"];
+const OPERATION_STATS_GAMES: GameId[] = GAME_IDS.filter((g) => GAMES[g].operationStats);
 
 export async function getDashboard(userId: string): Promise<DashboardData> {
   const [s, recentRows, answers, ratingRows] = await Promise.all([

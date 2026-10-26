@@ -1,5 +1,6 @@
 import { OPERATION_SYMBOL, evaluateTokens, generateWithRng, renderTokens, tokenize, type CalcToken, type OpSymbol } from "../generator";
-import { ALL_OPERATIONS } from "../levels";
+import { ALL_OPERATIONS, LEVELS } from "../levels";
+import { MAX_TIME, MIN_TIME } from "../limits";
 import { createRng, pick, randInt } from "../rng";
 import type { Puzzle, Question } from "../types";
 import type { GameDefinition } from "./types";
@@ -57,6 +58,9 @@ export const missingGame: GameDefinition = {
   modes: ["battle-royale", "speed-race"],
   solo: true,
   minPlayers: 1,
+  operationStats: true,
+  timeRange: { min: MIN_TIME, max: MAX_TIME },
+  defaults: (d) => ({ operations: [...LEVELS[d].defaultOperations], parentheses: LEVELS[d].defaultParentheses, timePerQuestion: LEVELS[d].defaultTime }),
   answerKind: (q) => (q.puzzle.game === "missing" && q.puzzle.hole === "operator" ? "op" : "number"),
   generate(seed, index, settings) {
     const rng = createRng(`${seed}:${index}`);

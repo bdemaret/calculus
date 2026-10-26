@@ -31,6 +31,18 @@ async function type(page: Page, value: string, touch: boolean) {
     return;
   }
   const keypad = page.locator(".keypad");
+  // Le bon compte : on touche les plaques, les opérateurs et les parenthèses de la solution.
+  if (/\s/.test(value) || value.startsWith("(")) {
+    const tiles = page.getByRole("group", { name: t("game.tiles") });
+    for (const tok of value.match(/\d+|\S/g) ?? []) {
+      const op = ALL_OPERATIONS.find((o) => OPERATION_SYMBOL[o] === tok);
+      if (/^\d+$/.test(tok)) await tiles.getByRole("button", { name: tok, exact: true, pressed: false }).first().click();
+      else if (op) await keypad.getByRole("button", { name: t(`game.operator.${op}`), exact: true }).click();
+      else await keypad.getByRole("button", { name: t(tok === "(" ? "game.openParen" : "game.closeParen"), exact: true }).click();
+    }
+    await keypad.getByRole("button", { name: t("game.submit") }).click();
+    return;
+  }
   // Un opérateur manquant se choisit sur le pavé des opérateurs (boutons nommés « plus », « fois »…).
   const op = ALL_OPERATIONS.find((o) => OPERATION_SYMBOL[o] === value);
   if (op) await keypad.getByRole("button", { name: t(`game.operator.${op}`), exact: true }).click();

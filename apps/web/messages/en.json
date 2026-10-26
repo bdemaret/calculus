@@ -57,6 +57,11 @@
       "short": "Find the result.",
       "long": "A calculation appears, you type its result. From “7 + 4” to “125 × 8 − 36 ÷ 4” depending on the level."
     },
+    "right-count": {
+      "name": "Right on target",
+      "short": "Every tile, right on target.",
+      "long": "Some tiles and a target: combine all the tiles, each exactly once, with the operations and brackets to hit the target exactly. There is always a solution."
+    },
     "missing": {
       "name": "Missing number",
       "short": "Complete the equation.",
@@ -208,7 +213,12 @@
       "sub": "minus",
       "mul": "times",
       "div": "divided by"
-    }
+    },
+    "target": "Target",
+    "tiles": "Tiles",
+    "openParen": "Opening bracket",
+    "closeParen": "Closing bracket",
+    "useAllTiles": "On target! Some tiles are left: use them all."
   },
   "report": {
     "pageTitle": "Game report",
