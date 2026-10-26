@@ -15,7 +15,7 @@ export interface ChipPlayer {
 export function PlayerChips({ players, meId }: { players: ChipPlayer[]; meId: string | null }) {
   const t = useTranslations("game");
   return (
-    <div className="players">
+    <div className="players" data-testid="player-chips">
       {players.map((p) => (
         <span
           key={p.id}

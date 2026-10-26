@@ -56,7 +56,7 @@ export function CalcLine({ text, value, onChange, onSubmit, disabled, status, sh
         }}
       >
         <span className={`calc${text.length > 11 ? " long" : ""}${shake ? " shake" : ""}`}>
-          <span>{text}</span> <span className="eq">=</span>{" "}
+          <span data-testid="calc-text">{text}</span> <span className="eq">=</span>{" "}
           <input
             ref={input}
             className={`answer${status ? " " + status : ""}`}

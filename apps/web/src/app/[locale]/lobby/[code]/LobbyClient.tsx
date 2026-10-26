@@ -192,7 +192,7 @@ function WaitingRoom({ room, snap, me, isHost, onLeave }: { room: Room; snap: Ro
 
         <div className="stack" style={{ gap: 10 }}>
           <h3>{t("lobby.players", { count: snap.players.length, max: MAX_PLAYERS })}</h3>
-          <div className="slots">
+          <div className="slots" data-testid="lobby-slots">
             {Array.from({ length: MAX_PLAYERS }, (_, i) => {
               const p = snap.players[i];
               if (!p) return <div className="slot empty" key={`e${i}`}>{t("lobby.free")}</div>;

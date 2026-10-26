@@ -5,7 +5,9 @@
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
     "generate": "prisma generate",
     "migrate": "dotenv -e ../../.env -- prisma migrate dev",
@@ -19,6 +21,7 @@
     "@prisma/client": "^6.16.0"
   },
   "devDependencies": {
+    "@types/node": "^22.20.5",
     "dotenv-cli": "^8.0.0",
     "prisma": "^6.16.0",
     "typescript": "^5.9.0"

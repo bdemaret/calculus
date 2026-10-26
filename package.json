@@ -10,6 +10,8 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "test": "turbo run test",
+    "e2e": "pnpm --filter @calculus/e2e e2e",
+    "e2e:ui": "pnpm --filter @calculus/e2e e2e:ui",
     "typecheck": "turbo run typecheck",
     "db:up": "docker compose up -d db",
     "db:migrate": "pnpm --filter @calculus/db migrate",

@@ -48,7 +48,9 @@ export function GameReportView({ report, meId, online, mode, timePerQuestion, ac
   return (
     <section className="report">
       <div className="verdict">
-        <span className="big">{big}</span>
+        <span className="big" data-testid="report-verdict">
+          {big}
+        </span>
         <p className="lede" style={{ margin: 0 }}>
           {sub}
         </p>

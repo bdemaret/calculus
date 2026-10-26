@@ -7,6 +7,8 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const config: NextConfig = {
+  // Les tests e2e lancent leur propre serveur à côté de `pnpm dev` : dossier de build séparé.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   transpilePackages: ["@calculus/game-core", "@calculus/db"],
   serverExternalPackages: ["@prisma/client"],
 };
