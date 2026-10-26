@@ -56,6 +56,11 @@
       "name": "Mental math",
       "short": "Find the result.",
       "long": "A calculation appears, you type its result. From “7 + 4” to “125 × 8 − 36 ÷ 4” depending on the level."
+    },
+    "missing": {
+      "name": "Missing number",
+      "short": "Complete the equation.",
+      "long": "The result is given, but a number or an operator is missing from the calculation: “23 + ? = 41”, “12 ? 4 = 3”. Find what’s missing."
     }
   },
   "gamesPage": {
@@ -80,7 +85,9 @@
     "sub": "Subtractions",
     "mul": "Multiplications",
     "div": "Divisions",
-    "paren": "Parentheses"
+    "paren": "Parentheses",
+    "hole-num": "Missing numbers",
+    "hole-op": "Missing operators"
   },
   "settings": {
     "game": "Game",
@@ -88,6 +95,12 @@
     "difficulty": "Difficulty",
     "example": "for example: {calc}",
     "operations": "Calculations",
+    "missingKind": {
+      "label": "What’s missing",
+      "number": "A number",
+      "operator": "An operator",
+      "mixed": "Either"
+    },
     "rounds": "Number of calculations",
     "roundsPerPlayer": "Calculations per player",
     "time": "Time per calculation",
@@ -189,6 +202,12 @@
       "listeningTouch": "Listening… say your answer, then tap OK",
       "denied": "Microphone blocked: allow it in your browser",
       "unsupported": "Speech recognition isn’t available in this browser"
+    },
+    "operator": {
+      "add": "plus",
+      "sub": "minus",
+      "mul": "times",
+      "div": "divided by"
     }
   },
   "report": {

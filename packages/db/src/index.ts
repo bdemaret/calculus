@@ -335,7 +335,7 @@ export interface DashboardData {
 }
 
 /** Jeux comptés dans les statistiques par opération du tableau de bord. */
-const OPERATION_STATS_GAMES: GameId[] = ["standard"];
+const OPERATION_STATS_GAMES: GameId[] = ["standard", "missing"];
 
 export async function getDashboard(userId: string): Promise<DashboardData> {
   const [s, recentRows, answers, ratingRows] = await Promise.all([

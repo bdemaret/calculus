@@ -30,6 +30,7 @@ export async function signUp(api: APIRequestContext, user: TestUser = newUser())
 export async function presetSolo(page: Page, settings: Partial<GameSettings>) {
   const full: GameSettings = {
     game: "standard",
+    missingKind: "number",
     difficulty: 1,
     mode: "speed-race",
     operations: ["add"],

@@ -28,6 +28,11 @@ const OPERATOR_OF: Record<string, Operation> = {
   ":": "div",
 };
 
+/** Opération d'un symbole saisi (« + », « - », « x », « ÷ »…), null si ce n'en est pas un. */
+export function operatorOfSymbol(symbol: string): Operation | null {
+  return OPERATOR_OF[symbol] ?? null;
+}
+
 function tokenizeStrict(text: string): ExprToken[] | null {
   const out: ExprToken[] = [];
   let i = 0;

@@ -1,6 +1,7 @@
 import { Client, type Room } from "colyseus.js";
-import { evaluateText, type GameSettings, type RoomSnapshot } from "@calculus/game-core";
+import { operatorOfSymbol, type GameSettings, type RoomSnapshot } from "@calculus/game-core";
 import { GAME_HTTP_URL, WEB_URL } from "../env";
+import { solveText } from "./oracle";
 
 export type BotMove = "right" | "wrong" | "idle";
 
@@ -110,8 +111,8 @@ export class Bot {
   }
 
   private async answer(q: { index: number; text: string }, plan: BotPlan) {
-    const right = evaluateText(q.text);
-    const value = String(plan.move === "right" ? right : right + 1);
+    const solved = solveText(q.text);
+    const value = plan.move === "right" ? solved.answer : solved.wrong;
     if (plan.typeFirst) {
       for (let i = 1; i <= value.length; i++) {
         this.room.send("typing", { value: value.slice(0, i) });
@@ -119,7 +120,8 @@ export class Bot {
       }
     }
     if (plan.delayMs) await sleep(plan.delayMs);
-    this.room.send("answer", { value: Number(value), questionIndex: q.index });
+    const op = operatorOfSymbol(value);
+    this.room.send("answer", op ? { op, questionIndex: q.index } : { value: Number(value), questionIndex: q.index });
   }
 }
 

@@ -22,6 +22,7 @@ import { GameReportView } from "@/components/GameReportView";
 import { Margin, MarginNote } from "@/components/Margin";
 import { SettingsForm } from "@/components/SettingsForm";
 import { TimerBar } from "@/components/TimerBar";
+import { answerFromInput } from "@/lib/answer";
 import { formatSeconds } from "@/lib/format";
 import { celebrate, sfx } from "@/lib/sound";
 import { local } from "@/lib/storage";
@@ -115,8 +116,10 @@ export function SoloGame({ loggedIn, playerName }: Props) {
 
   function submit() {
     const e = engine.current;
-    if (!e || !e.currentRound || value === "") return;
-    const res = e.submit(ME, Number(value), Date.now());
+    if (!e || !e.currentRound) return;
+    const answer = answerFromInput(value, e.game.answerKind(e.currentRound.question));
+    if (!answer) return;
+    const res = e.submit(ME, answer, Date.now());
     if (!res.accepted) return;
     setFeedback({ correct: !!res.correct, timeMs: res.timeMs ?? 0 });
     if (res.correct) sfx.ok();
@@ -130,7 +133,7 @@ export function SoloGame({ loggedIn, playerName }: Props) {
     const rec = e.closeRound();
     if (!rec) return;
     const mine = rec.answers.find((a) => a.playerId === ME);
-    log.current.push({ answer: mine ? answerOfRecord(mine, e.game.answerKind) : null, timeMs: mine?.timeMs ?? rec.timeLimitMs });
+    log.current.push({ answer: mine ? answerOfRecord(mine, e.game.answerKind(rec.question)) : null, timeMs: mine?.timeMs ?? rec.timeLimitMs });
     if (!mine || mine.value === null) sfx.ko();
     setClosed(rec);
     setPhase("result");
@@ -199,6 +202,7 @@ export function SoloGame({ loggedIn, playerName }: Props) {
           report={report}
           meId={ME}
           online={false}
+          game={e.settings.game}
           mode={e.settings.mode}
           timePerQuestion={e.settings.timePerQuestion}
           actions={
@@ -248,6 +252,7 @@ export function SoloGame({ loggedIn, playerName }: Props) {
       ) : shown ? (
         <CalcLine
           text={shown.question.text}
+          puzzle={shown.question.puzzle}
           value={value}
           onChange={setValue}
           onSubmit={submit}
@@ -264,7 +269,7 @@ export function SoloGame({ loggedIn, playerName }: Props) {
             </span>
           ) : (
             <span className="ko">
-              {myClosed?.value == null ? t("game.timeUp") : t("game.no")} : {closed.question.answer}
+              {myClosed?.value == null && myClosed?.text == null ? t("game.timeUp") : t("game.no")} : {closed.question.solution}
             </span>
           )
         ) : null}

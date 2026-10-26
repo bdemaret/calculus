@@ -17,7 +17,7 @@ Prisma 6 + PostgreSQL. Schéma : `packages/db/prisma/schema.prisma`. Client et r
 | `prisma` | Client unique par processus (singleton global en dev) |
 | `saveGame(input)` | Enregistre partie + joueurs + questions + réponses + met à jour `UserStats` et `Rating` (transaction). Renvoie `{ id, ratings }` |
 | `loadGameReport(id)` | Reconstruit un `GameReport` (via `buildReport` de game-core) pour `/report/[id]`, avec l'Elo avant / après |
-| `getDashboard(userId)` | Stats globales, Elo par jeu, mode et difficulté, 30 dernières parties (avec jeu et variation d'Elo), stats par opération (3000 dernières réponses des jeux de `OPERATION_STATS_GAMES`) |
+| `getDashboard(userId)` | Stats globales, Elo par jeu, mode et difficulté, 30 dernières parties (avec jeu et variation d'Elo), stats par opération (3000 dernières réponses des jeux de `OPERATION_STATS_GAMES` : `standard`, `missing`) |
 | `getLeaderboard(board, viewerId?)` | `board` = `{ game, mode, difficulty }`. Top 100 (`LEADERBOARD_SIZE`) des joueurs sortis du placement, places ex æquo « 1, 2, 2, 4 », nombre de classés, place du joueur connecté (`me`) ou parties de placement jouées (`mePlacement`). Victoires = 1re place d'une partie classée (`GamePlayer.ratingGames` non null), comptées par `groupBy` pour les joueurs affichés |
 | `searchLeaderboard(board, query)` | Joueurs classés dont le pseudo contient `query` (insensible à la casse, 20 au plus), avec leur place même hors du top 100 |
 | `getFriends(userId)` | Amis (avec parties, victoires, réussite), demandes reçues et envoyées |

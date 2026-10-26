@@ -51,6 +51,8 @@ export interface RoundResultPayload {
   answer: number;
   /** Solution de référence lisible. */
   solution: string;
+  /** Données du calcul, pour le réafficher pendant le résultat de la manche. */
+  puzzle: Puzzle;
   answers: { playerId: string; value: number | null; text: string | null; correct: boolean; timeMs: number }[];
   eliminated: string[];
   scorers: string[];
@@ -69,7 +71,7 @@ export interface ClientMessages {
   "replay-same": Record<string, never>;
   "replay-new": Record<string, never>;
   kick: { playerId: string };
-  /** Une saisie en cours, montrée aux autres en mode « chacun son tour ». */
+  /** Une saisie en cours (chiffres, ou un symbole d'opérateur), montrée aux autres en mode « chacun son tour ». */
   typing: { value: string };
 }
 

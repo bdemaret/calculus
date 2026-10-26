@@ -8,6 +8,7 @@ import { answerRound, type Move } from "./answer";
 export function onlineSettings(settings: Partial<GameSettings> = {}): GameSettings {
   return {
     game: "standard",
+    missingKind: "number",
     difficulty: 1,
     mode: "speed-race",
     operations: ["add"],

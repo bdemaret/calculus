@@ -22,8 +22,8 @@ test("le calcul de l'accueil se joue", async ({ page }) => {
   await page.goto("/fr");
   const input = page.getByRole("textbox", { name: t("game.yourAnswer") });
   await expect(input).toBeEnabled();
-  const { answer } = await expectedAnswer(page);
-  await input.fill(String(answer + 1));
+  const { answer, wrong } = await expectedAnswer(page);
+  await input.fill(wrong);
   await input.press("Enter");
   await expect(page.getByText(t("home.wrong", { answer }))).toBeVisible();
 });

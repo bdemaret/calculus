@@ -7,7 +7,7 @@ export const standardGame: GameDefinition = {
   modes: ["battle-royale", "speed-race"],
   solo: true,
   minPlayers: 1,
-  answerKind: "number",
+  answerKind: () => "number",
   generate: (seed, index, settings) => generateQuestion(seed, index, settings),
   check: (question, answer) => "value" in answer && answer.value === question.answer,
 };

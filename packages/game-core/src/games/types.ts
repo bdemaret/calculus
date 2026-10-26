@@ -1,4 +1,5 @@
-import type { AnswerKind, AnswerRecord, GameId, GameModeId, GameSettings, Operation, PlayerAnswer, Question } from "../types";
+import { SYMBOL_OPERATION, type OpSymbol } from "../generator";
+import type { AnswerKind, AnswerRecord, GameId, GameModeId, GameSettings, PlayerAnswer, Question } from "../types";
 
 /**
  * Un jeu décrit ce qu'on résout ; le mode (`modes.ts`) décide comment on gagne.
@@ -12,11 +13,11 @@ export interface GameDefinition {
   solo: boolean;
   /** Joueurs nécessaires pour lancer une partie en ligne. */
   minPlayers: number;
-  /** Forme de la réponse attendue. */
-  answerKind: AnswerKind;
+  /** Forme de la réponse attendue pour ce calcul (elle peut changer d'un calcul à l'autre). */
+  answerKind(question: Question): AnswerKind;
   /** Calcul numéro `index` : ne dépend que de la graine, de l'index et des réglages (déterministe). */
   generate(seed: string, index: number, settings: GameSettings): Question;
-  /** La réponse est-elle juste ? Appelé seulement avec une réponse de la forme `answerKind`. */
+  /** La réponse est-elle juste ? Appelé seulement avec une réponse de la forme `answerKind(question)`. */
   check(question: Question, answer: PlayerAnswer): boolean;
 }
 
@@ -27,7 +28,9 @@ export interface GameDefinition {
 export function answerOfRecord(record: Pick<AnswerRecord, "value" | "text">, kind: AnswerKind): PlayerAnswer | null {
   if (record.value !== null) return { value: record.value };
   if (record.text === null) return null;
-  return kind === "op" ? { op: record.text as Operation } : { expr: record.text };
+  if (kind !== "op") return { expr: record.text };
+  const op = SYMBOL_OPERATION[record.text as OpSymbol];
+  return op ? { op } : null;
 }
 
 /** Forme d'une réponse, pour la comparer à `GameDefinition.answerKind`. */

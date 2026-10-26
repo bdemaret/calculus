@@ -50,7 +50,7 @@ export interface GameReport {
   review: RoundReview[];
   players: PlayerReport[];
   /** Le calcul le plus raté de la partie. */
-  hardest: { text: string; answer: number; misses: number } | null;
+  hardest: { text: string; answer: number; solution: string; misses: number } | null;
   fastest: { playerId: string; name: string; text: string; timeMs: number } | null;
 }
 
@@ -63,7 +63,7 @@ export function buildReport(standings: Standing[], history: RoundRecord[]): Game
   for (const r of history) {
     const misses = r.answers.filter((a) => !a.correct).length;
     if (misses > 0 && (!hardest || misses > hardest.misses)) {
-      hardest = { text: r.question.text, answer: r.question.answer, misses };
+      hardest = { text: r.question.text, answer: r.question.answer, solution: r.question.solution, misses };
     }
     for (const a of r.answers) {
       if (a.correct && (!fastest || a.timeMs < fastest.timeMs)) {

@@ -1,6 +1,6 @@
 # Plan : trois nouveaux jeux
 
-> Document de travail (étape 1 faite, voir § 5). À supprimer ou archiver une fois le chantier terminé ; la doc durable reste dans `agent_docs/`.
+> Document de travail (étapes 1 et 2 faites, voir § 5). À supprimer ou archiver une fois le chantier terminé ; la doc durable reste dans `agent_docs/`.
 
 ## 0. Vocabulaire
 
@@ -171,7 +171,7 @@ countdown → build (buildTime) → assign (2,5 s) → question (timePerQuestion
 
 1. ✅ **Socle** : `GameId`, `GameDefinition`, `standard` derrière l'abstraction, `expression.ts`, protocole `puzzle`, migration, classement par jeu, choix du jeu dans l'UI (un seul jeu proposé tant que les autres n'existent pas). Aucun changement visible de règles.
    Reporté aux étapes des jeux qui en ont besoin : réglages `buildTime` / `missingKind`, bornes de temps par jeu, `turnStyle` forcé, section « jeux » de l'accueil, refonte des tags du rapport.
-2. **Nombre manquant** + `OperatorPad`.
+2. ✅ **Nombre manquant** + `OperatorPad`. Différence avec le § 2 : `answerKind` est une fonction du calcul (la forme de la réponse change en « l'un ou l'autre ») et l'unicité d'un nombre caché est vérifiée sur ±30 autour de lui, pas sur toute la plage.
 3. **Le bon compte** + solveur + `ExpressionBuilder`.
 4. **La bombe** (réutilise `expression.ts` et `ExpressionBuilder`).
 5. Passe finale de documentation et de couverture e2e.

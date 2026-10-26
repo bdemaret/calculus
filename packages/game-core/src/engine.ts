@@ -1,4 +1,5 @@
 import { GAMES, answerKindOf, type GameDefinition } from "./games";
+import { OPERATION_SYMBOL } from "./generator";
 import { MODES, type GameModeRules } from "./modes";
 import { BATTLE_ROYALE_ROUND_CAP } from "./settings";
 import type { GameSettings, PlayerAnswer, PlayerInfo, PlayerState, RoundRecord, Standing } from "./types";
@@ -140,14 +141,15 @@ export class GameEngine {
       return { accepted: false, reason: "already-answered", roundCanClose: false };
     }
     if (!this.rules.canAnswer(this, p)) return { accepted: false, reason: "not-allowed", roundCanClose: false };
-    if (answerKindOf(answer) !== this.game.answerKind || ("value" in answer && !Number.isFinite(answer.value))) {
+    if (answerKindOf(answer) !== this.game.answerKind(round.question) || ("value" in answer && !Number.isFinite(answer.value))) {
       return { accepted: false, reason: "invalid-value", roundCanClose: false };
     }
 
     const timeMs = Math.min(round.timeLimitMs, Math.max(0, now - round.startedAt));
     const correct = this.game.check(round.question, answer);
     const value = "value" in answer ? answer.value : null;
-    const text = "expr" in answer ? answer.expr : "op" in answer ? answer.op : null;
+    // Un opérateur est gardé sous son symbole affiché (« ÷ »), comme dans les énoncés.
+    const text = "expr" in answer ? answer.expr : "op" in answer ? OPERATION_SYMBOL[answer.op] : null;
     round.answers.push({ playerId, value, text, correct, timeMs });
     p.answered += 1;
     if (correct) {

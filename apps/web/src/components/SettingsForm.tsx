@@ -10,8 +10,8 @@ import {
   MAX_TIME,
   MIN_ROUNDS,
   MIN_TIME,
+  MISSING_KINDS,
   defaultSettings,
-  generateQuestion,
   randomSeed,
   sanitizeSettings,
   type GameSettings,
@@ -39,8 +39,8 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
   const [example, setExample] = useState("");
   const opsKey = s.operations.join();
   useEffect(() => {
-    setExample(generateQuestion(randomSeed(), 0, { difficulty: s.difficulty, operations: s.operations, parentheses: s.parentheses }).text);
-  }, [s.difficulty, opsKey, s.parentheses]); // eslint-disable-line react-hooks/exhaustive-deps
+    setExample(GAMES[s.game].generate(randomSeed(), 0, s).text);
+  }, [s.game, s.difficulty, opsKey, s.parentheses, s.missingKind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleOp = (op: Operation) => {
     const ops = s.operations.includes(op) ? s.operations.filter((o) => o !== op) : [...s.operations, op];
@@ -91,7 +91,13 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
               aria-pressed={s.difficulty === d}
               onClick={() => {
                 const base = defaultSettings(d);
-                set({ difficulty: d, operations: base.operations, parentheses: base.parentheses, timePerQuestion: base.timePerQuestion });
+                set({
+                  difficulty: d,
+                  operations: base.operations,
+                  parentheses: base.parentheses,
+                  timePerQuestion: base.timePerQuestion,
+                  missingKind: base.missingKind,
+                });
               }}
             >
               {d} · {t(`levels.${d}`)}
@@ -130,6 +136,19 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
           </button>
         </div>
       </fieldset>
+
+      {s.game === "missing" ? (
+        <fieldset className="field" disabled={readOnly}>
+          <legend>{t("settings.missingKind.label")}</legend>
+          <div className="seg" role="group">
+            {MISSING_KINDS.map((k) => (
+              <button key={k} type="button" aria-pressed={s.missingKind === k} onClick={() => set({ missingKind: k })}>
+                {t(`settings.missingKind.${k}`)}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
 
       {s.mode === "speed-race" ? (
         <div className="field">

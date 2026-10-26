@@ -24,6 +24,7 @@ export default async function ReportPage({ params }: { params: Promise<{ locale:
       report={stored.report}
       meId={meId}
       online={!stored.solo}
+      game={stored.settings.game}
       mode={stored.settings.mode}
       timePerQuestion={stored.settings.timePerQuestion}
       ratings={stored.ratings}

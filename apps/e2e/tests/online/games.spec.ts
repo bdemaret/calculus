@@ -63,6 +63,29 @@ test.describe("course de vitesse", () => {
   });
 });
 
+test.describe("nombre manquant en ligne", () => {
+  test("course de vitesse : nombres et opérateurs manquants, le bot répond aussi", async ({ host, bots }) => {
+    const alice = await host("Alice", { game: "missing", missingKind: "mixed", difficulty: 3, operations: ["add", "sub", "mul", "div"], mode: "speed-race", rounds: 5, timePerQuestion: 20 });
+    const code = await alice.create();
+    const [bot] = await bots(code, ["Bot"]);
+    bot!.play(({ index }) => (index === 2 ? "right" : index === 3 ? "wrong" : "idle"));
+    await expect(alice.slot("Bot")).toBeVisible();
+    await expect(alice.page.getByRole("button", { name: new RegExp(t("games.missing.name")) })).toHaveAttribute("aria-pressed", "true");
+    await alice.start();
+
+    await alice.play("right");
+    await alice.play("right");
+    // Manche 3 : le bot trouve avant Alice.
+    await expect(alice.result).toContainText(t("game.pointFor", { names: "Bot" }), { timeout: 30_000 });
+    const missed = await alice.play("wrong");
+    await expect(alice.result).toContainText(`${t("game.no")} : ${missed.answer}`);
+    await alice.play("right");
+
+    await expect(alice.rankingRow("Alice")).toContainText(`3 ${t("report.pts")}`);
+    await expect(alice.rankingRow("Bot")).toContainText(`1 ${t("report.pts")}`);
+  });
+});
+
 test.describe("battle royale", () => {
   test("une erreur élimine, le dernier en vie gagne", async ({ host, bots }) => {
     const alice = await host("Alice", { mode: "battle-royale" });

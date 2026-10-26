@@ -56,6 +56,11 @@
       "name": "Calcul mental",
       "short": "Trouve le résultat.",
       "long": "Un calcul s’affiche, tu tapes son résultat. Du « 7 + 4 » au « 125 × 8 − 36 ÷ 4 » selon le niveau."
+    },
+    "missing": {
+      "name": "Nombre manquant",
+      "short": "Complète l’égalité.",
+      "long": "Le résultat est donné, mais il manque un nombre ou un opérateur dans le calcul : « 23 + ? = 41 », « 12 ? 4 = 3 ». Trouve ce qui manque."
     }
   },
   "gamesPage": {
@@ -80,7 +85,9 @@
     "sub": "Soustractions",
     "mul": "Multiplications",
     "div": "Divisions",
-    "paren": "Parenthèses"
+    "paren": "Parenthèses",
+    "hole-num": "Nombres manquants",
+    "hole-op": "Opérateurs manquants"
   },
   "settings": {
     "game": "Jeu",
@@ -88,6 +95,12 @@
     "difficulty": "Difficulté",
     "example": "par exemple : {calc}",
     "operations": "Calculs",
+    "missingKind": {
+      "label": "Ce qui manque",
+      "number": "Un nombre",
+      "operator": "Un opérateur",
+      "mixed": "L’un ou l’autre"
+    },
     "rounds": "Nombre de calculs",
     "roundsPerPlayer": "Nombre de calculs par joueur",
     "time": "Temps par calcul",
@@ -189,6 +202,12 @@
       "listeningTouch": "À l’écoute… dis ta réponse, puis OK",
       "denied": "Micro bloqué : autorise-le dans ton navigateur",
       "unsupported": "Reconnaissance vocale indisponible dans ce navigateur"
+    },
+    "operator": {
+      "add": "plus",
+      "sub": "moins",
+      "mul": "fois",
+      "div": "divisé par"
     }
   },
   "report": {

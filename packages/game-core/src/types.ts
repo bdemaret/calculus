@@ -1,10 +1,12 @@
 export type Operation = "add" | "sub" | "mul" | "div";
-/** Étiquette utilisée pour les statistiques : une opération ou la présence de parenthèses. */
-export type OpTag = Operation | "paren";
+/** Étiquette utilisée pour les statistiques : une opération, la présence de parenthèses ou le type de trou (nombre manquant). */
+export type OpTag = Operation | "paren" | "hole-num" | "hole-op";
 
 export type Difficulty = 1 | 2 | 3 | 4 | 5;
 /** Le jeu : ce qu'on résout (voir `games/`). */
-export type GameId = "standard";
+export type GameId = "standard" | "missing";
+/** Nombre manquant : ce qui peut être caché dans l'égalité. */
+export type MissingKind = "number" | "operator" | "mixed";
 /** Le mode : comment on gagne (voir `modes.ts`), commun à tous les jeux. */
 export type GameModeId = "battle-royale" | "speed-race";
 export type TurnStyle = "simultaneous" | "turns";
@@ -20,19 +22,31 @@ export interface GameSettings {
   /** Temps par calcul, en secondes. */
   timePerQuestion: number;
   turnStyle: TurnStyle;
+  /** Nombre manquant : un nombre, un opérateur, ou l'un ou l'autre. */
+  missingKind: MissingKind;
 }
 
 /**
  * Données propres au jeu, envoyées au navigateur pendant la manche : elles ne contiennent
  * jamais la solution. Le calcul standard n'a besoin que de `Question.text`.
  */
-export type Puzzle = { game: "standard" };
+export type Puzzle =
+  | { game: "standard" }
+  | {
+      game: "missing";
+      /** Ce qui manque : un nombre ou un opérateur. */
+      hole: "number" | "operator";
+      /** Membre de gauche, le trou noté « ? ». */
+      tokens: (number | "+" | "−" | "×" | "÷" | "(" | ")" | "?")[];
+      /** Membre de droite. */
+      result: number;
+    };
 
 export interface Question {
   index: number;
   /** Énoncé lisible, ex. « (7 + 5) × 3 ». */
   text: string;
-  /** Valeur attendue (le résultat du calcul standard). */
+  /** Valeur attendue : le résultat (calcul standard, opérateur manquant) ou le nombre manquant. */
   answer: number;
   /** Solution de référence lisible, montrée en fin de manche. */
   solution: string;

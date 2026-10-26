@@ -13,6 +13,7 @@ import { Avatar, PlayerChips, type ChipPlayer } from "@/components/PlayerChips";
 import { SettingsForm } from "@/components/SettingsForm";
 import { TimerBar } from "@/components/TimerBar";
 import { JoinError, joinLobby, leaveLobby, readRoom, subscribeRoom, type LobbyState } from "@/lib/colyseus";
+import { answerFromInput, answerKindOfPuzzle, revealSeparator, shownAnswer } from "@/lib/answer";
 import { formatSeconds } from "@/lib/format";
 import { cleanName } from "@/lib/names";
 import { celebrate, sfx } from "@/lib/sound";
@@ -322,9 +323,11 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
   }, [snap.phase, snap.roundIndex, snap.lastRound, me]);
 
   const submit = () => {
-    if (!canAnswer || !question || value === "") return;
+    if (!canAnswer || !question) return;
+    const answer = answerFromInput(value, answerKindOfPuzzle(question.puzzle));
+    if (!answer) return;
     setSentFor(question.index);
-    room.send("answer", { value: Number(value), questionIndex: question.index });
+    room.send("answer", { ...answer, questionIndex: question.index });
   };
 
   const onType = (v: string) => {
@@ -379,7 +382,8 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
       ) : displayedText ? (
         <CalcLine
           text={displayedText}
-          value={last && lastActive && turns && lastActive.playerId !== me ? String(lastActive.value ?? "") : shownValue}
+          puzzle={question?.puzzle ?? last?.puzzle}
+          value={last && lastActive && turns && lastActive.playerId !== me ? shownAnswer(lastActive) : shownValue}
           onChange={onType}
           onSubmit={submit}
           disabled={!canAnswer}
@@ -407,10 +411,12 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
               </span>
             ) : myLast ? (
               <span className="ko">
-                {myLast.value == null ? t("game.timeUp") : t("game.no")} : {last.answer}
+                {myLast.value == null && myLast.text == null ? t("game.timeUp") : t("game.no")} : {last.solution}
               </span>
             ) : (
-              <span>= {last.answer}</span>
+              <span>
+                {revealSeparator(snap.settings.game)} {last.solution}
+              </span>
             )}
             {last.scorers.length && me && !last.scorers.includes(me) ? (
               <span className="muted"> · {t("game.pointFor", { names: last.scorers.map(nameOf).join(", ") })}</span>
@@ -459,6 +465,7 @@ function Finished({ room, snap, me, isHost, onLeave }: { room: Room; snap: RoomS
         report={report}
         meId={me}
         online
+        game={snap.settings.game}
         mode={snap.settings.mode}
         timePerQuestion={snap.settings.timePerQuestion}
         ratings={snap.ratings}

@@ -68,7 +68,8 @@ const answerSchema = z.union([
   z.object({ questionIndex: z.number().int().min(0), op: z.enum(ALL_OPERATIONS as [Operation, ...Operation[]]) }).strict(),
 ]);
 const readySchema = z.object({ ready: z.boolean() });
-const typingSchema = z.object({ value: z.string().max(8).regex(/^\d*$/) });
+/** Saisie visible : des chiffres, ou un seul opérateur (nombre manquant). */
+const typingSchema = z.object({ value: z.string().max(8).regex(/^(\d*|[+−×÷])$/) });
 const kickSchema = z.object({ playerId: z.string().max(100) });
 
 /**
@@ -332,6 +333,7 @@ export class GameRoom extends Room {
       text: rec.question.text,
       answer: rec.question.answer,
       solution: rec.question.solution,
+      puzzle: rec.question.puzzle,
       answers: rec.answers,
       eliminated: rec.eliminated,
       scorers: rec.scorers,
