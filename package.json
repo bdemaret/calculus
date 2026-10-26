@@ -1,0 +1,22 @@
+{
+  "name": "calculus",
+  "private": true,
+  "packageManager": "pnpm@10.18.0",
+  "engines": {
+    "node": ">=20.9"
+  },
+  "scripts": {
+    "lancer": "node scripts/lancer.mjs",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "db:up": "docker compose up -d db",
+    "db:migrate": "pnpm --filter @calculus/db migrate",
+    "db:studio": "pnpm --filter @calculus/db studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.9.0"
+  }
+}

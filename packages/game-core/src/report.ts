@@ -1,0 +1,116 @@
+import type { OpTag, PlayerState, RoundRecord, Standing } from "./types";
+
+export interface OpStat {
+  tag: OpTag;
+  attempts: number;
+  correct: number;
+}
+
+export interface PlayerReport {
+  playerId: string;
+  name: string;
+  rank: number;
+  score: number;
+  alive: boolean;
+  eliminatedAt: number | null;
+  answered: number;
+  correct: number;
+  /** Précision, entre 0 et 1. */
+  accuracy: number;
+  /** Temps moyen des bonnes réponses, en ms (null si aucune). */
+  avgCorrectMs: number | null;
+  fastestMs: number | null;
+  bestStreak: number;
+  byOperation: OpStat[];
+  /** Temps de réponse par manche (null si pas de bonne réponse), pour le graphique de progression. */
+  timeline: { round: number; timeMs: number | null; correct: boolean }[];
+}
+
+/** Une manche telle qu'on la revoit après la partie : le calcul, la réponse et ce que chacun a répondu. */
+export interface RoundReview {
+  /** Numéro de manche, à partir de 1. */
+  round: number;
+  text: string;
+  answer: number;
+  /** Joueur dont c'était le tour (mode « chacun son tour »), sinon null. */
+  activePlayerId: string | null;
+  /** Réponses dans l'ordre d'arrivée ; value vaut null quand le temps s'est écoulé. */
+  answers: { playerId: string; value: number | null; correct: boolean; timeMs: number }[];
+  /** Joueurs ayant marqué le point sur cette manche. */
+  scorers: string[];
+  /** Vrai si tous les survivants se sont trompés et que personne n'est sorti. */
+  spared: boolean;
+}
+
+export interface GameReport {
+  rounds: number;
+  /** Le détail de chaque manche, pour revoir les calculs. */
+  review: RoundReview[];
+  players: PlayerReport[];
+  /** Le calcul le plus raté de la partie. */
+  hardest: { text: string; answer: number; misses: number } | null;
+  fastest: { playerId: string; name: string; text: string; timeMs: number } | null;
+}
+
+export function buildReport(standings: Standing[], history: RoundRecord[]): GameReport {
+  const players: PlayerReport[] = standings.map(({ rank, player }) => playerReport(rank, player, history));
+
+  let hardest: GameReport["hardest"] = null;
+  let fastest: GameReport["fastest"] = null;
+  const nameOf = (id: string) => standings.find((s) => s.player.id === id)?.player.name ?? "?";
+  for (const r of history) {
+    const misses = r.answers.filter((a) => !a.correct).length;
+    if (misses > 0 && (!hardest || misses > hardest.misses)) {
+      hardest = { text: r.question.text, answer: r.question.answer, misses };
+    }
+    for (const a of r.answers) {
+      if (a.correct && (!fastest || a.timeMs < fastest.timeMs)) {
+        fastest = { playerId: a.playerId, name: nameOf(a.playerId), text: r.question.text, timeMs: a.timeMs };
+      }
+    }
+  }
+  const review: RoundReview[] = history.map((r) => ({
+    round: r.index + 1,
+    text: r.question.text,
+    answer: r.question.answer,
+    activePlayerId: r.activePlayerId,
+    answers: r.answers.map((a) => ({ playerId: a.playerId, value: a.value, correct: a.correct, timeMs: a.timeMs })),
+    scorers: [...r.scorers],
+    spared: r.spared,
+  }));
+  return { rounds: history.length, review, players, hardest, fastest };
+}
+
+function playerReport(rank: number, player: PlayerState, history: RoundRecord[]): PlayerReport {
+  const ops = new Map<OpTag, OpStat>();
+  const timeline: PlayerReport["timeline"] = [];
+  let fastestMs: number | null = null;
+  for (const r of history) {
+    const a = r.answers.find((x) => x.playerId === player.id);
+    if (!a) continue;
+    timeline.push({ round: r.index + 1, timeMs: a.correct ? a.timeMs : null, correct: a.correct });
+    if (a.correct && (fastestMs === null || a.timeMs < fastestMs)) fastestMs = a.timeMs;
+    for (const tag of r.question.tags) {
+      const s = ops.get(tag) ?? { tag, attempts: 0, correct: 0 };
+      s.attempts += 1;
+      if (a.correct) s.correct += 1;
+      ops.set(tag, s);
+    }
+  }
+  return {
+    playerId: player.id,
+    name: player.name,
+    rank,
+    score: player.score,
+    alive: player.alive,
+    eliminatedAt: player.eliminatedAt,
+    answered: player.answered,
+    correct: player.correct,
+    accuracy: player.answered > 0 ? player.correct / player.answered : 0,
+    avgCorrectMs: player.correct > 0 ? Math.round(player.correctTimeMs / player.correct) : null,
+    fastestMs,
+    bestStreak: player.bestStreak,
+    byOperation: [...ops.values()],
+    timeline,
+  };
+}

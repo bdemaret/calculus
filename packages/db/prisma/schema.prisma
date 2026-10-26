@@ -1,0 +1,178 @@
+// Schéma de la base de données Calculus.
+// Après une modification : `pnpm db:migrate` (crée une migration et met à jour le client).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/* ---------- Comptes (tables gérées par Better Auth) ---------- */
+
+model User {
+  id            String    @id
+  /// Pseudo affiché en jeu
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  stats         UserStats?
+  gamesCreated  Game[]       @relation("GameHost")
+  gamePlayers   GamePlayer[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  /// Mot de passe chiffré (jamais en clair)
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@map("verification")
+}
+
+/* ---------- Parties ---------- */
+
+model Game {
+  id          String       @id @default(cuid())
+  /// Code du lobby (vide en solo)
+  code        String?
+  solo        Boolean      @default(false)
+  hostId      String?
+  host        User?        @relation("GameHost", fields: [hostId], references: [id], onDelete: SetNull)
+  /// Paramètres complets (difficulté, mode, opérations…) au format JSON
+  settings    Json
+  mode        String
+  difficulty  Int
+  turnStyle   String
+  seed        String
+  rounds      Int
+  startedAt   DateTime
+  endedAt     DateTime
+  players     GamePlayer[]
+  questions   Question[]
+
+  @@index([endedAt])
+  @@map("game")
+}
+
+model GamePlayer {
+  id           String   @id @default(cuid())
+  gameId       String
+  game         Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  /// Null pour un invité
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Identifiant utilisé pendant la partie (id du compte ou id invité)
+  playerKey    String
+  displayName  String
+  rank         Int
+  score        Int
+  alive        Boolean
+  eliminatedAt Int?
+  answered     Int
+  correct      Int
+  correctTimeMs Int
+  bestStreak   Int
+  answers      Answer[]
+
+  @@unique([gameId, playerKey])
+  @@index([userId])
+  @@map("game_player")
+}
+
+model Question {
+  id         String   @id @default(cuid())
+  gameId     String
+  game       Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  /// Ordre dans la partie (0, 1, 2…)
+  position   Int
+  text       String
+  answer     Int
+  /// Opérations présentes : add, sub, mul, div, paren
+  tags       String[]
+  difficulty Int
+  timeLimitMs Int
+  activePlayerKey String?
+  answers    Answer[]
+
+  @@unique([gameId, position])
+  @@map("question")
+}
+
+model Answer {
+  id         String     @id @default(cuid())
+  questionId String
+  question   Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  playerId   String
+  player     GamePlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  /// Null si le temps s'est écoulé
+  value      Int?
+  correct    Boolean
+  timeMs     Int
+
+  @@index([playerId])
+  @@map("answer")
+}
+
+/// Agrégats recalculés à chaque fin de partie, pour un dashboard rapide.
+model UserStats {
+  userId            String   @id
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gamesPlayed       Int      @default(0)
+  onlineGames       Int      @default(0)
+  soloGames         Int      @default(0)
+  wins              Int      @default(0)
+  answered          Int      @default(0)
+  correct           Int      @default(0)
+  totalCorrectTimeMs BigInt  @default(0)
+  bestStreak        Int      @default(0)
+  bestSurvival      Int      @default(0)
+  updatedAt         DateTime @updatedAt
+
+  @@map("user_stats")
+}

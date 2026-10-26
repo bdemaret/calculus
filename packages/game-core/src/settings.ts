@@ -1,0 +1,55 @@
+import { ALL_OPERATIONS, LEVELS } from "./levels";
+import type { Difficulty, GameModeId, GameSettings, Operation, TurnStyle } from "./types";
+
+export const MAX_PLAYERS = 12;
+export const MIN_ROUNDS = 5;
+export const MAX_ROUNDS = 50;
+export const MIN_TIME = 3;
+export const MAX_TIME = 60;
+/** Nombre maximal de manches en battle royale, pour garantir une fin. */
+export const BATTLE_ROYALE_ROUND_CAP = 100;
+
+export const GAME_MODES: GameModeId[] = ["battle-royale", "speed-race"];
+export const TURN_STYLES: TurnStyle[] = ["simultaneous", "turns"];
+
+export function defaultSettings(difficulty: Difficulty = 2, mode: GameModeId = "speed-race"): GameSettings {
+  const cfg = LEVELS[difficulty];
+  return {
+    difficulty,
+    mode,
+    operations: [...cfg.defaultOperations],
+    parentheses: cfg.defaultParentheses,
+    rounds: 15,
+    timePerQuestion: cfg.defaultTime,
+    turnStyle: "simultaneous",
+  };
+}
+
+const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(n)));
+
+/**
+ * Nettoie des paramètres venus de l'extérieur (formulaire, message réseau).
+ * Ne lève jamais d'erreur : toute valeur invalide est remplacée par une valeur sûre.
+ */
+export function sanitizeSettings(input: unknown): GameSettings {
+  const raw = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  const difficulty = ([1, 2, 3, 4, 5].includes(Number(raw.difficulty)) ? Number(raw.difficulty) : 2) as Difficulty;
+  const base = defaultSettings(difficulty);
+  const mode = GAME_MODES.includes(raw.mode as GameModeId) ? (raw.mode as GameModeId) : base.mode;
+  const turnStyle = TURN_STYLES.includes(raw.turnStyle as TurnStyle) ? (raw.turnStyle as TurnStyle) : base.turnStyle;
+  const ops = Array.isArray(raw.operations)
+    ? [...new Set(raw.operations.filter((o): o is Operation => ALL_OPERATIONS.includes(o as Operation)))]
+    : base.operations;
+  return {
+    difficulty,
+    mode,
+    turnStyle,
+    operations: ops.length > 0 ? ops : base.operations,
+    parentheses: typeof raw.parentheses === "boolean" ? raw.parentheses : base.parentheses,
+    rounds: typeof raw.rounds === "number" && Number.isFinite(raw.rounds) ? clamp(raw.rounds, MIN_ROUNDS, MAX_ROUNDS) : base.rounds,
+    timePerQuestion:
+      typeof raw.timePerQuestion === "number" && Number.isFinite(raw.timePerQuestion)
+        ? clamp(raw.timePerQuestion, MIN_TIME, MAX_TIME)
+        : base.timePerQuestion,
+  };
+}
