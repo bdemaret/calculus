@@ -353,6 +353,24 @@ a { color: var(--ink); }
 .games tr:last-child td { border-bottom: 0; }
 .scroll-x { overflow-x: auto; }
 .empty-state { display: grid; gap: 12px; max-width: 520px; }
+/* Amis */
+.friend-add { display: grid; gap: 8px; max-width: 560px; }
+.friend-add-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.friend-add-row .text-input { flex: 1 1 240px; width: auto; }
+.friend-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; max-width: 640px; }
+.friend-list li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: var(--surface); border: 1.5px solid var(--line-strong); }
+.friend-list .nm { font-weight: 650; overflow-wrap: anywhere; }
+.friend-list .sub { display: block; color: var(--muted); font-size: 14px; font-weight: 500; }
+.friend-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 12px; }
+.friend-list .btn { padding: 8px 14px; font-size: 15px; }
+.friend-list.compact li { padding: 6px 10px; }
+.friend-list.compact .host { margin-left: 0; }
+.invite-notices { display: grid; gap: 8px; margin-bottom: 16px; }
+.invite-notice { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 12px 16px; border-radius: var(--radius-card); border: 2px solid var(--ink); background: var(--surface); font-weight: 650; animation: pop .28s ease-out; }
+@media (max-width: 720px) {
+  .friend-list li { grid-template-columns: auto minmax(0, 1fr); }
+  .friend-actions { grid-column: 1 / -1; justify-content: flex-start; }
+}
 .recharts-text { fill: var(--muted); font-family: var(--font-display); font-size: 12px; }
 .recharts-cartesian-grid line { stroke: var(--line-strong); }
 .recharts-default-tooltip { background: var(--surface) !important; border: 1.5px solid var(--line-strong) !important; border-radius: 10px; color: var(--text); }

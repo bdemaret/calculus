@@ -28,6 +28,10 @@ model User {
   stats         UserStats?
   gamesCreated  Game[]       @relation("GameHost")
   gamePlayers   GamePlayer[]
+  friendsSent     Friendship[] @relation("FriendRequester")
+  friendsReceived Friendship[] @relation("FriendAddressee")
+  invitesSent     GameInvite[] @relation("InviteFrom")
+  invitesReceived GameInvite[] @relation("InviteTo")
 
   @@map("user")
 }
@@ -159,6 +163,49 @@ model Answer {
 
   @@index([playerId])
   @@map("answer")
+}
+
+/* ---------- Amis ---------- */
+
+enum FriendshipStatus {
+  pending
+  accepted
+}
+
+/// Une ligne par paire de joueurs : demande en attente, puis amitié acceptée (dans les deux sens).
+model Friendship {
+  id          String           @id @default(cuid())
+  /// Celui qui a envoyé la demande
+  requesterId String
+  requester   User             @relation("FriendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  /// Celui qui doit l'accepter
+  addresseeId String
+  addressee   User             @relation("FriendAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+  status      FriendshipStatus @default(pending)
+  createdAt   DateTime         @default(now())
+  acceptedAt  DateTime?
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId, status])
+  @@map("friendship")
+}
+
+/// Invitation à rejoindre un lobby, affichée à l'ami connecté jusqu'à expiration.
+model GameInvite {
+  id        String   @id @default(cuid())
+  fromId    String
+  from      User     @relation("InviteFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  toId      String
+  to        User     @relation("InviteTo", fields: [toId], references: [id], onDelete: Cascade)
+  /// Code du lobby à rejoindre
+  code      String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  /// Une seule invitation en cours par paire : une nouvelle remplace l'ancienne.
+  @@unique([fromId, toId])
+  @@index([toId, expiresAt])
+  @@map("game_invite")
 }
 
 /// Agrégats recalculés à chaque fin de partie, pour un dashboard rapide.

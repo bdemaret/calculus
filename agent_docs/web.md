@@ -10,10 +10,12 @@ src/
   i18n/                      routing (locales fr, en ; défaut fr), navigation, request
   app/
     [locale]/                Toutes les pages : accueil, modes, solo, online, lobby/[code],
-                             report/[id], dashboard, profile, login, signup, forgot/reset-password
+                             report/[id], dashboard, profile, friends, login, signup, forgot/reset-password
     api/auth/[...all]/       Handler Better Auth
     api/game-token/          Émet le JWT pour rejoindre un lobby
     api/solo-results/        Rejoue et enregistre une partie solo (connecté uniquement)
+    api/friends/             GET liste, POST demande ({ handle }), PATCH accepter / DELETE retirer ({ userId })
+    api/invites/             GET invitations reçues, POST inviter un ami ({ userId, code }), DELETE ignorer ({ id })
     globals.css              Thème « cahier Seyès » (variables CSS)
   components/                Composants partagés (Keypad, TimerBar, CalcLine, GameReportView…)
   lib/                       auth (serveur), auth-client, colyseus, email, sound, storage, names, format
@@ -31,6 +33,7 @@ messages/fr.json, en.json    Traductions
 - **Style** : réutiliser les variables CSS de `globals.css` (`--ink`, `--paper`, `--hl`, `--margin-red`, `--font-display`, `--font-hand`…) plutôt que des couleurs en dur. Polices : Bricolage Grotesque + Caveat (Google Fonts, chargées dans `[locale]/layout.tsx`).
 - **Thème clair / sombre** : les jetons sombres de `globals.css` s'appliquent selon `prefers-color-scheme`, ou via `data-theme="light|dark"` sur `<html>` quand le joueur choisit avec le bouton de `HeaderTools` (stocké dans `localStorage` `calculus:theme`, posé avant le rendu par `themeInitScript` de `@/lib/theme`). Toute nouvelle couleur doit être un jeton défini dans **les deux** blocs sombres (media query et `:root[data-theme="dark"]`), jamais une couleur en dur.
 - **Tactile** : `useTouch` décide entre saisie clavier et `Keypad` à l'écran.
+- **Amis** : page `/friends` (lien depuis le profil). « Inviter à une partie » crée un lobby avec les réglages en ligne habituels puis envoie l'invitation ; dans la salle d'attente, `InviteFriends` invite d'autres amis. `InviteNotice` (sous l'en-tête, connecté uniquement) interroge `/api/invites` toutes les 15 s et propose « Rejoindre ».
 - **Dictée** : réglage de compte `User.voiceInput` (champ additionnel Better Auth, modifiable depuis le profil). `CalcLine` lance `useVoiceInput` (Web Speech API, pas de Firefox) qui remplit la case via `parseSpokenNumber` ; la validation reste à la touche Entrée (ou OK sur le pavé).
 
 ## Lancer / vérifier
