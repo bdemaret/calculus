@@ -34,7 +34,7 @@ test("le serveur de jeu répond sur /health", async ({ request }) => {
   expect(await res.text()).toBe("ok");
 });
 
-for (const path of ["/fr", "/fr/modes", "/fr/solo", "/fr/online", "/fr/login", "/fr/signup", "/fr/forgot-password", "/en/solo"]) {
+for (const path of ["/fr", "/fr/modes", "/fr/solo", "/fr/online", "/fr/login", "/fr/signup", "/fr/forgot-password", "/fr/leaderboard/battle-royale", "/en/solo"]) {
   test(`aucune erreur JavaScript sur ${path}`, async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));

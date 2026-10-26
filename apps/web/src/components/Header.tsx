@@ -18,6 +18,9 @@ export async function Header() {
           <Link className="nav-link" href="/modes">
             {t("modes")}
           </Link>
+          <Link className="nav-link" href="/leaderboard">
+            {t("leaderboard")}
+          </Link>
           {session ? (
             <>
               <Link className="nav-link" href="/dashboard">

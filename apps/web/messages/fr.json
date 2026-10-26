@@ -12,6 +12,7 @@
     "main": "Navigation principale",
     "modes": "Modes",
     "dashboard": "Tableau de bord",
+    "leaderboard": "Classement",
     "login": "Se connecter",
     "themeDark": "Passer en thème sombre",
     "themeLight": "Passer en thème clair",
@@ -350,5 +351,28 @@
     "ratingsLegend": "Ton Elo s’affiche après {total} parties de placement, propre à chaque mode et à chaque difficulté. Seules les parties en ligne contre d’autres joueurs inscrits le font bouger.",
     "elo": "Elo",
     "ratingGames": "{count, plural, one {# partie} other {# parties}}"
+  },
+  "leaderboard": {
+    "title": "Classement",
+    "lede": "Les meilleurs Elo de chaque mode et de chaque difficulté. On y apparaît après ses {total} parties de placement.",
+    "modesLabel": "Modes de jeu",
+    "searchLabel": "Chercher un joueur",
+    "searchPlaceholder": "Pseudo",
+    "search": "Chercher",
+    "clear": "Effacer",
+    "resultsTitle": "Résultats pour « {query} »",
+    "noResults": "Aucun joueur classé ne porte ce pseudo dans ce mode et cette difficulté.",
+    "topTitle": "Top {count}",
+    "meTitle": "Ta place",
+    "meOf": "sur {total} joueurs classés",
+    "meShowInTop": "Voir dans le top 100",
+    "mePlacement": "Placement en cours : {played}/{total} parties. Tu apparaîtras ici après ta dernière partie de placement.",
+    "meUnranked": "Tu n’as pas encore joué de partie classée ici : il en faut {total} en ligne contre d’autres comptes pour entrer au classement.",
+    "winRate": "% victoires",
+    "empty": "Personne n’est encore classé ici : il faut {total} parties en ligne contre d’autres comptes pour y entrer.",
+    "rank": "Place",
+    "player": "Joueur",
+    "games": "Parties",
+    "you": "(toi)"
   }
 }

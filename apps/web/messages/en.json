@@ -12,6 +12,7 @@
     "main": "Main navigation",
     "modes": "Modes",
     "dashboard": "Dashboard",
+    "leaderboard": "Leaderboard",
     "login": "Log in",
     "themeDark": "Switch to dark theme",
     "themeLight": "Switch to light theme",
@@ -350,5 +351,28 @@
     "ratingsLegend": "Your Elo shows after {total} placement games, separately for each mode and difficulty. Only online games against other signed-up players change it.",
     "elo": "Elo",
     "ratingGames": "{count, plural, one {# game} other {# games}}"
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "lede": "The best Elo ratings in each mode and difficulty. Players appear after their {total} placement games.",
+    "modesLabel": "Game modes",
+    "searchLabel": "Find a player",
+    "searchPlaceholder": "Username",
+    "search": "Search",
+    "clear": "Clear",
+    "resultsTitle": "Results for “{query}”",
+    "noResults": "No ranked player has this username in this mode and difficulty.",
+    "topTitle": "Top {count}",
+    "meTitle": "Your rank",
+    "meOf": "out of {total} ranked players",
+    "meShowInTop": "Show in the top 100",
+    "mePlacement": "Placement in progress: {played}/{total} games. You’ll appear here after your last placement game.",
+    "meUnranked": "You haven’t played a ranked game here yet: it takes {total} online games against other accounts to get ranked.",
+    "winRate": "Win %",
+    "empty": "Nobody is ranked here yet: it takes {total} online games against other accounts to get in.",
+    "rank": "Rank",
+    "player": "Player",
+    "games": "Games",
+    "you": "(you)"
   }
 }

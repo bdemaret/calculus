@@ -10,7 +10,7 @@ src/
   i18n/                      routing (locales fr, en ; défaut fr), navigation, request
   app/
     [locale]/                Toutes les pages : accueil, modes, solo, online, lobby/[code],
-                             report/[id], dashboard, profile, friends, login, signup, forgot/reset-password
+                             report/[id], dashboard, leaderboard/[mode], profile, friends, login, signup, forgot/reset-password
     api/auth/[...all]/       Handler Better Auth
     api/game-token/          Émet le JWT pour rejoindre un lobby
     api/solo-results/        Rejoue et enregistre une partie solo (connecté uniquement)
@@ -38,6 +38,7 @@ messages/fr.json, en.json    Traductions
 - **Tactile** : `useTouch` décide entre saisie clavier et `Keypad` à l'écran.
 - **Amis** : page `/friends` (lien depuis le profil). « Inviter à une partie » crée un lobby avec les réglages en ligne habituels puis envoie l'invitation ; dans la salle d'attente, `InviteFriends` invite d'autres amis. `InviteNotice` (sous l'en-tête, connecté uniquement) interroge `/api/invites` toutes les 15 s et propose « Rejoindre ».
 - **Elo** : `GameReportView` reçoit `ratings` (snapshot du lobby ou `loadGameReport`) et affiche « Elo : avant → après » sous le verdict et dans le classement (`EloDelta`, vert / rouge), « placement n/5 » pendant le placement, puis l'Elo dévoilé à la 5e partie. Le tableau de bord montre la grille mode × difficulté et la variation de chaque partie récente.
+- **Classement** : `/leaderboard` redirige vers `/leaderboard/<premier mode>`. Sous-menu par mode (onglets `.board-tabs`), difficulté et recherche dans l'URL (`?difficulty=1..5&q=pseudo`, validés par Zod, valeur invalide → défaut). Colonnes : place, joueur, Elo, parties, % de victoires. Page publique ; connecté, un bloc « Ta place » montre toujours sa ligne (place sur le nombre de classés, lien vers sa ligne `#board-me` s'il est dans le top), ou l'avancée de son placement.
 - **Dictée** : réglage de compte `User.voiceInput` (champ additionnel Better Auth, modifiable depuis le profil). `CalcLine` lance `useVoiceInput` (Web Speech API, pas de Firefox) qui remplit la case via `parseSpokenNumber` ; la validation reste à la touche Entrée (ou OK sur le pavé).
 
 ## Lancer / vérifier

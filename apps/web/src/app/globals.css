@@ -380,3 +380,13 @@ a { color: var(--ink); }
 .recharts-text { fill: var(--muted); font-family: var(--font-display); font-size: 12px; }
 .recharts-cartesian-grid line { stroke: var(--line-strong); }
 .recharts-default-tooltip { background: var(--surface) !important; border: 1.5px solid var(--line-strong) !important; border-radius: 10px; color: var(--text); }
+/* Classement */
+.board-tabs { display: flex; flex-wrap: wrap; gap: 4px 22px; border-bottom: 1.5px solid var(--line-strong); }
+.board-tabs a { color: var(--muted); text-decoration: none; font-weight: 650; font-size: 18px; padding: 8px 0; margin-bottom: -1.5px; border-bottom: 3px solid transparent; }
+.board-tabs a:hover { color: var(--ink); }
+.board-tabs a[aria-current="page"] { color: var(--text); border-bottom-color: var(--ink); }
+.seg a { border: 1.5px solid var(--line-strong); background: var(--paper); border-radius: 10px; padding: 9px 14px; font-weight: 600; min-width: 48px; text-align: center; text-decoration: none; color: var(--text); }
+.seg a[aria-current="page"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+.board .rk { width: 64px; font-weight: 700; }
+.board tr.me td { background: color-mix(in srgb, var(--hl) 35%, var(--surface)); }
+.board tr#board-me { scroll-margin-top: 80px; }

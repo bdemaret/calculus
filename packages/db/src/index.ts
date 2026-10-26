@@ -396,6 +396,106 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
 }
 
 /* ------------------------------------------------------------------ */
+/* Classement : meilleurs Elo d'un mode et d'une difficulté             */
+/* ------------------------------------------------------------------ */
+
+/** Joueurs affichés dans le classement. */
+export const LEADERBOARD_SIZE = 100;
+/** Résultats au plus pour une recherche par pseudo. */
+export const LEADERBOARD_SEARCH_LIMIT = 20;
+
+export interface LeaderboardEntry {
+  /** Place dans le classement (ex æquo : même place, la suivante est sautée) */
+  rank: number;
+  userId: string;
+  name: string;
+  rating: number;
+  /** Parties classées dans ce mode et cette difficulté */
+  games: number;
+  /** Parties classées gagnées (1re place) dans ce mode et cette difficulté */
+  wins: number;
+}
+
+export interface LeaderboardData {
+  top: LeaderboardEntry[];
+  /** Joueurs classés (placement terminé) dans ce mode et cette difficulté */
+  total: number;
+  /** Place du joueur connecté, null s'il n'est pas encore classé */
+  me: LeaderboardEntry | null;
+  /** Parties de placement déjà jouées par le joueur connecté (null s'il est classé, ou sans aucune partie classée) */
+  mePlacement: number | null;
+}
+
+/** Seuls les joueurs sortis du placement sont classés : l'Elo caché ne quitte jamais la base. */
+const rankedWhere = (mode: string, difficulty: number) => ({ mode, difficulty, games: { gte: PLACEMENT_GAMES } });
+const leaderboardOrder = [{ rating: "desc" }, { games: "desc" }, { userId: "asc" }] satisfies Prisma.RatingOrderByWithRelationInput[];
+const leaderboardSelect = { userId: true, rating: true, games: true, user: { select: { name: true } } } as const;
+type LeaderboardRow = { userId: string; rating: number; games: number; user: { name: string } };
+
+/** Place d'un Elo : 1 + nombre de joueurs classés strictement au-dessus. */
+function rankOf(mode: string, difficulty: number, rating: number): Promise<number> {
+  return prisma.rating.count({ where: { ...rankedWhere(mode, difficulty), rating: { gt: rating } } }).then((n) => n + 1);
+}
+
+/** Victoires (1re place d'une partie classée) de chaque joueur dans ce mode et cette difficulté. */
+async function winsOf(mode: string, difficulty: number, userIds: string[]): Promise<Map<string, number>> {
+  if (!userIds.length) return new Map();
+  const rows = await prisma.gamePlayer.groupBy({
+    by: ["userId"],
+    where: { userId: { in: userIds }, rank: 1, ratingGames: { not: null }, game: { mode, difficulty } },
+    _count: { _all: true },
+  });
+  return new Map(rows.map((r) => [r.userId!, r._count._all]));
+}
+
+const toEntry = (r: LeaderboardRow, rank: number, wins: Map<string, number>): LeaderboardEntry => ({
+  rank,
+  userId: r.userId,
+  name: r.user.name,
+  rating: r.rating,
+  games: r.games,
+  wins: wins.get(r.userId) ?? 0,
+});
+
+/** Top 100 d'un mode et d'une difficulté, avec la place (ou l'avancée du placement) du joueur connecté. */
+export async function getLeaderboard(mode: string, difficulty: number, viewerId?: string): Promise<LeaderboardData> {
+  const [rows, total, mine] = await Promise.all([
+    prisma.rating.findMany({ where: rankedWhere(mode, difficulty), orderBy: leaderboardOrder, take: LEADERBOARD_SIZE, select: leaderboardSelect }),
+    prisma.rating.count({ where: rankedWhere(mode, difficulty) }),
+    viewerId ? prisma.rating.findUnique({ where: { userId_mode_difficulty: { userId: viewerId, mode, difficulty } }, select: leaderboardSelect }) : null,
+  ]);
+  const ranked = mine && mine.games >= PLACEMENT_GAMES ? mine : null;
+  const wins = await winsOf(mode, difficulty, [...rows.map((r) => r.userId), ...(ranked ? [ranked.userId] : [])]);
+
+  // Classement « 1, 2, 2, 4 » : un ex æquo prend la place du premier de son Elo.
+  const top: LeaderboardEntry[] = [];
+  rows.forEach((r, i) => {
+    const prev = top[i - 1];
+    top.push(toEntry(r, prev && prev.rating === r.rating ? prev.rank : i + 1, wins));
+  });
+
+  const me = ranked ? (top.find((e) => e.userId === ranked.userId) ?? toEntry(ranked, await rankOf(mode, difficulty, ranked.rating), wins)) : null;
+  return { top, total, me, mePlacement: mine && !ranked ? mine.games : null };
+}
+
+/** Joueurs classés dont le pseudo contient `query` (insensible à la casse), avec leur place, même hors du top 100. */
+export async function searchLeaderboard(mode: string, difficulty: number, query: string): Promise<LeaderboardEntry[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const rows = await prisma.rating.findMany({
+    where: { ...rankedWhere(mode, difficulty), user: { name: { contains: q, mode: "insensitive" } } },
+    orderBy: leaderboardOrder,
+    take: LEADERBOARD_SEARCH_LIMIT,
+    select: leaderboardSelect,
+  });
+  const [wins, ranks] = await Promise.all([
+    winsOf(mode, difficulty, rows.map((r) => r.userId)),
+    Promise.all(rows.map((r) => rankOf(mode, difficulty, r.rating))),
+  ]);
+  return rows.map((r, i) => toEntry(r, ranks[i]!, wins));
+}
+
+/* ------------------------------------------------------------------ */
 /* Amis                                                                 */
 /* ------------------------------------------------------------------ */
 
