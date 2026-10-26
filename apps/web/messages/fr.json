@@ -35,7 +35,8 @@
     "playSolo": "Jouer solo",
     "playSoloKicker": "5 niveaux",
     "playSoloSub": "Cinq niveaux, du « 7 + 4 » au « 125 × 8 − 36 ÷ 4 ».",
-    "modesTitle": "Deux modes de jeu"
+    "gamesTitle": "Quatre jeux, deux modes",
+    "allRules": "Toutes les règles"
   },
   "modes": {
     "battle-royale": {

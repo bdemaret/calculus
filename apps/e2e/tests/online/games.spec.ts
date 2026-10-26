@@ -86,6 +86,38 @@ test.describe("nombre manquant en ligne", () => {
   });
 });
 
+test.describe("nombre manquant, chacun son tour", () => {
+  test("l'opérateur tapé par le joueur actif s'affiche chez les autres", async ({ host, bots }) => {
+    const alice = await host("Alice", {
+      game: "missing",
+      missingKind: "operator",
+      difficulty: 3,
+      operations: ["add", "sub", "mul", "div"],
+      mode: "speed-race",
+      rounds: 5,
+      turnStyle: "turns",
+      timePerQuestion: 20,
+    });
+    const code = await alice.create();
+    const [bot] = await bots(code, ["Bot"]);
+    bot!.play(() => ({ move: "right", typeFirst: true, delayMs: 1_500 }));
+    await expect(alice.slot("Bot")).toBeVisible();
+    await alice.start();
+
+    const status = alice.page.locator("p.status");
+    for (let i = 0; i < 5; i++) {
+      await alice.play("right");
+      if (i === 0) {
+        await expect(status).toHaveText(t("game.turnOf", { name: "Bot" }), { timeout: 15_000 });
+        await expect(answerBox(alice.page)).toBeDisabled();
+        await expect(answerBox(alice.page)).toHaveValue(/^[+−×÷]$/);
+      }
+    }
+    await expect(alice.rankingRow("Alice")).toContainText(`5 ${t("report.pts")}`, { timeout: 20_000 });
+    await expect(alice.rankingRow("Bot")).toContainText(`5 ${t("report.pts")}`);
+  });
+});
+
 test.describe("le bon compte en ligne", () => {
   test("battle royale : une expression fausse élimine, le dernier en vie gagne", async ({ host, bots }) => {
     const alice = await host("Alice", { game: "right-count", mode: "battle-royale", operations: ["add", "sub", "mul"], difficulty: 2, timePerQuestion: 60 });

@@ -1,5 +1,5 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { GAME_MODES } from "@calculus/game-core";
+import { GAMES, GAME_IDS } from "@calculus/game-core";
 import { Link } from "@/i18n/navigation";
 import { HeroCalc } from "@/components/HeroCalc";
 
@@ -29,17 +29,23 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         </Link>
       </section>
       <section className="modes">
-        <h2>{t("home.modesTitle")}</h2>
+        <h2>{t("home.gamesTitle")}</h2>
         <div className="mode-list">
-          {GAME_MODES.map((m) => (
-            <div className="mode-item" key={m}>
+          {GAME_IDS.map((g) => (
+            <div className="mode-item" key={g}>
               <h3>
-                {t(`modes.${m}.name`)} <span className="tag">{t(`modes.${m}.short`)}</span>
+                {t(`games.${g}.name`)} <span className="tag">{t(`games.${g}.short`)}</span>
               </h3>
-              <p className="muted">{t(`modes.${m}.long`)}</p>
+              <p className="muted">{t(`games.${g}.long`)}</p>
+              <p className="muted">
+                {t("gamesPage.playableIn")} {GAMES[g].modes.map((m) => t(`modes.${m}.name`)).join(" · ")}
+              </p>
             </div>
           ))}
         </div>
+        <Link className="link-btn" href="/games">
+          {t("home.allRules")}
+        </Link>
       </section>
     </>
   );

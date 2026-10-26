@@ -22,7 +22,7 @@ Site édité depuis la France, gratuit, avec des comptes : **pas de CGV** (rien 
 - `Session` : **adresse IP et user-agent** (enregistrés par Better Auth), 30 jours.
 - `RateLimit` : la clé contient l'**adresse IP** (compteurs du rate limit, production seulement).
 - `Verification` : jetons de réinitialisation (1 h), liés à l'id du compte.
-- Parties : `Game`, `GamePlayer` (pseudo au moment de la partie, y compris celui des **invités**), `Question`, `Answer`, `Rating`, `UserStats`.
+- Parties : `Game`, `GamePlayer` (pseudo au moment de la partie, y compris celui des **invités**), `Question`, `Answer` (nombre, opérateur ou expression saisis), `Rating`, `UserStats`. À la bombe, le calcul construit par un joueur est montré à un autre joueur et gardé avec son auteur (`Question.authorPlayerKey`) : il ne contient que des chiffres, des opérateurs et des parenthèses (validé par `parseExpression`), donc aucun texte libre à modérer. Couvert par « calculs posés, réponses » dans `legal.privacy`.
 - Social : `Friendship` (recherche possible par e-mail, jamais affiché), `GameInvite` (10 min).
 - Navigateur seulement (`localStorage`) : thème, son, réglages.
 

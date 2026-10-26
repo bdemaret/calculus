@@ -1,6 +1,6 @@
 # Plan : trois nouveaux jeux
 
-> Document de travail (étapes 1 à 4 faites, reste la passe finale du § 5). À supprimer ou archiver une fois le chantier terminé ; la doc durable reste dans `agent_docs/`.
+> Document de travail : chantier terminé (§ 5). La doc durable est dans `agent_docs/` ; ce fichier peut être supprimé ou archivé.
 
 ## 0. Vocabulaire
 
@@ -174,7 +174,7 @@ countdown → build (buildTime) → assign (2,5 s) → question (timePerQuestion
 2. ✅ **Nombre manquant** + `OperatorPad`. Différence avec le § 2 : `answerKind` est une fonction du calcul (la forme de la réponse change en « l'un ou l'autre ») et l'unicité d'un nombre caché est vérifiée sur ±30 autour de lui, pas sur toute la plage.
 3. ✅ **Le bon compte** + solveur + `ExpressionBuilder`. Règle précisée en cours de route : **toutes les plaques, chacune exactement une fois** (le § 3 disait « au plus une fois ») ; il n'y a donc plus de « plaques min. » par niveau, et une expression qui oublie une plaque est irrecevable.
 4. ✅ **La bombe** (réutilise `expression.ts` et la saisie à plaques `TileExpression`). Règle des plaques gardée comme au § 4 : au moins `minTiles`, chacune au plus une fois (pas toutes, contrairement au bon compte). Bombe de secours sans point pour l'auteur ; le statut « secours » n'est pas gardé en base.
-5. Passe finale de documentation et de couverture e2e.
+5. ✅ Passe finale de documentation et de couverture e2e (README, `legal.md`, accueil et règles par jeu dans les réglages, tests des redirections, du classement par jeu, des protections de la bombe).
 
 À chaque étape : `pnpm typecheck`, `pnpm test`, `pnpm e2e`, vérification navigateur fr/en/mobile, migration committée.
 

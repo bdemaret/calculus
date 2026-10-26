@@ -124,4 +124,19 @@ test.describe("classement", () => {
     await expect(page.getByText(t("leaderboard.noResults"))).toBeVisible();
     await expect(page.getByText(t("leaderboard.mePlacement", { played: 4, total: 5 }))).toBeVisible();
   });
+
+  test("un onglet par jeu, avec seulement les modes de ce jeu", async ({ page }) => {
+    await page.goto(`/fr/leaderboard/standard/speed-race?difficulty=${DIFFICULTY}`);
+    const games = page.getByRole("navigation", { name: t("leaderboard.gamesLabel") });
+    const modes = page.getByRole("navigation", { name: t("leaderboard.modesLabel") });
+    // Le mode est gardé quand le jeu le propose, la difficulté aussi.
+    await games.getByRole("link", { name: t("games.right-count.name") }).click();
+    await expect(page).toHaveURL(new RegExp(`/fr/leaderboard/right-count/speed-race\\?difficulty=${DIFFICULTY}$`));
+    await expect(games.getByRole("link", { name: t("games.right-count.name") })).toHaveAttribute("aria-current", "page");
+    // La bombe ne se joue qu'en battle royale.
+    await games.getByRole("link", { name: t("games.bomb.name") }).click();
+    await expect(page).toHaveURL(new RegExp(`/fr/leaderboard/bomb/battle-royale\\?difficulty=${DIFFICULTY}$`));
+    await expect(modes.getByRole("link")).toHaveCount(1);
+    await expect(page.getByText(t("leaderboard.empty", { total: 5 }))).toBeVisible();
+  });
 });

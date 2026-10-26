@@ -46,6 +46,8 @@ test.describe("nombre manquant en solo", () => {
     await solo.goto();
     const kind = page.getByRole("group", { name: t("settings.missingKind.label") });
     await expect(kind).toHaveCount(0);
+    // La bombe se joue en ligne seulement : pas proposée en solo.
+    await expect(page.getByRole("button", { name: new RegExp(t("games.bomb.name")) })).toHaveCount(0);
     await page.getByRole("button", { name: new RegExp(t("games.missing.name")) }).click();
     await page.getByRole("button", { name: t("settings.missingKind.operator"), exact: true }).click();
     await expect(page.getByText(new RegExp(` \\? .* = \\d+$`))).toBeVisible();

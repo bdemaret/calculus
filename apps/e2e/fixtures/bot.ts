@@ -30,6 +30,8 @@ export class Bot {
   playerId: string | null = null;
   /** Tous les instantanés reçus, dans l'ordre. */
   readonly snapshots: RoomSnapshot[] = [];
+  /** Réponses du serveur aux réponses et aux bombes (`answer-ack`, `answer-refused`, `bomb-ack`), dans l'ordre. */
+  readonly acks: { type: string; message: unknown }[] = [];
   policy: BotPolicy = () => "idle";
   bombPolicy: BombPolicy = (puzzle, index) => fallbackBomb(puzzle, `bot-${index}`).expr;
   private answered = new Set<string>();
@@ -41,7 +43,8 @@ export class Bot {
   ) {
     room.onMessage("welcome", (m: { playerId: string }) => (this.playerId = m.playerId));
     room.onMessage("snapshot", (s: RoomSnapshot) => this.onSnapshot(s));
-    for (const type of ["answer-ack", "answer-refused", "bomb-ack", "typing", "error"]) room.onMessage(type, () => {});
+    for (const type of ["answer-ack", "answer-refused", "bomb-ack"]) room.onMessage(type, (message: unknown) => this.acks.push({ type, message }));
+    for (const type of ["typing", "error"]) room.onMessage(type, () => {});
     room.send("hello", {});
   }
 
