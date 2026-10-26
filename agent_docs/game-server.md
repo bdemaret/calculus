@@ -6,6 +6,7 @@ Serveur Colyseus 0.16 (`@colyseus/core` + `ws-transport`), lancé avec `tsx` (pa
 | --- | --- |
 | `src/index.ts` | Serveur HTTP + définition de la salle `"game"` |
 | `src/GameRoom.ts` | Une salle = un lobby persistant d'une partie à l'autre |
+| `src/PresenceRoom.ts` | Salle `"presence"` (`PRESENCE_ROOM`) : chaque onglet du site la rejoint sans jeton ; diffuse `online` { count } (total de toutes les salles de présence) au plus toutes les 2 s, n'accepte aucun message |
 | `src/token.ts` | `verifyGameToken` : vérifie le JWT émis par le site |
 | `src/persist.ts` | `persistGame` → `saveGame` de `@calculus/db` (erreurs loguées, jamais propagées), renvoie les changements d'Elo |
 

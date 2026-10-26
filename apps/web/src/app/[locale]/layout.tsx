@@ -6,6 +6,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { OnlineCount } from "@/components/OnlineCount";
 import { themeInitScript } from "@/lib/theme";
 import "../globals.css";
 
@@ -40,7 +41,10 @@ export default async function LocaleLayout({ children, params }: { children: Rea
       <body>
         <NextIntlClientProvider>
           <div className="sheet">
-            <aside className="margin" id="margin-notes" aria-live="polite" />
+            <aside className="margin">
+              <div id="margin-notes" aria-live="polite" />
+              <OnlineCount />
+            </aside>
             <div className="content">
               <Header />
               <main>{children}</main>

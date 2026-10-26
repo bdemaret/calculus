@@ -4,7 +4,9 @@
   },
   "common": {
     "back": "Retour",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "online": "{count, plural, one {joueur connecté} other {joueurs connectés}}",
+    "onlineFull": "{count, plural, one {# joueur connecté} other {# joueurs connectés}}"
   },
   "nav": {
     "home": "Retour à l’accueil",

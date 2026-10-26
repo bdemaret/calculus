@@ -1,7 +1,9 @@
 import { createServer } from "node:http";
 import { Server } from "@colyseus/core";
 import { WebSocketTransport } from "@colyseus/ws-transport";
+import { PRESENCE_ROOM } from "@calculus/game-core";
 import { GameRoom } from "./GameRoom";
+import { PresenceRoom } from "./PresenceRoom";
 
 // GAME_SERVER_PORT en local ; PORT est fourni automatiquement par les hébergeurs (Railway…).
 const port = Number(process.env.GAME_SERVER_PORT ?? process.env.PORT ?? 2567);
@@ -27,6 +29,7 @@ const gameServer = new Server({
 });
 
 gameServer.define("game", GameRoom);
+gameServer.define(PRESENCE_ROOM, PresenceRoom);
 
 gameServer.listen(port).then(() => {
   console.log(`Serveur de jeu prêt sur le port ${port}`);

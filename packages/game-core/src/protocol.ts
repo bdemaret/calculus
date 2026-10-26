@@ -79,7 +79,12 @@ export interface ServerMessages {
   "answer-refused": { reason: string };
   typing: { playerId: string; value: string };
   error: { code: string };
+  /** Salle de présence : nombre de visiteurs connectés au site. */
+  online: { count: number };
 }
+
+/** Nom de la salle de présence, rejointe par chaque onglet ouvert sur le site. */
+export const PRESENCE_ROOM = "presence";
 
 /** Contenu du jeton remis par le site pour entrer dans un lobby. */
 export interface GameTokenPayload {

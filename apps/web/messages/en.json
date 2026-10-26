@@ -4,7 +4,9 @@
   },
   "common": {
     "back": "Back",
-    "retry": "Try again"
+    "retry": "Try again",
+    "online": "{count, plural, one {player online} other {players online}}",
+    "onlineFull": "{count, plural, one {# player online} other {# players online}}"
   },
   "nav": {
     "home": "Back to home",
