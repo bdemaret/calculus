@@ -94,6 +94,23 @@ export interface GameTokenPayload {
   guest: boolean;
 }
 
+/** Partie en cours vue par le panel administrateur (route `/admin/rooms` du serveur de jeu). */
+export interface AdminRoomSummary {
+  code: string;
+  phase: RoomPhase;
+  mode: GameSettings["mode"];
+  difficulty: GameSettings["difficulty"];
+  /** Ouverture du lobby et début de la partie en cours (ms epoch, null au lobby). */
+  createdAt: number;
+  startedAt: number | null;
+  gameNumber: number;
+  roundIndex: number;
+  totalRounds: number | null;
+  /** Calcul affiché (jamais la réponse). */
+  question: string | null;
+  players: { id: string; name: string; isHost: boolean; isGuest: boolean; connected: boolean; score: number; alive: boolean }[];
+}
+
 /** Codes d'erreur renvoyés à la connexion, traduits côté site. */
 export const JOIN_ERRORS = {
   badToken: 4401,

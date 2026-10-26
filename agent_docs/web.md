@@ -11,15 +11,19 @@ src/
   app/
     [locale]/                Toutes les pages : accueil, modes, solo, online, lobby/[code],
                              report/[id], dashboard, leaderboard/[mode], player/[id], profile, friends, login, signup, forgot/reset-password,
-                             legal, privacy, terms (textes légaux)
+                             legal, privacy, terms (textes légaux), feedback (retours),
+                             admin/ (panel administrateur : vue d'ensemble, games, feedback, users/[id])
     api/auth/[...all]/       Handler Better Auth
     api/game-token/          Émet le JWT pour rejoindre un lobby
     api/solo-results/        Rejoue et enregistre une partie solo (connecté uniquement)
     api/friends/             GET liste, POST demande ({ handle } ou { userId }), PATCH accepter / DELETE retirer ({ userId })
     api/invites/             GET invitations reçues, POST inviter un ami ({ userId, code }), DELETE ignorer ({ id })
+    api/feedback/            POST un retour ({ kind, message, contact?, page?, locale }), connecté ou invité
+    api/admin/rooms/         GET parties en cours (relaie le serveur de jeu), admin seulement
+    api/admin/feedback/      PATCH traité / rouvert ({ id, resolved }), DELETE ({ id }), admin seulement
     globals.css              Thème « cahier Seyès » (variables CSS)
   components/                Composants partagés (Keypad, TimerBar, CalcLine, GameReportView…)
-  lib/                       auth (serveur), auth-client, colyseus, email, sound, storage, names, format
+  lib/                       auth (serveur), auth-client, admin (serveur), colyseus, email, sound, storage, names, format
 messages/fr.json, en.json    Traductions
 ```
 
@@ -44,6 +48,9 @@ messages/fr.json, en.json    Traductions
 - **Profil public** : `/player/[id]`, ouvert en cliquant un pseudo du classement. Ne montre que ce que le classement rend déjà public (pseudo, et pour chaque mode × difficulté classé : place, Elo, parties, % de victoires), via `getPlayerProfile`. Bouton d'ami selon le lien (`FriendshipState`) : ajouter (`POST { userId }`), annuler, accepter / refuser, ou « vous êtes amis » ; visiteur → lien de connexion.
 - **Textes légaux** : `/legal` (mentions légales), `/privacy` (confidentialité), `/terms` (CGU), rendus par `LegalPage` depuis `legal.<doc>.sections` des messages (`t.raw` : paragraphes, ou tableaux = listes ; marqueurs `{publisher}` / `{contact}` remplis depuis `@/lib/legal`). Liens dans `Footer` et case obligatoire à l'inscription. Changer `LEGAL_UPDATED` à chaque modification de fond, et mettre la politique de confidentialité à jour à chaque nouvelle donnée collectée ou nouveau prestataire.
 - **Suppression de compte** : `user.deleteUser` de Better Auth (mot de passe demandé dans le profil). `beforeDelete` appelle `eraseUserGames` (db) : parties solo supprimées, pseudo vidé dans les parties en ligne (`GameReportView` affiche alors `report.deletedPlayer`) ; le reste part en cascade.
+- **Retours** : `/feedback` (bouton sur l'accueil et lien dans `Footer`, `?from=<chemin>&kind=bug|idea` facultatifs), ouvert aux invités. `POST /api/feedback` : Zod, champ piège `website` (doit rester vide), chemin interne seulement, limite horaire en base (`createFeedback` : 10 par compte, 60 pour l'ensemble des invités, aucune IP enregistrée). Les constantes partagées avec le formulaire client sont dans `@calculus/db/feedback` (sans Prisma).
+- **Panel administrateur** : `/admin`, réservé aux comptes dont l'e-mail figure dans `ADMIN_EMAILS` (`isAdminEmail` / `getAdminSession` / `requireAdmin` de `@/lib/admin`). Pour les autres, les pages répondent 404 et les routes `api/admin/*` 403. **Chaque page appelle `requireAdmin()`** (le layout ne suffit pas : il n'est pas rejoué à chaque navigation). Lien « Admin » dans `Header` pour les administrateurs. Onglets : vue d'ensemble (inscrits, inscriptions par jour sur 30 jours, parties, retours à traiter), parties en cours (`LiveGames`, rafraîchi toutes les 5 s), retours (filtre à traiter / traités / tous, traiter, supprimer), comptes (recherche pseudo ou e-mail, fiche avec le `DashboardView` du joueur). Les e-mails ne sont pas vérifiés à l'inscription : créer le compte administrateur **avant** d'ajouter son adresse en production.
+- **Parties en cours** : `fetchLiveRooms` signe un JWT d'une minute (`GAME_TOKEN_SECRET`, audience `calculus-admin`) et appelle `GET /admin/rooms` du serveur de jeu, à l'adresse HTTP déduite de `NEXT_PUBLIC_GAME_SERVER_URL` (`ws` → `http`, `wss` → `https`).
 - **Dictée** : réglage de compte `User.voiceInput` (champ additionnel Better Auth, modifiable depuis le profil). `CalcLine` lance `useVoiceInput` (Web Speech API, pas de Firefox) qui remplit la case via `parseSpokenNumber` ; la validation reste à la touche Entrée (ou OK sur le pavé).
 
 ## Lancer / vérifier

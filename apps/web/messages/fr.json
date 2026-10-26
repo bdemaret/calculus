@@ -21,7 +21,8 @@
     "sound": "Son",
     "soundOn": "Activer le son",
     "soundOff": "Couper le son",
-    "language": "Switch to English"
+    "language": "Switch to English",
+    "admin": "Admin"
   },
   "home": {
     "title": "Qui calcule le plus <hl>vite</hl> ?",
@@ -37,7 +38,8 @@
     "playSolo": "Jouer solo",
     "playSoloKicker": "5 niveaux",
     "playSoloSub": "Cinq niveaux, du « 7 + 4 » au « 125 × 8 − 36 ÷ 4 ».",
-    "modesTitle": "Deux modes de jeu"
+    "modesTitle": "Deux modes de jeu",
+    "feedback": "Faire un retour / signaler un bug"
   },
   "modes": {
     "battle-royale": {
@@ -454,6 +456,7 @@
               "Ton compte : pseudo, adresse e-mail, mot de passe (enregistré sous forme hachée, jamais en clair), date d’inscription et préférence de saisie (clavier ou voix).",
               "Tes parties : réglages, calculs posés, réponses, temps de réponse, scores, rang, Elo et statistiques.",
               "Tes amis : demandes envoyées et reçues, liens d’amitié, invitations à une partie.",
+              "Tes retours : le message envoyé depuis « Faire un retour », son type, la page d’où il vient et, si tu n’es pas connecté, l’e-mail que tu choisis de laisser.",
               "Données techniques : l’adresse IP et le navigateur associés à chaque connexion, et ton adresse IP pour limiter les tentatives répétées (protection contre les abus)."
             ],
             "Sans compte, tu joues en invité : rien n’est enregistré en solo. En ligne, ton pseudo d’invité est enregistré avec la partie si d’autres joueurs ont un compte.",
@@ -502,7 +505,8 @@
             [
               "Compte, parties, statistiques et amis : tant que ton compte existe.",
               "Sessions de connexion (adresse IP, navigateur) : 30 jours au plus.",
-              "Lien de nouveau mot de passe : 1 heure. Invitation à une partie : 10 minutes."
+              "Lien de nouveau mot de passe : 1 heure. Invitation à une partie : 10 minutes.",
+              "Retours : le temps de les traiter, puis supprimés au plus tard un an après. Ils restent lisibles par l’équipe du site, sans lien avec ton compte s’il est supprimé."
             ],
             "Quand tu supprimes ton compte, tout est effacé : compte, sessions, statistiques, Elo, amis et parties solo. Les parties en ligne restent pour les autres joueurs, mais ton pseudo en est retiré."
           ]
@@ -642,5 +646,122 @@
     "outgoing": "Demande envoyée à {name}.",
     "incoming": "{name} t’a envoyé une demande d’ami.",
     "friends": "Vous êtes amis."
+  },
+  "feedback": {
+    "title": "Faire un retour",
+    "margin": "retour",
+    "footer": "Faire un retour / signaler un bug",
+    "intro": "Un bug, une idée, une remarque ? Dis-nous tout : chaque message est lu.",
+    "kindLabel": "C’est plutôt…",
+    "kind": {
+      "bug": "Un bug",
+      "idea": "Une idée",
+      "other": "Autre chose"
+    },
+    "messageLabel": "Ton message",
+    "messageLabelBug": "Que s’est-il passé ?",
+    "placeholder": "Ce que tu aimerais voir changer ou ajouter…",
+    "placeholderBug": "Ce que tu faisais, ce que tu attendais, ce qui s’est passé (page, mode, appareil…)",
+    "remaining": "{count, plural, one {# caractère restant} other {# caractères restants}}",
+    "contactLabel": "Ton e-mail (facultatif)",
+    "contactHelp": "Seulement si tu veux qu’on te réponde.",
+    "signedInNote": "Envoyé avec ton compte : nous pourrons te répondre à ton adresse e-mail.",
+    "send": "Envoyer",
+    "sending": "Envoi…",
+    "privacy": "Ton message est gardé pour améliorer le site (voir la <link>politique de confidentialité</link>). N’y mets pas de mot de passe ni d’information sensible.",
+    "thanksTitle": "Merci !",
+    "thanks": "Ton message est bien arrivé. Il sera lu très vite.",
+    "back": "Retour",
+    "another": "Envoyer un autre message",
+    "error": {
+      "too-short": "Écris au moins quelques mots.",
+      "too-many": "Trop de messages envoyés ces dernières minutes. Réessaie plus tard.",
+      "generic": "L’envoi a échoué. Réessaie."
+    }
+  },
+  "admin": {
+    "title": "Administration",
+    "tabs": {
+      "label": "Sections du panel",
+      "overview": "Vue d’ensemble",
+      "games": "Parties en cours",
+      "feedback": "Retours",
+      "users": "Comptes"
+    },
+    "overview": {
+      "users": "inscrits",
+      "usersLast7Days": "inscrits ces 7 derniers jours",
+      "usersLast30Days": "inscrits ces 30 derniers jours",
+      "liveRooms": "{players, plural, =0 {salles ouvertes} one {salles ouvertes · # joueur} other {salles ouvertes · # joueurs}}",
+      "liveUnavailable": "serveur de jeu injoignable",
+      "openFeedback": "retours à traiter",
+      "games": "parties enregistrées",
+      "onlineGames": "parties en ligne",
+      "gamesLast24Hours": "parties ces dernières 24 h",
+      "signupsTitle": "Inscriptions des 30 derniers jours",
+      "signupsLabel": "{count, plural, =0 {Aucune inscription} one {# inscription} other {# inscriptions}} sur 30 jours"
+    },
+    "games": {
+      "unreachable": "Le serveur de jeu ne répond pas. Vérifie qu’il tourne et que GAME_TOKEN_SECRET est le même des deux côtés.",
+      "summary": "{rooms, plural, =0 {Aucune salle ouverte} one {# salle ouverte} other {# salles ouvertes}}, {players, plural, =0 {aucun joueur} one {# joueur} other {# joueurs}}",
+      "updated": "mis à jour à {time}",
+      "empty": "Personne ne joue en ligne pour l’instant.",
+      "phase": {
+        "lobby": "Salle d’attente",
+        "countdown": "Compte à rebours",
+        "question": "En jeu",
+        "round-result": "En jeu",
+        "finished": "Terminée"
+      },
+      "level": "niveau {level}",
+      "startedAt": "partie n° {game} lancée {since}",
+      "openedAt": "ouverte {since}",
+      "round": "calcul {round} / {total}",
+      "host": "hôte",
+      "guest": "invité",
+      "disconnected": "déconnecté"
+    },
+    "feedback": {
+      "filter": "Filtrer les retours",
+      "status": {
+        "open": "À traiter",
+        "resolved": "Traités",
+        "all": "Tous"
+      },
+      "count": "{count, plural, =0 {Aucun retour} one {# retour} other {# retours}}",
+      "empty": "Rien ici.",
+      "guest": "invité",
+      "resolve": "Marquer comme traité",
+      "reopen": "Rouvrir",
+      "delete": "Supprimer",
+      "deleteConfirm": "Supprimer définitivement ce retour ?",
+      "error": "L’action a échoué. Réessaie.",
+      "previous": "Précédents",
+      "next": "Suivants",
+      "page": "page {page} sur {pages}"
+    },
+    "users": {
+      "search": "Rechercher un compte",
+      "searchPlaceholder": "Pseudo ou e-mail",
+      "searchButton": "Rechercher",
+      "count": "{count, plural, =0 {Aucun compte} one {# compte} other {# comptes}}",
+      "empty": "Aucun compte ne correspond.",
+      "name": "Pseudo",
+      "email": "E-mail",
+      "createdAt": "Inscription",
+      "games": "Parties",
+      "lastGame": "Dernière partie",
+      "admin": "admin",
+      "verified": "vérifié",
+      "lastSeen": "Dernière connexion",
+      "friends": "Amis",
+      "feedbacks": "Retours envoyés",
+      "id": "Identifiant",
+      "back": "← Tous les comptes",
+      "noGames": "Ce joueur n’a encore joué aucune partie enregistrée.",
+      "previous": "Précédents",
+      "next": "Suivants",
+      "page": "page {page} sur {pages}"
+    }
   }
 }

@@ -9,6 +9,7 @@ import {
   randomSeed,
   sanitizeSettings,
   type GameReport,
+  type AdminRoomSummary,
   type GameSettings,
   type LobbyPlayer,
   type RatingChange,
@@ -35,6 +36,8 @@ const RECONNECT_SECONDS = 30;
 const MAX_MESSAGES_PER_SECOND = 20;
 
 const activeCodes = new Set<string>();
+/** Salles ouvertes dans ce processus, lues par la route d'administration (`/admin/rooms`). */
+export const liveRooms = new Set<GameRoom>();
 
 function generateCode(): string {
   for (;;) {
@@ -83,6 +86,7 @@ export class GameRoom extends Room {
   private ratings: Record<string, RatingChange> | null = null;
   private gameNumber = 0;
   private timer: Delayed | null = null;
+  private createdAt = 0;
 
   onCreate(options: { settings?: unknown }) {
     this.code = generateCode();
@@ -92,6 +96,8 @@ export class GameRoom extends Room {
     void this.setPrivate(true);
     this.settings = sanitizeSettings(options?.settings ?? {});
     this.autoDispose = true;
+    this.createdAt = Date.now();
+    liveRooms.add(this);
 
     this.on("settings", (m, msg) => {
       if (m.id !== this.hostId || this.phase !== "lobby") return;
@@ -199,6 +205,33 @@ export class GameRoom extends Room {
   onDispose() {
     this.timer?.clear();
     activeCodes.delete(this.code);
+    liveRooms.delete(this);
+  }
+
+  /** Résumé pour le panel administrateur : jamais la réponse du calcul en cours. */
+  adminSummary(): AdminRoomSummary {
+    const snap = this.snapshot();
+    return {
+      code: this.code,
+      phase: this.phase,
+      mode: this.settings.mode,
+      difficulty: this.settings.difficulty,
+      createdAt: this.createdAt,
+      startedAt: this.phase === "lobby" ? null : this.startedAt,
+      gameNumber: this.gameNumber,
+      roundIndex: snap.roundIndex,
+      totalRounds: snap.totalRounds,
+      question: snap.question?.text ?? null,
+      players: snap.players.map((p) => ({
+        id: p.id,
+        name: p.name,
+        isHost: p.isHost,
+        isGuest: p.isGuest,
+        connected: p.connected,
+        score: p.score,
+        alive: p.alive,
+      })),
+    };
   }
 
   /* ---------------------------------------------------------------- */

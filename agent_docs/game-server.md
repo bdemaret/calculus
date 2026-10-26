@@ -4,7 +4,7 @@ Serveur Colyseus 0.16 (`@colyseus/core` + `ws-transport`), lancé avec `tsx` (pa
 
 | Fichier | Rôle |
 | --- | --- |
-| `src/index.ts` | Serveur HTTP + définition de la salle `"game"` |
+| `src/index.ts` | Serveur HTTP + définition de la salle `"game"` + `GET /admin/rooms` (parties en cours pour le panel admin du site, `Authorization: Bearer <jwt>` vérifié par `verifyAdminToken`) |
 | `src/GameRoom.ts` | Une salle = un lobby persistant d'une partie à l'autre |
 | `src/PresenceRoom.ts` | Salle `"presence"` (`PRESENCE_ROOM`) : chaque onglet du site la rejoint sans jeton ; diffuse `online` { count } (total de toutes les salles de présence) au plus toutes les 2 s, n'accepte aucun message |
 | `src/token.ts` | `verifyGameToken` : vérifie le JWT émis par le site |
@@ -21,6 +21,7 @@ Serveur Colyseus 0.16 (`@colyseus/core` + `ws-transport`), lancé avec `tsx` (pa
 - **Hôte** : si l'hôte part, la main passe au membre arrivé le plus tôt (`members` est une `Map` ordonnée par arrivée).
 - **Reconnexion** : 30 s (`RECONNECT_SECONDS`).
 - **Elo** : une fois la partie enregistrée, `finish()` place les changements d'Elo dans `RoomSnapshot.ratings` et rediffuse (sauf si une autre partie a commencé entre-temps).
+- **Administration** : chaque salle s'inscrit dans `liveRooms` (retirée dans `onDispose`) ; `adminSummary()` résume la salle à partir du snapshot (code, phase, réglages, joueurs, calcul affiché), jamais la réponse.
 - **Rejouer** : `replay-same` relance avec les mêmes réglages ; `replay-new` ramène au lobby.
 - Timers : toujours via `this.clock.setTimeout` (stockés dans `this.timer`), jamais `setTimeout` global.
 

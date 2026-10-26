@@ -21,7 +21,8 @@
     "sound": "Sound",
     "soundOn": "Turn sound on",
     "soundOff": "Mute",
-    "language": "Passer en français"
+    "language": "Passer en français",
+    "admin": "Admin"
   },
   "home": {
     "title": "Who’s the <hl>fastest</hl> at mental math?",
@@ -37,7 +38,8 @@
     "playSolo": "Play solo",
     "playSoloKicker": "5 levels",
     "playSoloSub": "Five levels, from “7 + 4” to “125 × 8 − 36 ÷ 4”.",
-    "modesTitle": "Two game modes"
+    "modesTitle": "Two game modes",
+    "feedback": "Send feedback / report a bug"
   },
   "modes": {
     "battle-royale": {
@@ -455,6 +457,7 @@
               "Your account: username, email address, password (stored hashed, never in plain text), sign-up date and input preference (keyboard or voice).",
               "Your games: settings, questions asked, answers, response times, scores, rank, Elo and statistics.",
               "Your friends: requests sent and received, friendships, game invitations.",
+              "Your feedback: the message sent from “Send feedback”, its type, the page it came from and, if you are not signed in, the email you choose to leave.",
               "Technical data: the IP address and browser linked to each sign-in, and your IP address to limit repeated attempts (abuse protection)."
             ],
             "Without an account, you play as a guest: nothing is saved in solo games. Online, your guest name is saved with the game if other players have an account.",
@@ -503,7 +506,8 @@
             [
               "Account, games, statistics and friends: as long as your account exists.",
               "Sign-in sessions (IP address, browser): 30 days at most.",
-              "Password reset link: 1 hour. Game invitation: 10 minutes."
+              "Password reset link: 1 hour. Game invitation: 10 minutes.",
+              "Feedback: while we handle it, then deleted at most one year later. It stays readable by the site team, unlinked from your account if you delete it."
             ],
             "When you delete your account, everything is erased: account, sessions, statistics, Elo, friends and solo games. Online games remain for the other players, but your username is removed from them."
           ]
@@ -645,5 +649,122 @@
     "outgoing": "Friend request sent to {name}.",
     "incoming": "{name} sent you a friend request.",
     "friends": "You are friends."
+  },
+  "feedback": {
+    "title": "Send feedback",
+    "margin": "feedback",
+    "footer": "Send feedback / report a bug",
+    "intro": "A bug, an idea, a comment? Tell us everything: every message is read.",
+    "kindLabel": "It’s mostly…",
+    "kind": {
+      "bug": "A bug",
+      "idea": "An idea",
+      "other": "Something else"
+    },
+    "messageLabel": "Your message",
+    "messageLabelBug": "What happened?",
+    "placeholder": "What you’d like to see changed or added…",
+    "placeholderBug": "What you were doing, what you expected, what happened (page, mode, device…)",
+    "remaining": "{count, plural, one {# character left} other {# characters left}}",
+    "contactLabel": "Your email (optional)",
+    "contactHelp": "Only if you’d like a reply.",
+    "signedInNote": "Sent with your account: we can reply to your email address.",
+    "send": "Send",
+    "sending": "Sending…",
+    "privacy": "Your message is kept to improve the site (see the <link>privacy policy</link>). Don’t include passwords or sensitive information.",
+    "thanksTitle": "Thank you!",
+    "thanks": "Your message has arrived. It will be read very soon.",
+    "back": "Back",
+    "another": "Send another message",
+    "error": {
+      "too-short": "Write at least a few words.",
+      "too-many": "Too many messages sent in the last few minutes. Try again later.",
+      "generic": "Sending failed. Try again."
+    }
+  },
+  "admin": {
+    "title": "Administration",
+    "tabs": {
+      "label": "Panel sections",
+      "overview": "Overview",
+      "games": "Live games",
+      "feedback": "Feedback",
+      "users": "Accounts"
+    },
+    "overview": {
+      "users": "accounts",
+      "usersLast7Days": "sign-ups in the last 7 days",
+      "usersLast30Days": "sign-ups in the last 30 days",
+      "liveRooms": "{players, plural, =0 {open rooms} one {open rooms · # player} other {open rooms · # players}}",
+      "liveUnavailable": "game server unreachable",
+      "openFeedback": "open feedback",
+      "games": "saved games",
+      "onlineGames": "online games",
+      "gamesLast24Hours": "games in the last 24 h",
+      "signupsTitle": "Sign-ups over the last 30 days",
+      "signupsLabel": "{count, plural, =0 {No sign-ups} one {# sign-up} other {# sign-ups}} over 30 days"
+    },
+    "games": {
+      "unreachable": "The game server is not responding. Check that it is running and that GAME_TOKEN_SECRET matches on both sides.",
+      "summary": "{rooms, plural, =0 {No open rooms} one {# open room} other {# open rooms}}, {players, plural, =0 {no players} one {# player} other {# players}}",
+      "updated": "updated at {time}",
+      "empty": "Nobody is playing online right now.",
+      "phase": {
+        "lobby": "Waiting room",
+        "countdown": "Countdown",
+        "question": "Playing",
+        "round-result": "Playing",
+        "finished": "Finished"
+      },
+      "level": "level {level}",
+      "startedAt": "game #{game} started {since}",
+      "openedAt": "opened {since}",
+      "round": "question {round} / {total}",
+      "host": "host",
+      "guest": "guest",
+      "disconnected": "disconnected"
+    },
+    "feedback": {
+      "filter": "Filter feedback",
+      "status": {
+        "open": "Open",
+        "resolved": "Resolved",
+        "all": "All"
+      },
+      "count": "{count, plural, =0 {No feedback} one {# message} other {# messages}}",
+      "empty": "Nothing here.",
+      "guest": "guest",
+      "resolve": "Mark as resolved",
+      "reopen": "Reopen",
+      "delete": "Delete",
+      "deleteConfirm": "Permanently delete this message?",
+      "error": "The action failed. Try again.",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "page {page} of {pages}"
+    },
+    "users": {
+      "search": "Search accounts",
+      "searchPlaceholder": "Username or email",
+      "searchButton": "Search",
+      "count": "{count, plural, =0 {No accounts} one {# account} other {# accounts}}",
+      "empty": "No matching account.",
+      "name": "Username",
+      "email": "Email",
+      "createdAt": "Signed up",
+      "games": "Games",
+      "lastGame": "Last game",
+      "admin": "admin",
+      "verified": "verified",
+      "lastSeen": "Last sign-in",
+      "friends": "Friends",
+      "feedbacks": "Feedback sent",
+      "id": "ID",
+      "back": "← All accounts",
+      "noGames": "This player has not played any saved game yet.",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "page {page} of {pages}"
+    }
   }
 }
