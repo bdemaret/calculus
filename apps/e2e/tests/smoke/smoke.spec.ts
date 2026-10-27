@@ -35,8 +35,7 @@ test("la page Jeux présente les quatre jeux, l'ancienne page Modes y mène", as
     await expect(page.getByRole("heading", { name: new RegExp(t(`games.${g}.name`)) })).toBeVisible();
   }
   await page.goto("/fr");
-  await expect(page.getByRole("heading", { name: t("home.gamesTitle") })).toBeVisible();
-  await page.getByRole("link", { name: t("home.allRules") }).click();
+  await page.getByRole("navigation", { name: t("nav.main") }).getByRole("link", { name: t("nav.games") }).click();
   await expect(page).toHaveURL(/\/fr\/games$/);
 });
 
