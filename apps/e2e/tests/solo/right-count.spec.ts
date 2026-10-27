@@ -9,7 +9,7 @@ import { SoloPage } from "../../pages/SoloPage";
 const RIGHT_COUNT = { game: "right-count", operations: ["add", "sub"], timePerQuestion: 45 } as const;
 
 test.describe("le bon compte en solo", () => {
-  test("on ne valide qu'avec toutes les plaques", async ({ page }) => {
+  test("on valide un calcul, sans forcément toutes les plaques, chacune une fois au plus", async ({ page }) => {
     await presetSolo(page, { ...RIGHT_COUNT, operations: [...RIGHT_COUNT.operations] });
     const solo = new SoloPage(page);
     await solo.goto();
@@ -28,14 +28,18 @@ test.describe("le bon compte en solo", () => {
     await box.fill(first);
     await expect(page.locator(".count-total")).toContainText(first);
     await expect(ok).toBeDisabled();
-    // Toutes les plaques, mauvais total : on peut le valider ; « = » le pose comme étape.
+    // Une même plaque deux fois : refusé.
+    await box.fill(`${first} + ${first}`);
+    await expect(ok).toBeDisabled();
+    // Un calcul juste mais un mauvais total : on peut le valider ; « = » le pose comme étape.
     await box.fill(q.wrong);
     await expect(ok).toBeEnabled();
     await box.press("=");
     const steps = page.getByRole("list", { name: t("game.steps") });
     await expect(steps.getByRole("listitem")).toHaveCount(1);
     await expect(box).toHaveValue("");
-    await expect(tiles).toHaveCount(1);
+    await expect(tiles).toHaveCount(4 - (q.wrong.match(/\d+/g) ?? []).length + 1);
+    // La dernière étape reste validable avec OK, même s'il reste des plaques.
     await expect(ok).toBeEnabled();
     // Effacer dans une ligne vide rouvre l'étape.
     await box.press("Backspace");

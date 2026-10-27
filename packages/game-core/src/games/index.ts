@@ -8,7 +8,7 @@ import type { GameDefinition } from "./types";
 export * from "./types";
 export { bombGame, missingGame, rightCountGame, standardGame };
 export { BOMB_LEVELS, assignBombs, bombValue, defuseQuestion, fallbackBomb, type BombError, type BombLevel, type BombPuzzle } from "./bomb";
-export { RIGHT_COUNT_LEVELS, evaluateRightCount, usesAllTiles, type RightCountLevel } from "./right-count";
+export { RIGHT_COUNT_LEVELS, evaluateRightCount, usesTilesOnce, type RightCountLevel } from "./right-count";
 
 export const GAMES: Record<GameId, GameDefinition> = {
   standard: standardGame,

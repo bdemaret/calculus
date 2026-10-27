@@ -1,6 +1,6 @@
 /**
- * Solveur du bon compte : toutes les valeurs atteignables en utilisant chaque plaque exactement
- * une fois, aux règles du jeu (intermédiaires entiers positifs, divisions exactes).
+ * Solveur du bon compte : toutes les valeurs atteignables avec au moins une opération, chaque plaque
+ * servant au plus une fois, aux règles du jeu (intermédiaires entiers positifs, divisions exactes).
  * Sert à choisir une cible toujours atteignable et à donner une solution de référence.
  */
 import { formatExpression, type ExprNode } from "./expression";
@@ -10,9 +10,9 @@ import type { BasicOperation } from "./types";
 type Witness = { tile: number } | { op: BasicOperation; left: [mask: number, value: number]; right: [mask: number, value: number] };
 
 export interface Reachable {
-  /** Valeurs atteignables avec toutes les plaques, dans l'ordre croissant. */
+  /** Valeurs atteignables avec au moins deux plaques, dans l'ordre croissant. */
   values: number[];
-  /** Une solution lisible qui utilise toutes les plaques, null si la valeur n'est pas atteignable. */
+  /** Une solution lisible, avec le moins de plaques possible ; null si la valeur n'est pas atteignable. */
   solution(value: number): string | null;
 }
 
@@ -72,9 +72,11 @@ export function solveTiles(tiles: readonly number[], operations: readonly BasicO
     if ("tile" in w) return { kind: "num", value: w.tile };
     return { kind: "op", op: w.op, left: tree(...w.left), right: tree(...w.right) };
   };
-  const all = sets[full]!;
+  // Pour chaque valeur, le plus petit sous-ensemble qui l'atteint (les masques sont triés par taille).
+  const best = new Map<number, number>();
+  for (const mask of masks) if (popcount(mask) > 1) for (const v of sets[mask]!.keys()) if (!best.has(v)) best.set(v, mask);
   return {
-    values: [...all.keys()].sort((a, b) => a - b),
-    solution: (value) => (all.has(value) ? formatExpression(tree(full, value)) : null),
+    values: [...best.keys()].sort((a, b) => a - b),
+    solution: (value) => (best.has(value) ? formatExpression(tree(best.get(value)!, value)) : null),
   };
 }

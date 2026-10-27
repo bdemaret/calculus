@@ -16,7 +16,7 @@ const MAX_MISSING = 25_000;
  */
 export function solveText(text: string, operations: BasicOperation[] = BASIC_OPERATIONS): { answer: string; wrong: string } {
   if (text.includes("→")) {
-    // Le bon compte : n'importe quelle solution convient ; la fausse utilise aussi toutes les plaques.
+    // Le bon compte : n'importe quelle solution convient ; la fausse est un autre calcul valide.
     const [left, right] = text.split(" → ");
     const tiles = left!.split(" ").map(Number);
     const target = Number(right);

@@ -162,8 +162,8 @@ interface Props {
 
 /**
  * Le bon compte, en étapes : on pose un calcul (« 75 + 2 = 77 »), son résultat devient une nouvelle plaque,
- * et ainsi de suite jusqu'à n'avoir plus qu'un nombre. On peut aussi tout écrire d'un coup, avec des parenthèses.
- * On valide dès que toutes les plaques sont utilisées : un total qui ne tombe pas pile compte comme une erreur
+ * et ainsi de suite. On peut aussi tout écrire d'un coup, avec des parenthèses. Toutes les plaques ne servent pas forcément :
+ * on valide le calcul en cours (ou la dernière étape) ; un total qui ne tombe pas pile compte comme une erreur
  * (ou, à plusieurs, comme une proposition pour le plus proche) ; le serveur revérifie tout.
  */
 export function ExpressionBuilder({ text, puzzle, value, onChange, onSubmit, allowClosest = false, disabled, status, shake, autoFocus = true }: Props) {
@@ -199,7 +199,6 @@ export function ExpressionBuilder({ text, puzzle, value, onChange, onSubmit, all
   let hint: string | null = null;
   const tree = line.trim() ? parseExpression(line.trim()) : null;
   if (gap !== null && gap > 0) hint = allowClosest ? t("closestHint", { gap }) : t("gap", { gap });
-  else if (!complete && (lineValue === target || (line.trim() === "" && steps.at(-1)?.value === target))) hint = t("useAllTiles");
   else if (tree?.kind === "op" && lineValue === null) hint = t("invalidStep");
   else if (steps.length === 0 && line.trim() === "") hint = t("stepHint");
 
@@ -239,8 +238,9 @@ export function ExpressionBuilder({ text, puzzle, value, onChange, onSubmit, all
         autoComplete="off"
         onSubmit={(e) => {
           e.preventDefault();
-          // Entrée, comme OK : valide dès que toutes les plaques sont utilisées ; sinon pose le calcul en cours comme étape.
-          if (complete || !canCommit) submit();
+          // Entrée : valide un calcul qui tombe pile, sinon le pose comme étape ;
+          // ligne vide, propose la dernière étape (à plusieurs seulement, sinon c'est OK qui valide un total approché).
+          if (complete?.value === target || (!canCommit && allowClosest)) submit();
           else commit();
         }}
       >

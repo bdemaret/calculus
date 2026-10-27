@@ -42,7 +42,7 @@ function drawTiles(rng: Rng, cfg: RightCountLevel): number[] {
   return tiles;
 }
 
-/** Un tirage toujours résoluble avec une seule opération, en utilisant toutes les plaques. */
+/** Un tirage toujours résoluble avec une seule opération (la solution prend toutes les plaques). */
 function fallback(rng: Rng, count: number, op: BasicOperation): { tiles: number[]; target: number; solution: string } {
   const small = Array.from({ length: count - 1 }, () => randInt(rng, 2, 5));
   const product = small.reduce((p, x) => p * x, 1);
@@ -61,26 +61,28 @@ function question(index: number, difficulty: Difficulty, tiles: number[], target
   return { index, text: `${tiles.join(" ")} → ${target}`, answer: target, solution, puzzle, tags: [], difficulty };
 }
 
-/** Les nombres écrits sont-ils exactement les plaques, chacune une fois ? */
-export function usesAllTiles(numbers: readonly number[], tiles: readonly number[]): boolean {
-  const a = [...numbers].sort((x, y) => x - y);
-  const b = [...tiles].sort((x, y) => x - y);
-  return a.length === b.length && a.every((v, i) => v === b[i]);
+/** Les nombres écrits sont-ils pris parmi les plaques, chacune au plus une fois ? */
+export function usesTilesOnce(numbers: readonly number[], tiles: readonly number[]): boolean {
+  const left = [...tiles];
+  return numbers.every((n) => {
+    const i = left.indexOf(n);
+    return i >= 0 && left.splice(i, 1).length === 1;
+  });
 }
 
 /**
- * Évalue une expression aux règles du bon compte : toutes les plaques, chacune exactement une fois,
- * seulement les opérations permises. Null si elle est invalide pour ce tirage.
+ * Évalue une expression aux règles du bon compte : au moins une opération, des plaques prises chacune
+ * au plus une fois, seulement les opérations permises. Null si elle est invalide pour ce tirage.
  */
 export function evaluateRightCount(puzzle: RightCountPuzzle, expr: string): number | null {
   const tree = parseExpression(expr);
-  if (!tree || !usesAllTiles(numbersOf(tree), puzzle.tiles)) return null;
+  if (!tree || tree.kind !== "op" || !usesTilesOnce(numbersOf(tree), puzzle.tiles)) return null;
   const value = evaluateStrict(tree, puzzle.operations);
   return Number.isNaN(value) ? null : value;
 }
 
 /**
- * Le bon compte : atteindre la cible en utilisant toutes les plaques, chacune exactement une fois.
+ * Le bon compte : atteindre la cible avec les plaques, chacune au plus une fois (pas forcément toutes).
  * Si personne ne tombe pile, la proposition la plus proche marque à la fin du temps.
  */
 export const rightCountGame: GameDefinition = {
@@ -105,7 +107,8 @@ export const rightCountGame: GameDefinition = {
       const solved = solveTiles(tiles, ops, cfg.targetMax * INTERMEDIATE_FACTOR);
       // Avec certaines opérations seulement, la plage du niveau peut être hors d'atteinte : on l'élargit.
       const [min, max] = attempt < ATTEMPTS ? [cfg.targetMin, cfg.targetMax] : [1, cfg.targetMax * INTERMEDIATE_FACTOR];
-      const candidates = solved.values.filter((v) => v >= min && v <= max);
+      // Une cible égale à une plaque serait trouvée sans calcul.
+      const candidates = solved.values.filter((v) => v >= min && v <= max && !tiles.includes(v));
       if (candidates.length === 0) continue;
       const target = candidates[randInt(rng, 0, candidates.length - 1)]!;
       return question(index, settings.difficulty, tiles, target, solved.solution(target)!, ops);
@@ -114,7 +117,7 @@ export const rightCountGame: GameDefinition = {
     const { tiles, target, solution } = fallback(rng, cfg.small + cfg.large, ops[0]!);
     return question(index, settings.difficulty, tiles, target, solution, ops);
   },
-  // Une expression mal formée, qui oublie ou invente une plaque, est refusée sans consommer l'essai.
+  // Une expression mal formée, sans opération, qui répète ou invente une plaque, est refusée sans consommer l'essai.
   isValid: (q, answer) => q.puzzle.game === "right-count" && "expr" in answer && evaluateRightCount(q.puzzle, answer.expr) !== null,
   check: (q, answer) => q.puzzle.game === "right-count" && "expr" in answer && evaluateRightCount(q.puzzle, answer.expr) === q.puzzle.target,
   distance(q, answer) {

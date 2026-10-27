@@ -35,7 +35,10 @@ export interface StepsState {
   lineValue: number | null;
   /** La ligne est une opération valide : on peut la poser comme étape. */
   canCommit: boolean;
-  /** Toutes les plaques du tirage sont utilisées : l'expression complète à envoyer, et sa valeur. */
+  /**
+   * La réponse proposée, avec l'expression complète à envoyer : la ligne en cours si c'est une opération valide,
+   * sinon (ligne vide) le résultat de la dernière étape. Les plaques restantes peuvent ne pas servir.
+   */
   complete: { expr: string; value: number } | null;
 }
 
@@ -101,9 +104,11 @@ export function readSteps(tiles: readonly number[], operations: readonly BasicOp
   const lineValue = Number.isNaN(raw) ? null : raw;
 
   let complete: StepsState["complete"] = null;
-  if (!tree && line.trim() === "" && pool.length === 1 && steps.length > 0) {
-    complete = { expr: formatExpression(pool[0]!.node), value: pool[0]!.value };
-  } else if (bound && lineValue !== null && bound.taken.size === pool.length) {
+  if (!tree && line.trim() === "" && steps.length > 0) {
+    // Le résultat de la dernière étape est toujours le dernier nombre disponible.
+    const last = pool[pool.length - 1]!;
+    complete = { expr: formatExpression(last.node), value: last.value };
+  } else if (bound && lineValue !== null && tree.kind === "op") {
     complete = { expr: formatExpression(bound.node), value: lineValue };
   }
 

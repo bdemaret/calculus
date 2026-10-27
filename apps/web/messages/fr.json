@@ -61,8 +61,8 @@
     },
     "right-count": {
       "name": "Le bon compte",
-      "short": "Toutes les plaques, pile sur la cible.",
-      "long": "Des plaques et une cible : combine toutes les plaques, chacune exactement une fois, pour tomber pile sur la cible. Chaque calcul posé devient une nouvelle plaque. Il y a toujours une solution ; à plusieurs, si personne ne trouve, le plus proche marque à la fin du temps."
+      "short": "Des plaques, pile sur la cible.",
+      "long": "Des plaques et une cible : combine les plaques, chacune au plus une fois (pas forcément toutes), pour tomber pile sur la cible. Chaque calcul posé devient une nouvelle plaque. Il y a toujours une solution ; à plusieurs, si personne ne trouve, le plus proche marque à la fin du temps."
     },
     "missing": {
       "name": "Nombre manquant",
@@ -231,7 +231,6 @@
     "tiles": "Plaques",
     "openParen": "Parenthèse ouvrante",
     "closeParen": "Parenthèse fermante",
-    "useAllTiles": "Bonne cible ! Il reste des plaques : utilise-les toutes.",
     "bomb": {
       "building": "Construis ta bombe avec ces plaques.",
       "buildTitle": "Plaques",
