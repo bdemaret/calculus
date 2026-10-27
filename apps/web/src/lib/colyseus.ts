@@ -99,6 +99,11 @@ function attach(room: Room) {
   room.onMessage("snapshot", (snap: RoomSnapshot) => {
     const patch: Partial<LobbyState> = { snapshot: snap, clockOffset: snap.serverNow - Date.now() };
     if (snap.phase !== "question") patch.typing = null;
+    // Nouvelle partie : les accusés de la précédente ne valent plus (sinon leur son rejoue au remontage de l'écran de jeu).
+    if (store.state.snapshot && store.state.snapshot.gameNumber !== snap.gameNumber) {
+      patch.lastAck = null;
+      patch.bombAck = null;
+    }
     update(patch);
   });
   room.onMessage("answer-ack", (ack: LobbyState["lastAck"]) => update({ lastAck: ack }));
