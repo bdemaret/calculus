@@ -97,6 +97,8 @@
     "sub": "Subtractions",
     "mul": "Multiplications",
     "div": "Divisions",
+    "pow": "Powers",
+    "sqrt": "Square roots",
     "paren": "Parentheses",
     "hole-num": "Missing numbers",
     "hole-op": "Missing operators"
@@ -121,7 +123,9 @@
     "answers": "Answers",
     "simultaneous": "All at once",
     "turns": "Taking turns",
-    "buildTime": "Time to build your bomb"
+    "buildTime": "Time to build your bomb",
+    "powerMax": "Power exponents",
+    "powerRange": "{min} to {max}"
   },
   "solo": {
     "title": "Play solo",

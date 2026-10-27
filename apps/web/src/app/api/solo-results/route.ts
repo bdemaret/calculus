@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { ALL_OPERATIONS, GAMES, GameEngine, MAX_EXPRESSION_LENGTH, sanitizeSettings, type Operation } from "@calculus/game-core";
+import { BASIC_OPERATIONS, GAMES, GameEngine, MAX_EXPRESSION_LENGTH, sanitizeSettings, type BasicOperation } from "@calculus/game-core";
 import { saveGame } from "@calculus/db";
 import { getSession } from "@/lib/auth";
 
@@ -8,7 +8,7 @@ import { getSession } from "@/lib/auth";
 const answer = z.union([
   z.object({ value: z.number().int().min(0).max(1_000_000) }).strict(),
   z.object({ expr: z.string().min(1).max(MAX_EXPRESSION_LENGTH) }).strict(),
-  z.object({ op: z.enum(ALL_OPERATIONS as [Operation, ...Operation[]]) }).strict(),
+  z.object({ op: z.enum(BASIC_OPERATIONS as [BasicOperation, ...BasicOperation[]]) }).strict(),
 ]);
 
 const body = z.object({

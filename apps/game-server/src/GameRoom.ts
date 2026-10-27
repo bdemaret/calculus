@@ -2,7 +2,7 @@ import { Room, ServerError, type Client, type Delayed } from "@colyseus/core";
 import {
   CODE_ALPHABET,
   CODE_LENGTH,
-  ALL_OPERATIONS,
+  BASIC_OPERATIONS,
   GAMES,
   GameEngine,
   JOIN_ERRORS,
@@ -17,7 +17,7 @@ import {
   type AdminRoomSummary,
   type GameSettings,
   type LobbyPlayer,
-  type Operation,
+  type BasicOperation,
   type PlayerAnswer,
   type RatingChange,
   type RoomPhase,
@@ -74,7 +74,7 @@ interface Member {
 const answerSchema = z.union([
   z.object({ questionIndex: z.number().int().min(0), value: z.number().int().min(0).max(1_000_000) }).strict(),
   z.object({ questionIndex: z.number().int().min(0), expr: z.string().min(1).max(MAX_EXPRESSION_LENGTH) }).strict(),
-  z.object({ questionIndex: z.number().int().min(0), op: z.enum(ALL_OPERATIONS as [Operation, ...Operation[]]) }).strict(),
+  z.object({ questionIndex: z.number().int().min(0), op: z.enum(BASIC_OPERATIONS as [BasicOperation, ...BasicOperation[]]) }).strict(),
 ]);
 const readySchema = z.object({ ready: z.boolean() });
 /** Saisie visible : des chiffres, un opérateur (nombre manquant) ou des étapes séparées par « ; » (bon compte). */

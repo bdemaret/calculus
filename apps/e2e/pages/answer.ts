@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from "@playwright/test";
-import { ALL_OPERATIONS, OPERATION_SYMBOL } from "@calculus/game-core";
+import { BASIC_OPERATIONS, OPERATION_SYMBOL } from "@calculus/game-core";
 import { t } from "../fixtures/i18n";
 import { expectedAnswer } from "../fixtures/oracle";
 
@@ -35,7 +35,7 @@ async function type(page: Page, value: string, touch: boolean) {
   if (/\s/.test(value) || value.startsWith("(")) {
     const tiles = page.getByRole("group", { name: t("game.tiles") });
     for (const tok of value.match(/\d+|\S/g) ?? []) {
-      const op = ALL_OPERATIONS.find((o) => OPERATION_SYMBOL[o] === tok);
+      const op = BASIC_OPERATIONS.find((o) => OPERATION_SYMBOL[o] === tok);
       if (/^\d+$/.test(tok)) await tiles.getByRole("button", { name: tok, exact: true, pressed: false }).first().click();
       else if (op) await keypad.getByRole("button", { name: t(`game.operator.${op}`), exact: true }).click();
       else await keypad.getByRole("button", { name: t(tok === "(" ? "game.openParen" : "game.closeParen"), exact: true }).click();
@@ -44,7 +44,7 @@ async function type(page: Page, value: string, touch: boolean) {
     return;
   }
   // Un opérateur manquant se choisit sur le pavé des opérateurs (boutons nommés « plus », « fois »…).
-  const op = ALL_OPERATIONS.find((o) => OPERATION_SYMBOL[o] === value);
+  const op = BASIC_OPERATIONS.find((o) => OPERATION_SYMBOL[o] === value);
   if (op) await keypad.getByRole("button", { name: t(`game.operator.${op}`), exact: true }).click();
   else for (const d of value) await keypad.getByRole("button", { name: d, exact: true }).click();
   await keypad.getByRole("button", { name: t("game.submit") }).click();

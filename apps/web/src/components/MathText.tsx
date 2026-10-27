@@ -7,7 +7,12 @@ import { useSession } from "@/lib/auth-client";
 type Tok = CalcToken | "?";
 
 /** Arbre d'un calcul : `paren` garde les parenthèses écrites dans l'énoncé. */
-type Node = { k: "num"; v: number } | { k: "hole" } | { k: "op"; op: OpSymbol; l: Node; r: Node; paren: boolean };
+type Node =
+  | { k: "num"; v: number }
+  | { k: "hole" }
+  | { k: "op"; op: OpSymbol; l: Node; r: Node; paren: boolean }
+  | { k: "pow"; base: Node; exp: number }
+  | { k: "sqrt"; arg: Node };
 
 /** Vrai quand le joueur connecté a choisi d'afficher les divisions en fraction. */
 export function useFractions(): boolean {
@@ -22,8 +27,8 @@ export function useFractions(): boolean {
 export function fractionTree(tokens: readonly Tok[]): Node | null {
   if (!tokens.includes("÷")) return null;
   let i = 0;
-  // Descente récursive : expr = terme (± terme)*, terme = facteur (×÷ facteur)*.
-  const factor = (): Node | null => {
+  // Descente récursive : expr = terme (± terme)*, terme = facteur (×÷ facteur)*, facteur = [√] atome [^ exposant].
+  const atom = (): Node | null => {
     const t = tokens[i++];
     if (typeof t === "number") return { k: "num", v: t };
     if (t === "?") return { k: "hole" };
@@ -31,6 +36,19 @@ export function fractionTree(tokens: readonly Tok[]): Node | null {
     const inner = expr();
     if (!inner || tokens[i++] !== ")") return null;
     return inner.k === "op" ? { ...inner, paren: true } : inner;
+  };
+  const power = (): Node | null => {
+    const base = atom();
+    if (!base || tokens[i] !== "^") return base;
+    const exp = tokens[i + 1];
+    i += 2;
+    return typeof exp === "number" ? { k: "pow", base, exp } : null;
+  };
+  const factor = (): Node | null => {
+    if (tokens[i] !== "√") return power();
+    i += 1;
+    const arg = power();
+    return arg ? { k: "sqrt", arg } : null;
   };
   const chain = (next: () => Node | null, ops: OpSymbol[]): Node | null => {
     let l = next();
@@ -56,6 +74,9 @@ export function FractionExpr({ node, hole }: { node: Node; hole?: ReactNode }) {
 function render(node: Node, hole: ReactNode, bare: boolean): ReactNode {
   if (node.k === "num") return node.v;
   if (node.k === "hole") return hole;
+  // Sous une racine ou à la base d'une puissance, les parenthèses de l'énoncé restent : « √(16 + 9) », « (7 + 3)² ».
+  if (node.k === "pow") return <>{render(node.base, hole, false)}{renderTokens(["^", node.exp])}</>;
+  if (node.k === "sqrt") return <>√{render(node.arg, hole, false)}</>;
   if (node.op === "÷")
     return (
       <span className="frac">

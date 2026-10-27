@@ -1,5 +1,5 @@
-import { OPERATION_SYMBOL, evaluateTokens, generateWithRng, renderTokens, tokenize, type CalcToken, type OpSymbol } from "../generator";
-import { ALL_OPERATIONS, LEVELS } from "../levels";
+import { OPERATION_SYMBOL, SYMBOL_OPERATION, evaluateTokens, generateWithRng, renderTokens, tokenize, type CalcToken, type OpSymbol } from "../generator";
+import { ALL_OPERATIONS, BASIC_OPERATIONS, LEVELS } from "../levels";
 import { MAX_TIME, MIN_TIME } from "../limits";
 import { createRng, pick, randInt } from "../rng";
 import type { Puzzle, Question } from "../types";
@@ -30,7 +30,7 @@ const holds = (tokens: readonly MissingToken[], value: number | OpSymbol, result
 /** Seule la valeur cachée rend l'égalité vraie (sinon la réponse serait ambiguë). */
 function isUnique(tokens: readonly MissingToken[], hidden: number | OpSymbol, result: number): boolean {
   if (typeof hidden !== "number") {
-    return ALL_OPERATIONS.filter((op) => holds(tokens, OPERATION_SYMBOL[op], result)).length === 1;
+    return BASIC_OPERATIONS.filter((op) => holds(tokens, OPERATION_SYMBOL[op], result)).length === 1;
   }
   for (let v = Math.max(0, hidden - UNIQUE_WINDOW); v <= hidden + UNIQUE_WINDOW; v++) {
     if (v !== hidden && holds(tokens, v, result)) return false;
@@ -59,6 +59,7 @@ export const missingGame: GameDefinition = {
   solo: true,
   minPlayers: 1,
   turns: true,
+  operations: ALL_OPERATIONS,
   operationStats: true,
   timeRange: { min: MIN_TIME, max: MAX_TIME },
   defaults: (d) => ({ operations: [...LEVELS[d].defaultOperations], parentheses: LEVELS[d].defaultParentheses, timePerQuestion: LEVELS[d].defaultTime }),
@@ -70,7 +71,11 @@ export const missingGame: GameDefinition = {
       const base = generateWithRng(rng, settings, index);
       const tokens: MissingToken[] = tokenize(base.text);
       const wantOperator = settings.missingKind === "operator" || (settings.missingKind === "mixed" && rng() < OPERATOR_CHANCE);
-      const positions = tokens.flatMap((t, i) => ((wantOperator ? typeof t === "string" && t !== "(" && t !== ")" : typeof t === "number") ? [i] : []));
+      // On ne cache ni un exposant, ni la puissance ou la racine elle-même : seulement un nombre ou un opérateur + − × ÷.
+      const operators = tokens.flatMap((t, i) => (typeof t === "string" && t in SYMBOL_OPERATION ? [i] : []));
+      const numbers = tokens.flatMap((t, i) => (typeof t === "number" && tokens[i - 1] !== "^" ? [i] : []));
+      // Un calcul sans opérateur de base (« 13² ») cache un nombre.
+      const positions = wantOperator && operators.length > 0 ? operators : numbers;
       if (positions.length === 0) continue;
       const pos = pick(rng, positions);
       const hidden = tokens[pos] as number | OpSymbol;

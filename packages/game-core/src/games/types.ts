@@ -16,6 +16,8 @@ export interface GameDefinition {
   minPlayers: number;
   /** Jouable en « chacun son tour » (sinon toujours en simultané). */
   turns: boolean;
+  /** Opérations proposées par ce jeu (la puissance et la racine ne vont pas partout). */
+  operations: readonly Operation[];
   /** Les tags des calculs sont des opérations : statistiques par opération au rapport et au tableau de bord. */
   operationStats: boolean;
   /** Temps par calcul permis, en secondes. */

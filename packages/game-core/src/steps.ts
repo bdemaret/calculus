@@ -5,7 +5,7 @@
  * seule l'expression complète (`complete.expr`) part au serveur, qui la revérifie comme toute réponse.
  */
 import { MAX_EXPRESSION_LENGTH, evaluateStrict, formatExpression, parseExpression, type ExprNode } from "./expression";
-import type { Operation } from "./types";
+import type { BasicOperation } from "./types";
 
 export const STEP_SEPARATOR = ";";
 /** Longueur maximale d'une saisie en étapes (six plaques : cinq étapes au plus, plus la ligne). */
@@ -73,7 +73,7 @@ export const encodeSteps = (steps: readonly string[], line: string): string =>
   steps.length > 0 ? `${steps.join(STEP_SEPARATOR)}${STEP_SEPARATOR}${line}` : line;
 
 /** Lit une saisie en étapes. Une étape illisible ou hors des règles est ignorée, jamais « corrigée ». */
-export function readSteps(tiles: readonly number[], operations: readonly Operation[], input: string): StepsState {
+export function readSteps(tiles: readonly number[], operations: readonly BasicOperation[], input: string): StepsState {
   let pool: PoolItem[] = tiles.map((value) => ({ node: { kind: "num", value }, value, step: null }));
   const steps: Step[] = [];
   const { committed, line } = split(input);

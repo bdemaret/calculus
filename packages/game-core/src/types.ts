@@ -1,4 +1,7 @@
-export type Operation = "add" | "sub" | "mul" | "div";
+/** Les quatre opérations de base : les seules du bon compte, de la bombe et des opérateurs manquants. */
+export type BasicOperation = "add" | "sub" | "mul" | "div";
+/** Toutes les opérations d'un calcul : les quatre de base, la puissance (« 7² ») et la racine carrée (« √49 »). */
+export type Operation = BasicOperation | "pow" | "sqrt";
 /** Étiquette utilisée pour les statistiques : une opération, la présence de parenthèses ou le type de trou (nombre manquant). */
 export type OpTag = Operation | "paren" | "hole-num" | "hole-op";
 
@@ -26,6 +29,8 @@ export interface GameSettings {
   missingKind: MissingKind;
   /** La bombe : temps pour construire sa bombe, en secondes. */
   buildTime: number;
+  /** Puissance : plus grand exposant (de 2 à 10), les exposants sont tirés entre 2 et lui. */
+  powerMax: number;
 }
 
 /**
@@ -39,7 +44,7 @@ export type Puzzle =
       /** Ce qui manque : un nombre ou un opérateur. */
       hole: "number" | "operator";
       /** Membre de gauche, le trou noté « ? ». */
-      tokens: (number | "+" | "−" | "×" | "÷" | "(" | ")" | "?")[];
+      tokens: (number | "+" | "−" | "×" | "÷" | "^" | "√" | "(" | ")" | "?")[];
       /** Membre de droite. */
       result: number;
     }
@@ -49,13 +54,13 @@ export type Puzzle =
       tiles: number[];
       target: number;
       /** Opérations permises. */
-      operations: Operation[];
+      operations: BasicOperation[];
     }
   | {
       game: "bomb";
       /** Plaques communes, chacune utilisable au plus une fois dans une bombe. */
       tiles: number[];
-      operations: Operation[];
+      operations: BasicOperation[];
       /** Plaques à utiliser au minimum. */
       minTiles: number;
       /** Résultat maximal d'une bombe. */
@@ -80,7 +85,7 @@ export interface Question {
 export type AnswerKind = "number" | "expr" | "op";
 
 /** Réponse d'un joueur : un nombre, une expression (« (7 + 5) × 3 ») ou un opérateur. */
-export type PlayerAnswer = { value: number } | { expr: string } | { op: Operation };
+export type PlayerAnswer = { value: number } | { expr: string } | { op: BasicOperation };
 
 export interface PlayerInfo {
   id: string;

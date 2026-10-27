@@ -10,6 +10,10 @@ import {
   describeRatingChange,
   defaultSettings,
   evaluateText,
+  evaluateTokens,
+  LEVELS,
+  renderTokens,
+  tokenize,
   generateQuestion,
   GAMES,
   sanitizeSettings,
@@ -18,7 +22,23 @@ import {
   type Operation,
 } from "../src";
 
-const OPS_COMBOS: Operation[][] = [["add"], ["sub"], ["mul"], ["div"], ["add", "sub"], ["mul", "div"], ["add", "sub", "mul", "div"]];
+const OPS_COMBOS: Operation[][] = [
+  ["add"],
+  ["sub"],
+  ["mul"],
+  ["div"],
+  ["add", "sub"],
+  ["mul", "div"],
+  ["add", "sub", "mul", "div"],
+  ["pow"],
+  ["sqrt"],
+  ["pow", "sqrt"],
+  ["add", "pow"],
+  ["div", "pow"],
+  ["sub", "sqrt"],
+  ["mul", "div", "sqrt"],
+  ["add", "sub", "mul", "div", "pow", "sqrt"],
+];
 
 describe("générateur de calculs", () => {
   it("produit des résultats entiers, positifs, cohérents avec l'énoncé", () => {
@@ -26,10 +46,24 @@ describe("générateur de calculs", () => {
       for (const operations of OPS_COMBOS) {
         for (const parentheses of [false, true]) {
           for (let i = 0; i < 300; i++) {
-            const q = generateQuestion(`s-${difficulty}-${operations.join()}-${parentheses}`, i, { difficulty, operations, parentheses });
+            const powerMax = 2 + (i % 9);
+            const q = generateQuestion(`s-${difficulty}-${operations.join()}-${parentheses}`, i, { difficulty, operations, parentheses, powerMax });
             expect(Number.isInteger(q.answer)).toBe(true);
-            expect(q.answer).toBeGreaterThanOrEqual(0);
+            expect(q.answer).toBeGreaterThan(0);
+            expect(q.answer).toBeLessThanOrEqual(LEVELS[difficulty].maxResult);
             expect(evaluateText(q.text)).toBe(q.answer);
+            // Jamais de résultat intermédiaire négatif.
+            expect(evaluateTokens(tokenize(q.text), true)).toBe(q.answer);
+            // L'énoncé se relit à l'identique.
+            expect(renderTokens(tokenize(q.text))).toBe(q.text);
+            // Exposants entre 2 et powerMax.
+            const tokens = tokenize(q.text);
+            tokens.forEach((t, k) => {
+              if (t === "^") {
+                expect(tokens[k + 1]).toBeGreaterThanOrEqual(2);
+                expect(tokens[k + 1]).toBeLessThanOrEqual(powerMax);
+              }
+            });
             if (!parentheses) expect(q.text).not.toContain("(");
           }
         }
@@ -38,15 +72,20 @@ describe("générateur de calculs", () => {
   });
 
   it("n'utilise que les opérations demandées", () => {
-    const symbols: Record<Operation, string> = { add: "+", sub: "−", mul: "×", div: "÷" };
+    const symbols: Record<Operation, RegExp> = { add: /\+/, sub: /−/, mul: /×/, div: /÷/, pow: /[²³⁴⁵⁶⁷⁸⁹¹]/, sqrt: /√/ };
     for (const difficulty of DIFFICULTIES) {
       for (const operations of OPS_COMBOS) {
+        const seen = new Set<Operation>();
         for (let i = 0; i < 200; i++) {
-          const q = generateQuestion("ops", i, { difficulty, operations, parentheses: true });
+          const q = generateQuestion("ops", i, { difficulty, operations, parentheses: true, powerMax: 10 });
           for (const op of Object.keys(symbols) as Operation[]) {
-            if (!operations.includes(op)) expect(q.text).not.toContain(symbols[op]);
+            if (symbols[op].test(q.text)) seen.add(op);
+            if (!operations.includes(op)) expect(q.text).not.toMatch(symbols[op]);
           }
+          for (const tag of q.tags) if (tag !== "paren") expect(operations).toContain(tag);
         }
+        // La puissance et la racine apparaissent quand elles sont choisies.
+        for (const op of ["pow", "sqrt"] as const) if (operations.includes(op)) expect(seen).toContain(op);
       }
     }
   });
@@ -70,17 +109,49 @@ describe("générateur de calculs", () => {
     expect(evaluateText("100 − 36 ÷ 4")).toBe(91);
     expect(evaluateText("10 − 3 − 2")).toBe(5);
     expect(Number.isNaN(evaluateText("7 ÷ 2"))).toBe(true);
+    expect(evaluateText("3 × 4²")).toBe(48);
+    expect(evaluateText("2¹⁰ − √49")).toBe(1017);
+    expect(evaluateText("√(16 + 9)")).toBe(5);
+    expect(evaluateText("2^3 + 1")).toBe(9);
+    expect(Number.isNaN(evaluateText("√50"))).toBe(true);
+  });
+
+  it("écrit les puissances en exposant et la racine collée à son nombre", () => {
+    expect(renderTokens([2, "^", 10, "−", "√", 49])).toBe("2¹⁰ − √49");
+    expect(tokenize("(7 + 3)² × √144")).toEqual(["(", 7, "+", 3, ")", "^", 2, "×", "√", 144]);
   });
 });
 
 describe("paramètres", () => {
   it("corrige les valeurs invalides", () => {
-    const s = sanitizeSettings({ difficulty: 9, mode: "hack", operations: ["pow"], rounds: 1000, timePerQuestion: -4 });
+    const s = sanitizeSettings({ difficulty: 9, mode: "hack", operations: ["log"], rounds: 1000, timePerQuestion: -4, powerMax: 99 });
     expect(s.difficulty).toBe(2);
     expect(s.mode).toBe("speed-race");
     expect(s.operations.length).toBeGreaterThan(0);
     expect(s.rounds).toBe(50);
     expect(s.timePerQuestion).toBe(3);
+    expect(s.powerMax).toBe(10);
+    expect(sanitizeSettings({ powerMax: 1 }).powerMax).toBe(2);
+    expect(sanitizeSettings({ powerMax: "7" }).powerMax).toBe(2);
+  });
+
+  it("propose la puissance et la racine par défaut seulement au niveau légende, avec l'exposant 2", () => {
+    for (const d of DIFFICULTIES) {
+      const s = defaultSettings(d);
+      expect(s.powerMax).toBe(2);
+      expect(s.operations.includes("pow")).toBe(d === 5);
+      expect(s.operations.includes("sqrt")).toBe(d === 5);
+    }
+    expect(defaultSettings(5, "speed-race", "missing").operations).toContain("pow");
+  });
+
+  it("refuse la puissance et la racine au bon compte et dans la bombe", () => {
+    for (const game of ["right-count", "bomb"] as const) {
+      expect(defaultSettings(5, "battle-royale", game).operations).toEqual(["add", "sub", "mul", "div"]);
+      expect(sanitizeSettings({ game, difficulty: 5, operations: ["add", "pow", "sqrt"] }).operations).toEqual(["add"]);
+      expect(sanitizeSettings({ game, difficulty: 5, operations: ["pow", "sqrt"] }).operations).toEqual(["add", "sub", "mul", "div"]);
+    }
+    expect(sanitizeSettings({ game: "standard", operations: ["sqrt", "add", "pow"] }).operations).toEqual(["add", "pow", "sqrt"]);
   });
 
   it("reprend les anciens réglages sans jeu comme du calcul standard", () => {

@@ -88,11 +88,11 @@ export function CalcLine({ text, puzzle, value, onChange, onSubmit, disabled, st
           ) : hole ? (
             // Nombre manquant : « 23 + [  ] = 41 ». Le texte complet reste lisible dans data-calc.
             <span data-testid="calc-text" data-calc={text}>
-              {/* Pas d'espace entre la case et une parenthèse : « (7 + [ ]) × 3 ». */}
+              {/* Pas d'espace entre la case et une parenthèse, une racine ou un exposant : « (7 + [ ]) × 3 », « √[ ] », « [ ]² ». */}
               {hole.before}
-              {hole.before && !hole.before.endsWith("(") ? " " : null}
+              {hole.before && !/[(√]$/.test(hole.before) ? " " : null}
               {box}
-              {hole.after && !hole.after.startsWith(")") ? " " : null}
+              {hole.after && !/^[)⁰¹²³⁴⁵⁶⁷⁸⁹]/.test(hole.after) ? " " : null}
               {hole.after} <span className="eq">=</span> {hole.result}
             </span>
           ) : (

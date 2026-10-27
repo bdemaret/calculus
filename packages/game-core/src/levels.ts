@@ -1,4 +1,4 @@
-import type { Difficulty, Operation } from "./types";
+import type { BasicOperation, Difficulty, Operation } from "./types";
 
 export interface LevelConfig {
   level: Difficulty;
@@ -9,6 +9,10 @@ export interface LevelConfig {
   mulMax: number;
   /** Plus grand diviseur (et plus grand quotient) pour les divisions. */
   divMax: number;
+  /** Plus grande valeur d'une puissance (« 2¹⁰ » demande 1024). */
+  powMax: number;
+  /** Plus grande racine carrée (« √900 » demande 30). */
+  sqrtMax: number;
   /** Nombres de termes possibles dans un calcul sans parenthèses. */
   terms: number[];
   defaultOperations: Operation[];
@@ -26,6 +30,8 @@ export const LEVELS: Record<Difficulty, LevelConfig> = {
     addMax: 10,
     mulMax: 5,
     divMax: 5,
+    powMax: 100,
+    sqrtMax: 10,
     terms: [2],
     defaultOperations: ["add", "sub"],
     defaultParentheses: false,
@@ -38,6 +44,8 @@ export const LEVELS: Record<Difficulty, LevelConfig> = {
     addMax: 50,
     mulMax: 10,
     divMax: 10,
+    powMax: 144,
+    sqrtMax: 12,
     terms: [2],
     defaultOperations: ["add", "sub", "mul"],
     defaultParentheses: false,
@@ -50,6 +58,8 @@ export const LEVELS: Record<Difficulty, LevelConfig> = {
     addMax: 100,
     mulMax: 12,
     divMax: 12,
+    powMax: 400,
+    sqrtMax: 15,
     terms: [2],
     defaultOperations: ["add", "sub", "mul", "div"],
     defaultParentheses: false,
@@ -62,6 +72,8 @@ export const LEVELS: Record<Difficulty, LevelConfig> = {
     addMax: 200,
     mulMax: 12,
     divMax: 12,
+    powMax: 625,
+    sqrtMax: 20,
     terms: [3],
     defaultOperations: ["add", "sub", "mul", "div"],
     defaultParentheses: true,
@@ -74,8 +86,10 @@ export const LEVELS: Record<Difficulty, LevelConfig> = {
     addMax: 999,
     mulMax: 25,
     divMax: 15,
+    powMax: 1024,
+    sqrtMax: 30,
     terms: [3, 4],
-    defaultOperations: ["add", "sub", "mul", "div"],
+    defaultOperations: ["add", "sub", "mul", "div", "pow", "sqrt"],
     defaultParentheses: true,
     defaultTime: 20,
     maxResult: 20000,
@@ -83,4 +97,9 @@ export const LEVELS: Record<Difficulty, LevelConfig> = {
 };
 
 export const DIFFICULTIES: Difficulty[] = [1, 2, 3, 4, 5];
-export const ALL_OPERATIONS: Operation[] = ["add", "sub", "mul", "div"];
+/** Les quatre opérations de base (bon compte, bombe, opérateurs manquants). */
+export const BASIC_OPERATIONS: BasicOperation[] = ["add", "sub", "mul", "div"];
+/** Toutes les opérations, dans l'ordre d'affichage. La puissance et la racine ne sont proposées qu'au calcul mental et au nombre manquant. */
+export const ALL_OPERATIONS: Operation[] = [...BASIC_OPERATIONS, "pow", "sqrt"];
+
+export const isBasicOperation = (op: Operation): op is BasicOperation => (BASIC_OPERATIONS as Operation[]).includes(op);

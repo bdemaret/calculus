@@ -4,10 +4,10 @@
  * Sert à choisir une cible toujours atteignable et à donner une solution de référence.
  */
 import { formatExpression, type ExprNode } from "./expression";
-import type { Operation } from "./types";
+import type { BasicOperation } from "./types";
 
 /** Comment une valeur est obtenue dans un sous-ensemble de plaques (pour reconstruire une solution). */
-type Witness = { tile: number } | { op: Operation; left: [mask: number, value: number]; right: [mask: number, value: number] };
+type Witness = { tile: number } | { op: BasicOperation; left: [mask: number, value: number]; right: [mask: number, value: number] };
 
 export interface Reachable {
   /** Valeurs atteignables avec toutes les plaques, dans l'ordre croissant. */
@@ -27,7 +27,7 @@ const popcount = (n: number) => {
  * les valeurs d'un sous-ensemble viennent de ses découpages en deux moitiés.
  * Les valeurs au-delà de `maxValue` sont ignorées, ce qui borne le travail.
  */
-export function solveTiles(tiles: readonly number[], operations: readonly Operation[], maxValue: number): Reachable {
+export function solveTiles(tiles: readonly number[], operations: readonly BasicOperation[], maxValue: number): Reachable {
   const n = tiles.length;
   const full = (1 << n) - 1;
   const sets: Map<number, Witness>[] = Array.from({ length: full + 1 }, () => new Map());
@@ -49,7 +49,7 @@ export function solveTiles(tiles: readonly number[], operations: readonly Operat
       const b = mask ^ a;
       for (const x of sets[a]!.keys()) {
         for (const y of sets[b]!.keys()) {
-          const add = (value: number, op: Operation, l: number, lm: number, r: number, rm: number) => {
+          const add = (value: number, op: BasicOperation, l: number, lm: number, r: number, rm: number) => {
             if (value >= 0 && value <= maxValue && !out.has(value)) out.set(value, { op, left: [lm, l], right: [rm, r] });
           };
           if (ops.has("add")) add(x + y, "add", x, a, y, b);

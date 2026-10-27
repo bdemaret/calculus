@@ -10,6 +10,7 @@ export function onlineSettings(settings: Partial<GameSettings> = {}): GameSettin
     game: "standard",
     missingKind: "number",
     buildTime: 15,
+    powerMax: 2,
     difficulty: 1,
     mode: "speed-race",
     operations: ["add"],

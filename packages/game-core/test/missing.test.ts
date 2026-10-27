@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  ALL_OPERATIONS,
+  BASIC_OPERATIONS,
   DIFFICULTIES,
   GameEngine,
   LEVELS,
@@ -16,11 +16,24 @@ import {
   type Question,
 } from "../src";
 
-const OPS_COMBOS: Operation[][] = [["add"], ["sub"], ["mul"], ["div"], ["add", "sub"], ["mul", "div"], ["add", "sub", "mul", "div"]];
+const OPS_COMBOS: Operation[][] = [
+  ["add"],
+  ["sub"],
+  ["mul"],
+  ["div"],
+  ["add", "sub"],
+  ["mul", "div"],
+  ["add", "sub", "mul", "div"],
+  ["pow"],
+  ["sqrt"],
+  ["add", "pow"],
+  ["div", "sqrt"],
+  ["add", "sub", "mul", "div", "pow", "sqrt"],
+];
 
 /** La bonne réponse d'un calcul, déduite de la solution de référence. */
 function expected(q: Question): PlayerAnswer {
-  const op = ALL_OPERATIONS.find((o) => OPERATION_SYMBOL[o] === q.solution);
+  const op = BASIC_OPERATIONS.find((o) => OPERATION_SYMBOL[o] === q.solution);
   return op ? { op } : { value: Number(q.solution) };
 }
 
@@ -30,7 +43,7 @@ describe("nombre manquant", () => {
       for (const operations of OPS_COMBOS) {
         for (const parentheses of [false, true]) {
           for (const missingKind of MISSING_KINDS) {
-            const settings: GameSettings = { ...defaultSettings(difficulty, "speed-race", "missing"), operations, parentheses, missingKind };
+            const settings: GameSettings = { ...defaultSettings(difficulty, "speed-race", "missing"), operations, parentheses, missingKind, powerMax: 4 };
             for (let i = 0; i < 40; i++) {
               const q = missingGame.generate(`m-${difficulty}-${operations.join()}-${parentheses}-${missingKind}`, i, settings);
               if (q.puzzle.game !== "missing") throw new Error("puzzle attendu");
@@ -44,9 +57,11 @@ describe("nombre manquant", () => {
               if (missingKind === "number") expect(hole).toBe("number");
               expect(q.tags).toContain(hole === "number" ? "hole-num" : "hole-op");
               if (!parentheses) expect(q.text).not.toContain("(");
+              // Jamais un exposant caché : « ? » n'est jamais collé derrière un nombre.
+              expect(q.text).not.toMatch(/\d\?/);
               // Aucune autre réponse ne convient.
               if (hole === "operator") {
-                expect(ALL_OPERATIONS.filter((op) => missingGame.check(q, { op }))).toHaveLength(1);
+                expect(BASIC_OPERATIONS.filter((op) => missingGame.check(q, { op }))).toHaveLength(1);
               } else if (i < 8) {
                 // Balayage complet sur une partie des calculs (le générateur, lui, vérifie autour de la valeur cachée).
                 const bound = Math.min(LEVELS[difficulty].maxResult, 1000);

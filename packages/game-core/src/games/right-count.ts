@@ -1,8 +1,8 @@
 import { evaluateStrict, numbersOf, parseExpression } from "../expression";
-import { ALL_OPERATIONS } from "../levels";
+import { BASIC_OPERATIONS, isBasicOperation } from "../levels";
 import { createRng, randInt, type Rng } from "../rng";
 import { solveTiles } from "../solver";
-import type { Difficulty, Operation, Puzzle, Question } from "../types";
+import type { Difficulty, BasicOperation, Puzzle, Question } from "../types";
 import type { GameDefinition } from "./types";
 
 type RightCountPuzzle = Extract<Puzzle, { game: "right-count" }>;
@@ -15,7 +15,7 @@ export interface RightCountLevel {
   large: number;
   targetMin: number;
   targetMax: number;
-  defaultOperations: Operation[];
+  defaultOperations: BasicOperation[];
   /** Temps par défaut, en secondes. */
   defaultTime: number;
 }
@@ -23,9 +23,9 @@ export interface RightCountLevel {
 export const RIGHT_COUNT_LEVELS: Record<Difficulty, RightCountLevel> = {
   1: { small: 4, smallMax: 10, large: 0, targetMin: 10, targetMax: 50, defaultOperations: ["add", "sub"], defaultTime: 45 },
   2: { small: 5, smallMax: 10, large: 0, targetMin: 20, targetMax: 100, defaultOperations: ["add", "sub", "mul"], defaultTime: 60 },
-  3: { small: 5, smallMax: 10, large: 1, targetMin: 100, targetMax: 300, defaultOperations: [...ALL_OPERATIONS], defaultTime: 75 },
-  4: { small: 4, smallMax: 10, large: 2, targetMin: 100, targetMax: 999, defaultOperations: [...ALL_OPERATIONS], defaultTime: 90 },
-  5: { small: 4, smallMax: 10, large: 2, targetMin: 101, targetMax: 999, defaultOperations: [...ALL_OPERATIONS], defaultTime: 90 },
+  3: { small: 5, smallMax: 10, large: 1, targetMin: 100, targetMax: 300, defaultOperations: [...BASIC_OPERATIONS], defaultTime: 75 },
+  4: { small: 4, smallMax: 10, large: 2, targetMin: 100, targetMax: 999, defaultOperations: [...BASIC_OPERATIONS], defaultTime: 90 },
+  5: { small: 4, smallMax: 10, large: 2, targetMin: 101, targetMax: 999, defaultOperations: [...BASIC_OPERATIONS], defaultTime: 90 },
 };
 
 const LARGE_TILES = [25, 50, 75, 100];
@@ -43,7 +43,7 @@ function drawTiles(rng: Rng, cfg: RightCountLevel): number[] {
 }
 
 /** Un tirage toujours résoluble avec une seule opération, en utilisant toutes les plaques. */
-function fallback(rng: Rng, count: number, op: Operation): { tiles: number[]; target: number; solution: string } {
+function fallback(rng: Rng, count: number, op: BasicOperation): { tiles: number[]; target: number; solution: string } {
   const small = Array.from({ length: count - 1 }, () => randInt(rng, 2, 5));
   const product = small.reduce((p, x) => p * x, 1);
   const sum = small.reduce((p, x) => p + x, 0);
@@ -56,7 +56,7 @@ function fallback(rng: Rng, count: number, op: Operation): { tiles: number[]; ta
   return { tiles, target, solution: tiles.join(` ${sym} `) };
 }
 
-function question(index: number, difficulty: Difficulty, tiles: number[], target: number, solution: string, operations: Operation[]): Question {
+function question(index: number, difficulty: Difficulty, tiles: number[], target: number, solution: string, operations: BasicOperation[]): Question {
   const puzzle: RightCountPuzzle = { game: "right-count", tiles, target, operations };
   return { index, text: `${tiles.join(" ")} → ${target}`, answer: target, solution, puzzle, tags: [], difficulty };
 }
@@ -89,13 +89,16 @@ export const rightCountGame: GameDefinition = {
   solo: true,
   minPlayers: 1,
   turns: true,
+  operations: BASIC_OPERATIONS,
   operationStats: false,
   timeRange: { min: 20, max: 180 },
   defaults: (d) => ({ operations: [...RIGHT_COUNT_LEVELS[d].defaultOperations], parentheses: true, timePerQuestion: RIGHT_COUNT_LEVELS[d].defaultTime }),
   answerKind: () => "expr",
   generate(seed, index, settings) {
     const cfg = RIGHT_COUNT_LEVELS[settings.difficulty];
-    const ops = settings.operations.length > 0 ? settings.operations : cfg.defaultOperations;
+    // Ni puissance ni racine au bon compte (`sanitizeSettings` les retire déjà).
+    const basic = settings.operations.filter(isBasicOperation);
+    const ops = basic.length > 0 ? basic : cfg.defaultOperations;
     const rng = createRng(`${seed}:${index}`);
     for (let attempt = 0; attempt < 2 * ATTEMPTS; attempt++) {
       const tiles = drawTiles(rng, cfg);

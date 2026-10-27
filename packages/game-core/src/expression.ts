@@ -3,19 +3,19 @@
  * évaluation aux règles du jeu et vérification des plaques utilisées.
  * Rien n'est cru sur parole : une saisie mal formée est refusée, jamais « corrigée ».
  */
-import type { Operation } from "./types";
+import type { BasicOperation } from "./types";
 
 /** Longueur maximale d'une expression, en caractères. */
 export const MAX_EXPRESSION_LENGTH = 64;
 /** Chiffres au plus dans un nombre saisi. */
 const MAX_NUMBER_DIGITS = 6;
 
-export type ExprNode = { kind: "num"; value: number } | { kind: "op"; op: Operation; left: ExprNode; right: ExprNode };
+export type ExprNode = { kind: "num"; value: number } | { kind: "op"; op: BasicOperation; left: ExprNode; right: ExprNode };
 
-type ExprToken = number | Operation | "(" | ")";
+type ExprToken = number | BasicOperation | "(" | ")";
 
 /** Symboles acceptés à la saisie (clavier ou affichage). */
-const OPERATOR_OF: Record<string, Operation> = {
+const OPERATOR_OF: Record<string, BasicOperation> = {
   "+": "add",
   "-": "sub",
   "−": "sub",
@@ -29,7 +29,7 @@ const OPERATOR_OF: Record<string, Operation> = {
 };
 
 /** Opération d'un symbole saisi (« + », « - », « x », « ÷ »…), null si ce n'en est pas un. */
-export function operatorOfSymbol(symbol: string): Operation | null {
+export function operatorOfSymbol(symbol: string): BasicOperation | null {
   return OPERATOR_OF[symbol] ?? null;
 }
 
@@ -73,7 +73,7 @@ export function parseExpression(text: string): ExprNode | null {
   const parseSum = (): ExprNode | null => {
     let left = parseProduct();
     while (left && (tokens[pos] === "add" || tokens[pos] === "sub")) {
-      const op = tokens[pos++] as Operation;
+      const op = tokens[pos++] as BasicOperation;
       const right = parseProduct();
       left = right ? { kind: "op", op, left, right } : null;
     }
@@ -82,7 +82,7 @@ export function parseExpression(text: string): ExprNode | null {
   const parseProduct = (): ExprNode | null => {
     let left = parseFactor();
     while (left && (tokens[pos] === "mul" || tokens[pos] === "div")) {
-      const op = tokens[pos++] as Operation;
+      const op = tokens[pos++] as BasicOperation;
       const right = parseFactor();
       left = right ? { kind: "op", op, left, right } : null;
     }
@@ -106,7 +106,7 @@ export function parseExpression(text: string): ExprNode | null {
  * les divisions tombent juste, et seules les `operations` données sont permises (toutes par défaut).
  * Renvoie NaN si une règle n'est pas respectée.
  */
-export function evaluateStrict(node: ExprNode, operations?: readonly Operation[]): number {
+export function evaluateStrict(node: ExprNode, operations?: readonly BasicOperation[]): number {
   if (node.kind === "num") return node.value;
   if (operations && !operations.includes(node.op)) return Number.NaN;
   const a = evaluateStrict(node.left, operations);
@@ -148,8 +148,8 @@ export function fitsTiles(numbers: readonly number[], tiles: readonly number[]):
   return true;
 }
 
-const SYMBOL_OF: Record<Operation, string> = { add: "+", sub: "−", mul: "×", div: "÷" };
-const PRECEDENCE: Record<Operation, number> = { add: 1, sub: 1, mul: 2, div: 2 };
+const SYMBOL_OF: Record<BasicOperation, string> = { add: "+", sub: "−", mul: "×", div: "÷" };
+const PRECEDENCE: Record<BasicOperation, number> = { add: 1, sub: 1, mul: 2, div: 2 };
 
 /**
  * Écrit un arbre avec les symboles affichés et le minimum de parenthèses :

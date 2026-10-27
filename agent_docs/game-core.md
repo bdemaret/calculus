@@ -10,7 +10,7 @@ Logique pure, déterministe, sans I/O. Tout est réexporté par `src/index.ts`.
 | `limits.ts` | Bornes communes (`MAX_PLAYERS`, manches, temps du calcul standard, temps de construction de la bombe, `BATTLE_ROYALE_ROUND_CAP`), réexportées par `settings.ts` |
 | `expression.ts` | Expressions saisies par les joueurs : `parseExpression` (stricte, `MAX_EXPRESSION_LENGTH` = 64), `evaluateStrict` (intermédiaires entiers ≥ 0, divisions exactes, opérations permises), `numbersOf`, `fitsTiles` (plaques utilisées au plus une fois), `operatorOfSymbol` (« + », « - », « x », « ÷ »… → opération), `formatExpression` (arbre → texte avec le minimum de parenthèses) |
 | `rng.ts` | RNG à graine (`createRng`, `hashSeed`, `randInt`, `pick`, `randomSeed`) |
-| `levels.ts` | Les 5 niveaux (`LEVELS`, `DIFFICULTIES`, `ALL_OPERATIONS`) : bornes, opérations et temps par défaut |
+| `levels.ts` | Les 5 niveaux (`LEVELS`, `DIFFICULTIES`, `ALL_OPERATIONS`, `BASIC_OPERATIONS`, `isBasicOperation`) : bornes (dont `powMax` / `sqrtMax`), opérations et temps par défaut |
 | `settings.ts` | `defaultSettings(difficulty, mode, game)` (opérations, parenthèses et temps viennent de `GAMES[game].defaults`), `sanitizeSettings` (jeu absent → `standard`, mode non proposé par le jeu → son premier mode, temps borné par `GAMES[game].timeRange`) |
 | `generator.ts` | Génération des calculs (`generateQuestion(seed, index, settings)`) + évaluateur (`evaluateText`, `evaluateTokens`, `tokenize`, `renderTokens`) ; symboles `OPERATION_SYMBOL` / `SYMBOL_OPERATION` |
 | `modes.ts` | Règles des modes (`GameModeRules`, `battleRoyale`, `speedRace`, `MODES`) |
@@ -28,6 +28,13 @@ Logique pure, déterministe, sans I/O. Tout est réexporté par `src/index.ts`.
 - **Calculs valides** : résultats entiers, ≥ 0, et `evaluateText(q.text) === q.answer`. Les opérations demandées sont les seules utilisées ; pas de parenthèses si `parentheses: false`.
 - **Entrées externes** : toujours passer par `sanitizeSettings` (ne lève jamais d'erreur, remplace toute valeur invalide).
 - Symboles affichés : `+ − × ÷` (signe moins et multiplication Unicode, pas `-`/`*`).
+
+## Puissance et racine carrée
+
+- `Operation` = `BasicOperation` (`add sub mul div`) + `pow` + `sqrt`. Seuls le calcul mental et le nombre manquant les proposent (`GameDefinition.operations`) ; `sanitizeSettings` les retire du bon compte et de la bombe. Activées par défaut au niveau 5 (Légende) seulement.
+- Jetons : `^` suivi de l'exposant (écrit en exposant Unicode : « 7² », « 2¹⁰ »), `√` devant un nombre (« √49 »). `tokenize` relit les deux (et `^` ASCII), `renderTokens` les écrit collés.
+- Génération : le calcul est construit avec les opérations de base, puis une puissance ou une racine remplace un nombre (`withSpecial`), et le tout est réévalué (aucun intermédiaire négatif). Avec seulement `pow`/`sqrt`, un calcul d'un terme (« 13² »). Exposants entre 2 et `settings.powerMax` (2 à 10, 2 par défaut), valeur ≤ `LevelConfig.powMax` ; racines ≤ `sqrtMax`.
+- Nombre manquant : on ne cache jamais un exposant ni `^`/`√` ; un opérateur caché est toujours l'une des quatre opérations de base (`PlayerAnswer.op` est une `BasicOperation`).
 
 ## Cycle d'une manche (GameEngine)
 

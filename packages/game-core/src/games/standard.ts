@@ -1,5 +1,5 @@
 import { generateQuestion } from "../generator";
-import { LEVELS } from "../levels";
+import { ALL_OPERATIONS, LEVELS } from "../levels";
 import { MAX_TIME, MIN_TIME } from "../limits";
 import type { GameDefinition } from "./types";
 
@@ -10,6 +10,7 @@ export const standardGame: GameDefinition = {
   solo: true,
   minPlayers: 1,
   turns: true,
+  operations: ALL_OPERATIONS,
   operationStats: true,
   timeRange: { min: MIN_TIME, max: MAX_TIME },
   defaults: (d) => ({ operations: [...LEVELS[d].defaultOperations], parentheses: LEVELS[d].defaultParentheses, timePerQuestion: LEVELS[d].defaultTime }),

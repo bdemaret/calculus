@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import { OPERATION_SYMBOL, commitStep, encodeSteps, parseExpression, readSteps, undoStep, type Operation, type Puzzle } from "@calculus/game-core";
+import { OPERATION_SYMBOL, commitStep, encodeSteps, parseExpression, readSteps, undoStep, type BasicOperation, type Puzzle } from "@calculus/game-core";
 import { cleanInput } from "@/lib/answer";
 import { useTouch } from "@/lib/useTouch";
 
@@ -29,7 +29,7 @@ export function usedTiles(tiles: readonly number[], value: string): boolean[] {
 
 interface TileExpressionProps {
   tiles: readonly number[];
-  operations: readonly Operation[];
+  operations: readonly BasicOperation[];
   /** Les parenthèses sont-elles proposées ? */
   parentheses: boolean;
   /** Au-dessus des plaques (la cible du bon compte). */

@@ -111,6 +111,31 @@ test.describe("solo en invité", () => {
     await solo.playAll(["right", "right", "right", "right", "right"]);
     await expect(solo.verdict).toHaveText("5/5");
   });
+
+  test("puissances et racines carrées se résolvent, avec l'exposant maximal choisi", async ({ page }) => {
+    await presetSolo(page, { difficulty: 3, operations: ["pow", "sqrt"], powerMax: 5, timePerQuestion: 20 });
+    const solo = new SoloPage(page);
+    await solo.goto();
+    await expect(page.getByRole("slider", { name: t("settings.powerMax") })).toHaveValue("5");
+    await solo.start();
+    await solo.playAll(["right", "right", "right", "right", "right"]);
+    await expect(solo.verdict).toHaveText("5/5");
+  });
+
+  test("puissance et racine : par défaut au niveau légende, jamais au bon compte", async ({ page }) => {
+    await presetSolo(page, { difficulty: 4 });
+    const solo = new SoloPage(page);
+    await solo.goto();
+    const pow = page.getByRole("button", { name: t("ops.pow"), exact: true });
+    await expect(pow).toHaveAttribute("aria-pressed", "false");
+    await expect(page.getByRole("slider", { name: t("settings.powerMax") })).toHaveCount(0);
+    await page.getByRole("button", { name: `5 · ${t("levels.5")}` }).click();
+    await expect(pow).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("button", { name: t("ops.sqrt"), exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("slider", { name: t("settings.powerMax") })).toHaveValue("2");
+    await page.getByRole("button", { name: t("games.right-count.name") }).click();
+    await expect(pow).toHaveCount(0);
+  });
 });
 
 test.describe("solo connecté", () => {

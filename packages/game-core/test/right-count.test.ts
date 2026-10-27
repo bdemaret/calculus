@@ -16,11 +16,11 @@ import {
   readSteps,
   undoStep,
   type GameSettings,
-  type Operation,
+  type BasicOperation,
   type Question,
 } from "../src";
 
-const OPS_COMBOS: Operation[][] = [["add"], ["sub"], ["mul"], ["div"], ["add", "sub"], ["mul", "div"], ["add", "sub", "mul", "div"]];
+const OPS_COMBOS: BasicOperation[][] = [["add"], ["sub"], ["mul"], ["div"], ["add", "sub"], ["mul", "div"], ["add", "sub", "mul", "div"]];
 const puzzleOf = (q: Question) => {
   if (q.puzzle.game !== "right-count") throw new Error("puzzle attendu");
   return q.puzzle;
@@ -180,7 +180,7 @@ describe("le bon compte : le plus proche", () => {
 
 describe("le bon compte : saisie en étapes", () => {
   const tiles = [75, 50, 3, 6, 8, 2];
-  const ops: Operation[] = ["add", "sub", "mul", "div"];
+  const ops: BasicOperation[] = ["add", "sub", "mul", "div"];
   const read = (input: string) => readSteps(tiles, ops, input);
 
   it("chaque étape devient un nombre disponible, l'expression complète les enchaîne", () => {

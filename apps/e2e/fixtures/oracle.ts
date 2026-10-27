@@ -1,5 +1,5 @@
 import type { Locator, Page } from "@playwright/test";
-import { ALL_OPERATIONS, OPERATION_SYMBOL, evaluateText, solveTiles, type Operation } from "@calculus/game-core";
+import { BASIC_OPERATIONS, OPERATION_SYMBOL, evaluateText, solveTiles, type BasicOperation } from "@calculus/game-core";
 
 /** Le calcul affiché sur la ligne de cahier. */
 export const calcText = (page: Page): Locator => page.getByTestId("calc-text");
@@ -14,7 +14,7 @@ const MAX_MISSING = 25_000;
  * ou au bon compte « 75 50 3 6 8 2 → 412 » avec ses opérations permises), recalculée avec le même
  * code que le jeu, et une réponse sûrement fausse.
  */
-export function solveText(text: string, operations: Operation[] = ALL_OPERATIONS): { answer: string; wrong: string } {
+export function solveText(text: string, operations: BasicOperation[] = BASIC_OPERATIONS): { answer: string; wrong: string } {
   if (text.includes("→")) {
     // Le bon compte : n'importe quelle solution convient ; la fausse utilise aussi toutes les plaques.
     const [left, right] = text.split(" → ");
@@ -34,9 +34,9 @@ export function solveText(text: string, operations: Operation[] = ALL_OPERATIONS
   const [left, right] = text.split(" = ");
   const holds = (x: string) => evaluateText(left!.replace("?", x)) === Number(right);
   // Le jeu garantit une seule réponse : toute autre valeur est fausse.
-  const symbols = ALL_OPERATIONS.map((op) => OPERATION_SYMBOL[op]);
-  // Entre deux termes, c'est un opérateur qui manque ; sinon un nombre.
-  if (/[\d)]\s*\?\s*[\d(]/.test(left!)) {
+  const symbols = BASIC_OPERATIONS.map((op) => OPERATION_SYMBOL[op]);
+  // Entre deux termes (« 7² ? √25 » compris), c'est un opérateur qui manque ; sinon un nombre.
+  if (/[\d)⁰¹²³⁴⁵⁶⁷⁸⁹]\s*\?\s*[\d(√]/.test(left!)) {
     const op = symbols.find(holds);
     if (!op) throw new Error(`Opérateur manquant introuvable : « ${text} »`);
     return { answer: op, wrong: symbols.find((s) => s !== op)! };
@@ -52,5 +52,5 @@ export function solveText(text: string, operations: Operation[] = ALL_OPERATIONS
 export async function expectedAnswer(page: Page): Promise<{ text: string; answer: string; wrong: string }> {
   const text = ((await calcText(page).getAttribute("data-calc")) ?? (await calcText(page).textContent()) ?? "").trim();
   const ops = await calcText(page).getAttribute("data-ops");
-  return { text, ...solveText(text, ops ? (ops.split(" ") as Operation[]) : undefined) };
+  return { text, ...solveText(text, ops ? (ops.split(" ") as BasicOperation[]) : undefined) };
 }

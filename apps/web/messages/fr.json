@@ -97,6 +97,8 @@
     "sub": "Soustractions",
     "mul": "Multiplications",
     "div": "Divisions",
+    "pow": "Puissances",
+    "sqrt": "Racines carrées",
     "paren": "Parenthèses",
     "hole-num": "Nombres manquants",
     "hole-op": "Opérateurs manquants"
@@ -121,7 +123,9 @@
     "answers": "Réponses",
     "simultaneous": "Tous en même temps",
     "turns": "Chacun son tour",
-    "buildTime": "Temps pour construire sa bombe"
+    "buildTime": "Temps pour construire sa bombe",
+    "powerMax": "Exposants des puissances",
+    "powerRange": "de {min} à {max}"
   },
   "solo": {
     "title": "Jouer solo",

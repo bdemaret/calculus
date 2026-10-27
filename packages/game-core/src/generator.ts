@@ -1,19 +1,28 @@
-import { LEVELS, type LevelConfig } from "./levels";
+import { DEFAULT_POWER } from "./limits";
+import { LEVELS, isBasicOperation, type LevelConfig } from "./levels";
 import { createRng, pick, randInt, type Rng } from "./rng";
-import type { Difficulty, GameSettings, Operation, OpTag, Question } from "./types";
+import type { BasicOperation, Difficulty, GameSettings, Operation, OpTag, Question } from "./types";
 
-/** Symboles affichés (signe moins et multiplication Unicode). */
+/** Symboles affichés des quatre opérations de base (signe moins et multiplication Unicode). */
 export type OpSymbol = "+" | "−" | "×" | "÷";
-/** Jeton d'un calcul : nombre, opérateur ou parenthèse. */
-export type CalcToken = number | OpSymbol | "(" | ")";
+/**
+ * Jeton d'un calcul : nombre, opérateur, parenthèse, puissance (« ^ » suivi de l'exposant,
+ * affiché en exposant : « 7² ») ou racine carrée (« √ » devant un nombre : « √49 »).
+ */
+export type CalcToken = number | OpSymbol | "^" | "√" | "(" | ")";
 type Token = CalcToken;
 
-/** Symbole affiché de chaque opération. */
-export const OPERATION_SYMBOL: Record<Operation, OpSymbol> = { add: "+", sub: "−", mul: "×", div: "÷" };
+/** Symbole affiché de chaque opération de base. */
+export const OPERATION_SYMBOL: Record<BasicOperation, OpSymbol> = { add: "+", sub: "−", mul: "×", div: "÷" };
 const SYMBOL = OPERATION_SYMBOL;
 /** Opération de chaque symbole affiché. */
-export const SYMBOL_OPERATION: Record<OpSymbol, Operation> = { "+": "add", "−": "sub", "×": "mul", "÷": "div" };
-const TAG = SYMBOL_OPERATION;
+export const SYMBOL_OPERATION: Record<OpSymbol, BasicOperation> = { "+": "add", "−": "sub", "×": "mul", "÷": "div" };
+const TAG: Record<OpSymbol | "^" | "√", Operation> = { ...SYMBOL_OPERATION, "^": "pow", "√": "sqrt" };
+
+/** Chiffres en exposant, pour écrire une puissance : « 2¹⁰ ». */
+const SUPERSCRIPT_DIGITS = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+const toSuperscript = (n: number) => [...String(n)].map((d) => SUPERSCRIPT_DIGITS[Number(d)]).join("");
+const fromSuperscript = (s: string) => Number([...s].map((c) => SUPERSCRIPT_DIGITS.indexOf(c)).join(""));
 
 interface Built {
   tokens: Token[];
@@ -25,10 +34,22 @@ interface Built {
 /* garantir que la réponse attendue correspond exactement au texte.     */
 /* ------------------------------------------------------------------ */
 
-const PREC: Record<OpSymbol, number> = { "+": 1, "−": 1, "×": 2, "÷": 2 };
+type Operator = OpSymbol | "^" | "√";
+const PREC: Record<Operator, number> = { "+": 1, "−": 1, "×": 2, "÷": 2, "√": 3, "^": 4 };
 
-function apply(op: OpSymbol, a: number, b: number): number {
+/** Racine carrée entière, NaN si le nombre n'est pas un carré parfait. */
+function exactSqrt(n: number): number {
+  if (n < 0) return Number.NaN;
+  const r = Math.round(Math.sqrt(n));
+  return r * r === n ? r : Number.NaN;
+}
+
+function apply(op: OpSymbol | "^", a: number, b: number): number {
   switch (op) {
+    case "^": {
+      const r = a ** b;
+      return Number.isSafeInteger(r) ? r : Number.NaN;
+    }
     case "+":
       return a + b;
     case "−":
@@ -41,30 +62,35 @@ function apply(op: OpSymbol, a: number, b: number): number {
   }
 }
 
-/** Évalue une suite de jetons en respectant les priorités. Renvoie NaN si invalide. */
-export function evaluateTokens(tokens: Token[]): number {
+/**
+ * Évalue une suite de jetons en respectant les priorités. Renvoie NaN si invalide.
+ * `nonNegative` : NaN aussi dès qu'un résultat intermédiaire passe sous zéro.
+ */
+export function evaluateTokens(tokens: readonly Token[], nonNegative = false): number {
   const values: number[] = [];
-  const ops: (OpSymbol | "(")[] = [];
+  const ops: (Operator | "(")[] = [];
   const reduce = () => {
-    const op = ops.pop() as OpSymbol;
+    const op = ops.pop() as Operator;
     const b = values.pop();
-    const a = values.pop();
+    // La racine carrée ne prend qu'un nombre, celui qui la suit.
+    const a = op === "√" ? 0 : values.pop();
     if (a === undefined || b === undefined) {
       values.push(Number.NaN);
       return;
     }
-    values.push(apply(op, a, b));
+    const r = op === "√" ? exactSqrt(b) : apply(op, a, b);
+    values.push(nonNegative && r < 0 ? Number.NaN : r);
   };
   for (const t of tokens) {
     if (typeof t === "number") values.push(t);
-    else if (t === "(") ops.push(t);
+    else if (t === "(" || t === "√") ops.push(t);
     else if (t === ")") {
       while (ops.length && ops[ops.length - 1] !== "(") reduce();
       ops.pop();
     } else {
       while (ops.length) {
         const top = ops[ops.length - 1];
-        if (top === "(" || PREC[top as OpSymbol] < PREC[t]) break;
+        if (top === "(" || PREC[top as Operator] < PREC[t]) break;
         reduce();
       }
       ops.push(t);
@@ -74,15 +100,16 @@ export function evaluateTokens(tokens: Token[]): number {
   return values.length === 1 ? (values[0] as number) : Number.NaN;
 }
 
-/** Transforme un énoncé texte (« (7 + 5) × 3 ») en jetons. Accepte aussi - * / x. */
+/** Transforme un énoncé texte (« (7 + 5) × 3 », « 7² + √49 ») en jetons. Accepte aussi - * / x ^. */
 export function tokenize(text: string): Token[] {
   const out: Token[] = [];
-  const re = /\s*(\d+|[()+\-−×x*÷/])/gy;
+  const re = /\s*(\d+|[⁰¹²³⁴⁵⁶⁷⁸⁹]+|[()+\-−×x*÷/^√])/gy;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text))) {
     const s = m[1] as string;
     if (/^\d+$/.test(s)) out.push(Number(s));
-    else if (s === "(" || s === ")") out.push(s);
+    else if (SUPERSCRIPT_DIGITS.includes(s[0]!)) out.push("^", fromSuperscript(s));
+    else if (s === "(" || s === ")" || s === "^" || s === "√") out.push(s);
     else if (s === "+") out.push("+");
     else if (s === "-" || s === "−") out.push("−");
     else if (s === "×" || s === "x" || s === "*") out.push("×");
@@ -95,13 +122,22 @@ export function evaluateText(text: string): number {
   return evaluateTokens(tokenize(text));
 }
 
-/** Écrit une suite de jetons comme on l'affiche : « (7 + 5) × 3 ». */
+/** Écrit une suite de jetons comme on l'affiche : « (7 + 5) × 3 », « 7² + √49 ». */
 export function renderTokens(tokens: readonly (Token | "?")[]): string {
-  return tokens
-    .map(String)
-    .join(" ")
-    .replace(/\( /g, "(")
-    .replace(/ \)/g, ")");
+  let out = "";
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i]!;
+    if (t === "^") {
+      // L'exposant s'écrit collé, en petits chiffres.
+      const e = tokens[++i];
+      out += typeof e === "number" ? toSuperscript(e) : `^${e ?? ""}`;
+      continue;
+    }
+    const prev = tokens[i - 1];
+    const glued = out === "" || prev === "(" || prev === "√" || t === ")";
+    out += (glued ? "" : " ") + String(t);
+  }
+  return out;
 }
 
 /* ------------------------------------------------------------------ */
@@ -155,8 +191,8 @@ function buildFactorChain(rng: Rng, cfg: LevelConfig, chain: ("mul" | "div")[]):
 }
 
 /** Calcul sans parenthèses à n termes, ex. « 125 × 8 − 36 ÷ 4 ». */
-function buildFlat(rng: Rng, cfg: LevelConfig, ops: Operation[], nTerms: number): Built | null {
-  const chosen: Operation[] = Array.from({ length: nTerms - 1 }, () => pick(rng, ops));
+function buildFlat(rng: Rng, cfg: LevelConfig, ops: BasicOperation[], nTerms: number): Built | null {
+  const chosen: BasicOperation[] = Array.from({ length: nTerms - 1 }, () => pick(rng, ops));
 
   // Découpe en « termes » séparés par + et −, chacun étant une chaîne de × et ÷.
   const groups: { joiner: "add" | "sub" | null; chain: ("mul" | "div")[] }[] = [{ joiner: null, chain: [] }];
@@ -192,13 +228,13 @@ function buildFlat(rng: Rng, cfg: LevelConfig, ops: Operation[], nTerms: number)
 }
 
 /** Peut-on faire un calcul où les parenthèses changent vraiment le résultat ? */
-function canUseParentheses(ops: Operation[]): boolean {
+function canUseParentheses(ops: BasicOperation[]): boolean {
   const hasSum = ops.includes("add") || ops.includes("sub");
   return hasSum && (ops.includes("mul") || ops.includes("div") || ops.includes("sub"));
 }
 
 /** Calcul avec parenthèses, ex. « (14 + 9) × 4 », « 96 ÷ (5 + 3) » inversé, « 50 − (12 + 7) ». */
-function buildParen(rng: Rng, cfg: LevelConfig, ops: Operation[], nTerms: number): Built | null {
+function buildParen(rng: Rng, cfg: LevelConfig, ops: BasicOperation[], nTerms: number): Built | null {
   const innerOps = ops.filter((o): o is "add" | "sub" => o === "add" || o === "sub");
   const outerOps = ops.filter((o) => o === "mul" || o === "div" || o === "sub");
   if (innerOps.length === 0 || outerOps.length === 0) return null;
@@ -266,6 +302,47 @@ function buildParen(rng: Rng, cfg: LevelConfig, ops: Operation[], nTerms: number
   return { tokens, value };
 }
 
+/* ------------------------------------------------------------------ */
+/* Puissance et racine carrée                                           */
+/* ------------------------------------------------------------------ */
+
+type Special = "pow" | "sqrt";
+
+/** Une puissance « b^e » : exposant entre 2 et `powerMax`, valeur au plus `cfg.powMax`. */
+function buildPower(rng: Rng, cfg: LevelConfig, powerMax: number): Built {
+  const exponents: number[] = [];
+  for (let e = 2; e <= powerMax && 2 ** e <= cfg.powMax; e++) exponents.push(e);
+  const e = pick(rng, exponents);
+  let maxBase = 2;
+  while ((maxBase + 1) ** e <= cfg.powMax) maxBase += 1;
+  const b = randInt(rng, 2, maxBase);
+  return { tokens: [b, "^", e], value: b ** e };
+}
+
+/** Une racine carrée parfaite « √(r²) », de valeur r (ou `value` quand c'est possible, pour garder le calcul juste). */
+function buildRoot(rng: Rng, cfg: LevelConfig, value?: number): Built {
+  const r = value !== undefined && value >= 2 && value <= cfg.sqrtMax ? value : randInt(rng, 2, cfg.sqrtMax);
+  return { tokens: ["√", r * r], value: r };
+}
+
+/** Positions des nombres d'un calcul qu'on peut remplacer (pas les exposants). */
+function leafPositions(tokens: readonly Token[]): number[] {
+  return tokens.flatMap((t, i) => (typeof t === "number" && tokens[i - 1] !== "^" ? [i] : []));
+}
+
+/**
+ * Remplace un nombre du calcul par une puissance ou une racine. Une racine garde la valeur du nombre
+ * quand elle le peut ; sinon la valeur change et le calcul est réévalué (NaN s'il ne tombe plus juste).
+ */
+function withSpecial(rng: Rng, cfg: LevelConfig, built: Built, special: Special, powerMax: number): Built {
+  const leaves = leafPositions(built.tokens);
+  const kept = special === "sqrt" ? leaves.filter((i) => (built.tokens[i] as number) >= 2 && (built.tokens[i] as number) <= cfg.sqrtMax) : [];
+  const at = pick(rng, kept.length > 0 ? kept : leaves);
+  const term = special === "pow" ? buildPower(rng, cfg, powerMax) : buildRoot(rng, cfg, built.tokens[at] as number);
+  const tokens = [...built.tokens.slice(0, at), ...term.tokens, ...built.tokens.slice(at + 1)];
+  return { tokens, value: evaluateTokens(tokens, true) };
+}
+
 function tagsOf(tokens: Token[]): OpTag[] {
   const tags = new Set<OpTag>();
   for (const t of tokens) {
@@ -279,6 +356,8 @@ export interface GenerateOptions {
   difficulty: Difficulty;
   operations: Operation[];
   parentheses: boolean;
+  /** Plus grand exposant d'une puissance (2 par défaut). */
+  powerMax?: number;
 }
 
 /** Génère un calcul avec un générateur aléatoire donné. */
@@ -286,13 +365,29 @@ export function generateWithRng(rng: Rng, opts: GenerateOptions, index = 0): Que
   const cfg = LEVELS[opts.difficulty];
   const ops = opts.operations.length > 0 ? opts.operations : cfg.defaultOperations;
   const parenChance = cfg.level >= 4 ? 0.6 : 0.4;
+  const powerMax = opts.powerMax ?? DEFAULT_POWER;
+  // Le calcul est construit avec les opérations de base ; une puissance ou une racine vient ensuite remplacer un nombre.
+  const basic = ops.filter(isBasicOperation);
+  const specials = ops.filter((o): o is Special => !isBasicOperation(o));
+
+  // Chaque opération choisie a la même chance d'apparaître : la puissance ou la racine sert dans une part des calculs.
+  // Tirée une fois pour toutes, pour que les essais ratés ne favorisent pas la plus facile à placer.
+  const special = specials.length > 0 && (basic.length === 0 || rng() < specials.length / ops.length) ? pick(rng, specials) : null;
 
   for (let attempt = 0; attempt < 400; attempt++) {
     const nTerms = pick(rng, cfg.terms);
-    const useParen = opts.parentheses && canUseParentheses(ops) && rng() < parenChance;
-    const built = useParen ? buildParen(rng, cfg, ops, Math.max(3, nTerms)) : buildFlat(rng, cfg, ops, nTerms);
+    let built: Built | null;
+    if (basic.length === 0) {
+      // Seulement la puissance et / ou la racine : un calcul d'un seul terme, « 13² », « √144 ».
+      built = special === "pow" ? buildPower(rng, cfg, powerMax) : buildRoot(rng, cfg);
+    } else {
+      const useParen = opts.parentheses && canUseParentheses(basic) && rng() < parenChance;
+      built = useParen ? buildParen(rng, cfg, basic, Math.max(3, nTerms)) : buildFlat(rng, cfg, basic, nTerms);
+      if (built && special) built = withSpecial(rng, cfg, built, special, powerMax);
+    }
     if (!built) continue;
-    const checked = evaluateTokens(built.tokens);
+    // Jamais de résultat intermédiaire négatif (« 5 − 9 + 20 »).
+    const checked = evaluateTokens(built.tokens, true);
     if (!Number.isInteger(checked) || checked !== built.value) continue;
     // Un résultat nul (« 7 − 7 ») est trop facile : on le refuse.
     if (checked <= 0 || checked > cfg.maxResult) continue;
@@ -316,6 +411,10 @@ export function generateWithRng(rng: Rng, opts: GenerateOptions, index = 0): Que
  * Calcul numéro `index` d'une partie. Ne dépend que de la graine et de l'index :
  * le serveur et le navigateur obtiennent exactement le même calcul.
  */
-export function generateQuestion(seed: string, index: number, settings: Pick<GameSettings, "difficulty" | "operations" | "parentheses">): Question {
+export function generateQuestion(
+  seed: string,
+  index: number,
+  settings: Pick<GameSettings, "difficulty" | "operations" | "parentheses"> & Partial<Pick<GameSettings, "powerMax">>,
+): Question {
   return generateWithRng(createRng(`${seed}:${index}`), settings, index);
 }

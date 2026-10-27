@@ -1,7 +1,6 @@
 import { GAME_IDS, GAMES } from "./games";
-import { ALL_OPERATIONS } from "./levels";
-import { DEFAULT_BUILD_TIME, MAX_BUILD_TIME, MAX_ROUNDS, MIN_BUILD_TIME, MIN_ROUNDS } from "./limits";
-import type { Difficulty, GameId, GameModeId, GameSettings, MissingKind, Operation, TurnStyle } from "./types";
+import { DEFAULT_BUILD_TIME, DEFAULT_POWER, MAX_BUILD_TIME, MAX_POWER, MAX_ROUNDS, MIN_BUILD_TIME, MIN_POWER, MIN_ROUNDS } from "./limits";
+import type { Difficulty, GameId, GameModeId, GameSettings, MissingKind, TurnStyle } from "./types";
 
 export * from "./limits";
 
@@ -21,6 +20,7 @@ export function defaultSettings(difficulty: Difficulty = 2, mode: GameModeId = "
     // Aux premiers niveaux, on ne cache qu'un nombre ; ensuite, un nombre ou un opérateur.
     missingKind: difficulty <= 2 ? "number" : "mixed",
     buildTime: DEFAULT_BUILD_TIME,
+    powerMax: DEFAULT_POWER,
   };
 }
 
@@ -43,9 +43,9 @@ export function sanitizeSettings(input: unknown): GameSettings {
   const missingKind = MISSING_KINDS.includes(raw.missingKind as MissingKind) ? (raw.missingKind as MissingKind) : base.missingKind;
   // Un jeu sans « chacun son tour » se joue toujours en simultané.
   const turnStyle = GAMES[game].turns && TURN_STYLES.includes(raw.turnStyle as TurnStyle) ? (raw.turnStyle as TurnStyle) : base.turnStyle;
-  const ops = Array.isArray(raw.operations)
-    ? [...new Set(raw.operations.filter((o): o is Operation => ALL_OPERATIONS.includes(o as Operation)))]
-    : base.operations;
+  // Seulement les opérations proposées par ce jeu (ni puissance ni racine au bon compte ou dans la bombe), dans l'ordre d'affichage.
+  const offered = GAMES[game].operations;
+  const ops = Array.isArray(raw.operations) ? offered.filter((o) => (raw.operations as unknown[]).includes(o)) : base.operations;
   return {
     game,
     difficulty,
@@ -54,6 +54,7 @@ export function sanitizeSettings(input: unknown): GameSettings {
     missingKind,
     buildTime:
       typeof raw.buildTime === "number" && Number.isFinite(raw.buildTime) ? clamp(raw.buildTime, MIN_BUILD_TIME, MAX_BUILD_TIME) : base.buildTime,
+    powerMax: typeof raw.powerMax === "number" && Number.isFinite(raw.powerMax) ? clamp(raw.powerMax, MIN_POWER, MAX_POWER) : base.powerMax,
     operations: ops.length > 0 ? ops : base.operations,
     parentheses: typeof raw.parentheses === "boolean" ? raw.parentheses : base.parentheses,
     rounds: typeof raw.rounds === "number" && Number.isFinite(raw.rounds) ? clamp(raw.rounds, MIN_ROUNDS, MAX_ROUNDS) : base.rounds,

@@ -1,9 +1,9 @@
 "use client";
 import { useTranslations } from "next-intl";
-import { ALL_OPERATIONS, OPERATION_SYMBOL, type Operation } from "@calculus/game-core";
+import { BASIC_OPERATIONS, OPERATION_SYMBOL, type BasicOperation } from "@calculus/game-core";
 
 interface Props {
-  onOperator: (op: Operation) => void;
+  onOperator: (op: BasicOperation) => void;
   onDelete: () => void;
   onSubmit: () => void;
   disabled?: boolean;
@@ -14,7 +14,7 @@ export function OperatorPad({ onOperator, onDelete, onSubmit, disabled }: Props)
   const t = useTranslations("game");
   return (
     <div className="keypad ops-pad">
-      {ALL_OPERATIONS.map((op) => (
+      {BASIC_OPERATIONS.map((op) => (
         <button key={op} type="button" disabled={disabled} onClick={() => onOperator(op)} aria-label={t(`operator.${op}`)}>
           {OPERATION_SYMBOL[op]}
         </button>

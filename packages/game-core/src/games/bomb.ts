@@ -1,8 +1,8 @@
 import { evaluateStrict, fitsTiles, formatExpression, numbersOf, parseExpression, type ExprNode } from "../expression";
 import { OPERATION_SYMBOL } from "../generator";
-import { ALL_OPERATIONS } from "../levels";
+import { BASIC_OPERATIONS, isBasicOperation } from "../levels";
 import { createRng, randInt, type Rng } from "../rng";
-import type { Difficulty, OpTag, Operation, Puzzle, Question } from "../types";
+import type { Difficulty, OpTag, BasicOperation, Puzzle, Question } from "../types";
 import type { GameDefinition } from "./types";
 
 export type BombPuzzle = Extract<Puzzle, { game: "bomb" }>;
@@ -18,7 +18,7 @@ export interface BombLevel {
   minTiles: number;
   /** Résultat maximal d'une bombe. */
   maxResult: number;
-  defaultOperations: Operation[];
+  defaultOperations: BasicOperation[];
   parentheses: boolean;
   /** Temps de désamorçage par défaut, en secondes. */
   defaultTime: number;
@@ -27,15 +27,15 @@ export interface BombLevel {
 export const BOMB_LEVELS: Record<Difficulty, BombLevel> = {
   1: { digits: 4, numbers: 0, numberMin: 10, numberMax: 10, minTiles: 2, maxResult: 100, defaultOperations: ["add", "sub"], parentheses: false, defaultTime: 15 },
   2: { digits: 5, numbers: 0, numberMin: 10, numberMax: 10, minTiles: 3, maxResult: 200, defaultOperations: ["add", "sub", "mul"], parentheses: false, defaultTime: 15 },
-  3: { digits: 4, numbers: 1, numberMin: 10, numberMax: 25, minTiles: 3, maxResult: 500, defaultOperations: [...ALL_OPERATIONS], parentheses: false, defaultTime: 20 },
-  4: { digits: 4, numbers: 2, numberMin: 10, numberMax: 50, minTiles: 4, maxResult: 2000, defaultOperations: [...ALL_OPERATIONS], parentheses: true, defaultTime: 25 },
-  5: { digits: 3, numbers: 3, numberMin: 10, numberMax: 99, minTiles: 4, maxResult: 20000, defaultOperations: [...ALL_OPERATIONS], parentheses: true, defaultTime: 30 },
+  3: { digits: 4, numbers: 1, numberMin: 10, numberMax: 25, minTiles: 3, maxResult: 500, defaultOperations: [...BASIC_OPERATIONS], parentheses: false, defaultTime: 20 },
+  4: { digits: 4, numbers: 2, numberMin: 10, numberMax: 50, minTiles: 4, maxResult: 2000, defaultOperations: [...BASIC_OPERATIONS], parentheses: true, defaultTime: 25 },
+  5: { digits: 3, numbers: 3, numberMin: 10, numberMax: 99, minTiles: 4, maxResult: 20000, defaultOperations: [...BASIC_OPERATIONS], parentheses: true, defaultTime: 30 },
 };
 
 /** Pourquoi une bombe est refusée (affiché pendant la construction). */
 export type BombError = "syntax" | "tiles" | "min-tiles" | "operations" | "parentheses" | "invalid" | "too-big";
 
-const opsOf = (node: ExprNode): Operation[] => (node.kind === "num" ? [] : [node.op, ...opsOf(node.left), ...opsOf(node.right)]);
+const opsOf = (node: ExprNode): BasicOperation[] => (node.kind === "num" ? [] : [node.op, ...opsOf(node.left), ...opsOf(node.right)]);
 
 /**
  * Valeur d'une bombe, ou la règle qu'elle enfreint : plaques du tirage au plus une fois chacune,
@@ -121,6 +121,7 @@ export const bombGame: GameDefinition = {
   solo: false,
   minPlayers: 2,
   turns: false,
+  operations: BASIC_OPERATIONS,
   operationStats: true,
   timeRange: { min: 5, max: 60 },
   defaults: (d) => ({ operations: [...BOMB_LEVELS[d].defaultOperations], parentheses: BOMB_LEVELS[d].parentheses, timePerQuestion: BOMB_LEVELS[d].defaultTime }),
@@ -129,7 +130,9 @@ export const bombGame: GameDefinition = {
   generate(seed, index, settings) {
     const cfg = BOMB_LEVELS[settings.difficulty];
     const tiles = drawTiles(createRng(`${seed}:${index}`), cfg);
-    const operations = settings.operations.length > 0 ? settings.operations : cfg.defaultOperations;
+    // Ni puissance ni racine dans une bombe (`sanitizeSettings` les retire déjà).
+    const basic = settings.operations.filter(isBasicOperation);
+    const operations = basic.length > 0 ? basic : cfg.defaultOperations;
     const puzzle: BombPuzzle = { game: "bomb", tiles, operations, minTiles: cfg.minTiles, maxResult: cfg.maxResult, parentheses: settings.parentheses };
     return { index, text: tiles.join(" "), answer: 0, solution: "", puzzle, tags: [], difficulty: settings.difficulty };
   },

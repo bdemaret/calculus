@@ -2,13 +2,14 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
-  ALL_OPERATIONS,
   DIFFICULTIES,
   GAMES,
   GAME_IDS,
   MAX_BUILD_TIME,
+  MAX_POWER,
   MAX_ROUNDS,
   MIN_BUILD_TIME,
+  MIN_POWER,
   MIN_ROUNDS,
   MISSING_KINDS,
   defaultSettings,
@@ -18,7 +19,7 @@ import {
   type Operation,
 } from "@calculus/game-core";
 
-export const OP_SYMBOL: Record<Operation, string> = { add: "+", sub: "−", mul: "×", div: "÷" };
+export const OP_SYMBOL: Record<Operation, string> = { add: "+", sub: "−", mul: "×", div: "÷", pow: "xⁿ", sqrt: "√" };
 
 interface Props {
   id: string;
@@ -40,7 +41,7 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
   const opsKey = s.operations.join();
   useEffect(() => {
     setExample(GAMES[s.game].generate(randomSeed(), 0, s).text);
-  }, [s.game, s.difficulty, opsKey, s.parentheses, s.missingKind]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [s.game, s.difficulty, opsKey, s.parentheses, s.missingKind, s.powerMax]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleOp = (op: Operation) => {
     const ops = s.operations.includes(op) ? s.operations.filter((o) => o !== op) : [...s.operations, op];
@@ -50,7 +51,7 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
       setTimeout(() => setShakeOp(null), 320);
       return;
     }
-    set({ operations: ALL_OPERATIONS.filter((o) => ops.includes(o)) });
+    set({ operations: GAMES[s.game].operations.filter((o) => ops.includes(o)) });
   };
 
   return (
@@ -114,7 +115,8 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
       <fieldset className="field" disabled={readOnly}>
         <legend>{t("settings.operations")}</legend>
         <div className="seg ops" role="group">
-          {ALL_OPERATIONS.map((op) => (
+          {/* La puissance et la racine ne sont proposées qu'au calcul mental et au nombre manquant. */}
+          {GAMES[s.game].operations.map((op) => (
             <button
               key={op}
               type="button"
@@ -141,6 +143,26 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
           ) : null}
         </div>
       </fieldset>
+
+      {s.operations.includes("pow") ? (
+        <div className="field">
+          <label className="field-label" htmlFor={`${id}-power`}>
+            {t("settings.powerMax")}
+          </label>
+          <div className="range-row">
+            <input
+              type="range"
+              id={`${id}-power`}
+              min={MIN_POWER}
+              max={MAX_POWER}
+              value={s.powerMax}
+              disabled={readOnly}
+              onChange={(e) => set({ powerMax: Number(e.target.value) })}
+            />
+            <span className="range-value">{t("settings.powerRange", { min: MIN_POWER, max: s.powerMax })}</span>
+          </div>
+        </div>
+      ) : null}
 
       {s.game === "missing" ? (
         <fieldset className="field" disabled={readOnly}>

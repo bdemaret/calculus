@@ -12,7 +12,7 @@ import {
   sanitizeSettings,
   type BombPuzzle,
   type GameSettings,
-  type Operation,
+  type BasicOperation,
 } from "../src";
 
 const settings = (over: Partial<GameSettings> = {}): GameSettings => ({ ...defaultSettings(2, "battle-royale", "bomb"), ...over });
@@ -55,7 +55,7 @@ describe("la bombe : règles de construction", () => {
   });
 
   it("a toujours une bombe de secours valide, à chaque niveau", () => {
-    const combos: Operation[][] = [["add"], ["sub"], ["mul"], ["div"], ["add", "sub"], ["add", "sub", "mul", "div"]];
+    const combos: BasicOperation[][] = [["add"], ["sub"], ["mul"], ["div"], ["add", "sub"], ["add", "sub", "mul", "div"]];
     for (const d of DIFFICULTIES) {
       for (const operations of combos) {
         for (let i = 0; i < 20; i++) {
