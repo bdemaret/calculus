@@ -55,6 +55,8 @@ export const auth = betterAuth({
       voiceInput: { type: "boolean", required: false, defaultValue: false },
       /** Préférence d'affichage : divisions « 12 ÷ 4 » (standard) ou en fraction. */
       divisionDisplay: { type: "string", required: false, defaultValue: "standard" },
+      /** Préférence d'aide : conseils de technique de calcul en fin de partie. */
+      showTips: { type: "boolean", required: false, defaultValue: true },
     },
     // Droit à l'effacement (RGPD) : le profil demande le mot de passe, Better Auth le vérifie.
     deleteUser: { enabled: true, beforeDelete: async (user) => eraseUserGames(user.id) },

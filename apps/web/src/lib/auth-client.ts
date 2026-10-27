@@ -6,7 +6,7 @@ export const authClient = createAuthClient({
   // Champs ajoutés au compte (voir `user.additionalFields` dans lib/auth.ts).
   plugins: [
     inferAdditionalFields({
-      user: { voiceInput: { type: "boolean", required: false }, divisionDisplay: { type: "string", required: false } },
+      user: { voiceInput: { type: "boolean", required: false }, divisionDisplay: { type: "string", required: false }, showTips: { type: "boolean", required: false } },
     }),
   ],
 });

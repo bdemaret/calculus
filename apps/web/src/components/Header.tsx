@@ -28,6 +28,9 @@ export async function Header() {
           <Link className="nav-link" href="/games">
             {t("games")}
           </Link>
+          <Link className="nav-link" href="/learn">
+            {t("learn")}
+          </Link>
           <Link className="nav-link" href="/leaderboard">
             {t("leaderboard")}
           </Link>

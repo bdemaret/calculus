@@ -53,7 +53,7 @@ test("le serveur de jeu répond sur /health", async ({ request }) => {
   expect(await res.text()).toBe("ok");
 });
 
-for (const path of ["/fr", "/fr/games", "/fr/solo", "/fr/online", "/fr/login", "/fr/signup", "/fr/forgot-password", "/fr/leaderboard/standard/battle-royale", "/fr/legal", "/fr/privacy", "/fr/terms", "/en/privacy", "/en/solo", "/en/games"]) {
+for (const path of ["/fr", "/fr/games", "/fr/solo", "/fr/online", "/fr/login", "/fr/signup", "/fr/forgot-password", "/fr/leaderboard/standard/battle-royale", "/fr/legal", "/fr/privacy", "/fr/terms", "/en/privacy", "/en/solo", "/en/games", "/fr/learn", "/en/learn", "/fr/learn/mul-by-9"]) {
   test(`aucune erreur JavaScript sur ${path}`, async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));

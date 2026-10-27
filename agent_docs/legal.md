@@ -18,7 +18,7 @@ Site édité depuis la France, gratuit, avec des comptes : **pas de CGV** (rien 
 
 ## Données personnelles traitées (inventaire)
 
-- `User` : pseudo, e-mail, mot de passe haché (`Account`), photo de profil (table `avatar`, visible par soi et ses amis via `/api/avatar/[id]`, effacée en cascade), préférence de dictée.
+- `User` : pseudo, e-mail, mot de passe haché (`Account`), photo de profil (table `avatar`, visible par soi et ses amis via `/api/avatar/[id]`, effacée en cascade), préférences de dictée, d'affichage des divisions et de conseils en fin de partie (`showTips`). Un invité qui masque les conseils : `calculus:tips` dans son navigateur seulement.
 - `Session` : **adresse IP et user-agent** (enregistrés par Better Auth), 30 jours.
 - `RateLimit` : la clé contient l'**adresse IP** (compteurs du rate limit, production seulement).
 - `Verification` : jetons de réinitialisation (1 h), liés à l'id du compte.

@@ -25,7 +25,8 @@
     "admin": "Admin",
     "profileRequests": "{name}, {count, plural, one {# demande d’ami en attente} other {# demandes d’ami en attente}}",
     "guild": "Guilde",
-    "guildInvites": "Guilde, {count, plural, one {# invitation en attente} other {# invitations en attente}}"
+    "guildInvites": "Guilde, {count, plural, one {# invitation en attente} other {# invitations en attente}}",
+    "learn": "Techniques"
   },
   "home": {
     "title": "Qui calcule le plus <hl>vite</hl> ?",
@@ -336,7 +337,15 @@
     "deletedPlayer": "Compte supprimé",
     "reviewClosest": "le plus proche",
     "findLobby": "Trouver un autre lobby",
-    "publicEnd": "Ce lobby est terminé. D’autres t’attendent sur l’accueil."
+    "publicEnd": "Ce lobby est terminé. D’autres t’attendent sur l’accueil.",
+    "reviewTips": "Avec une technique ({count})",
+    "tipsSummary": "{count, plural, one {# calcul pouvait se faire avec une technique} other {# calculs pouvaient se faire avec une technique}}{missed, plural, =0 {.} one {, dont # que tu as raté.} other {, dont # que tu as ratés.}}",
+    "tipLabel": "{name} : {target}",
+    "tipLearn": "Voir la technique",
+    "tipPractice": "S’entraîner",
+    "tipsHide": "Ne plus afficher les conseils",
+    "tipsHideHelp": "réactivables dans tes préférences",
+    "tipsShow": "Afficher les conseils de technique"
   },
   "auth": {
     "loginTitle": "Se connecter",
@@ -432,7 +441,11 @@
       "fr": "Français",
       "en": "English"
     },
-    "prefError": "La préférence n’a pas pu être enregistrée."
+    "prefError": "La préférence n’a pas pu être enregistrée.",
+    "tips": "Conseils en fin de partie",
+    "tipsOn": "Afficher",
+    "tipsOff": "Désactiver l’aide",
+    "tipsHelp": "Dans le rapport de fin de partie, signale les calculs qu’une technique de calcul mental aurait simplifiés, et explique comment."
   },
   "friends": {
     "title": "Mes amis",
@@ -594,7 +607,7 @@
           "title": "Les données que nous collectons",
           "body": [
             [
-              "Ton compte : pseudo, adresse e-mail, mot de passe (enregistré sous forme hachée, jamais en clair), date d’inscription, photo de profil si tu en ajoutes une, et préférences de saisie (clavier ou voix) et d’affichage des divisions.",
+              "Ton compte : pseudo, adresse e-mail, mot de passe (enregistré sous forme hachée, jamais en clair), date d’inscription, photo de profil si tu en ajoutes une, et préférences de saisie (clavier ou voix), d’affichage des divisions et de conseils en fin de partie.",
               "Tes parties : réglages, calculs posés, réponses, temps de réponse, scores, rang, Elo et statistiques.",
               "Tes amis : demandes envoyées et reçues, liens d’amitié, invitations à une partie.",
               "Ta guilde : guilde dont tu fais partie, rôle (chef ou membre), date d’arrivée, invitations, blason, et l’heure de ta dernière visite sur le site (pour montrer aux membres si tu es en ligne).",
@@ -980,6 +993,136 @@
       "name-taken": "Une autre guilde porte déjà ce nom.",
       "in-guild": "Tu fais déjà partie d’une guilde : quitte-la d’abord.",
       "generic": "Une erreur est survenue, réessaie."
+    }
+  },
+  "learn": {
+    "title": "Techniques de calcul",
+    "intro": "Des astuces pour calculer plus vite de tête, rangées par niveau. Chacune vient avec un exemple résolu pas à pas.",
+    "levelsNav": "Aller au niveau",
+    "level": "Niveau {level} · {name}",
+    "count": "{count, plural, one {# technique} other {# techniques}}",
+    "steps": "Étapes du calcul",
+    "train": "S’entraîner",
+    "practiceTitle": "S’entraîner : {name}",
+    "back": "Toutes les techniques",
+    "streak": "série",
+    "timer": "Chrono",
+    "timerOff": "Sans",
+    "timerSeconds": "{seconds} s",
+    "right": "juste !",
+    "howTo": "Comment faire",
+    "next": "Calcul suivant",
+    "kicker": "À retenir",
+    "trainOn": "S’entraîner : {name}",
+    "prevLevel": "Niveau précédent : {name}",
+    "nextLevel": "Niveau suivant : {name}",
+    "pagerNav": "Niveaux voisins"
+  },
+  "techniques": {
+    "complement-10": {
+      "name": "Compléments à 10",
+      "summary": "Pour ajouter un petit nombre, complète d’abord jusqu’à la dizaine, puis ajoute ce qui reste.",
+      "how": "{a} + {c} = {ten} complète la dizaine, puis il reste {rest} à ajouter."
+    },
+    "plus-minus-9": {
+      "name": "Ajouter ou retirer 9",
+      "summary": "9, c’est 10 − 1 : ajoute (ou retire) 10, puis corrige de 1. Ça marche aussi avec 19, 29…",
+      "how": "{minus, plural, =1 {Retire {round} au lieu de {b}, puis rajoute 1.} other {Ajoute {round} au lieu de {b}, puis enlève 1.}}"
+    },
+    "near-doubles": {
+      "name": "Presque-doubles",
+      "summary": "Deux nombres voisins : pars du double que tu connais, puis ajoute l’écart.",
+      "how": "{a} + {a} = {double}, puis ajoute l’écart : {d}."
+    },
+    "complement-100": {
+      "name": "Compléments à 100",
+      "summary": "Pour 100 moins un nombre, les dizaines vont jusqu’à 9 et les unités jusqu’à 10.",
+      "how": "Dizaines jusqu’à 9 : {tens} ; unités jusqu’à 10 : {units}. Le complément de {b} à 100 est donc {complement}{hundreds, plural, =0 {.} other {, à ajouter aux {hundreds} qui restent.}}"
+    },
+    "compensation-sub": {
+      "name": "Soustraction par compensation",
+      "summary": "Ajoute le même nombre aux deux termes pour tomber sur une dizaine ronde : l’écart ne change pas.",
+      "how": "Ajoute {c} aux deux nombres : {a} − {b} devient {a2} − {b2}, bien plus simple."
+    },
+    "mul-by-5": {
+      "name": "Multiplier par 5",
+      "summary": "× 5, c’est × 10 puis la moitié.",
+      "how": "Calcule {n} × 10, puis divise par 2."
+    },
+    "mul-by-9": {
+      "name": "Multiplier par 9",
+      "summary": "× 9, c’est × 10 moins une fois le nombre.",
+      "how": "Calcule {n} × 10, puis retire {n}."
+    },
+    "mul-by-11": {
+      "name": "Multiplier par 11",
+      "summary": "Pour un nombre à deux chiffres, écarte ses chiffres et glisse leur somme au milieu.",
+      "how": "Écarte {t} et {u}, et glisse leur somme, {s}, au milieu{carry, plural, =1 { : elle dépasse 9, la retenue passe sur les centaines.} other {.}}"
+    },
+    "distributivity": {
+      "name": "Distributivité",
+      "summary": "Découpe un facteur en dizaines et unités, multiplie chaque morceau, puis additionne.",
+      "how": "{x} = {tens} + {units} : calcule {tens} × {y} et {units} × {y}, puis additionne."
+    },
+    "mul-by-25": {
+      "name": "Multiplier par 25",
+      "summary": "25, c’est 100 ÷ 4 : multiplie par 100, puis divise par 4.",
+      "how": "Calcule {n} × 100, puis divise par 4."
+    },
+    "div-by-5": {
+      "name": "Diviser par 5",
+      "summary": "÷ 5, c’est × 2 puis ÷ 10.",
+      "how": "Double {a} ({double}), puis divise par 10."
+    },
+    "square-ending-5": {
+      "name": "Carré d’un nombre en 5",
+      "summary": "Multiplie le chiffre des dizaines par son suivant, puis écris 25 à la fin.",
+      "how": "{t} × {next} = {product}, puis écris 25 derrière."
+    },
+    "div-by-steps": {
+      "name": "Diviser en deux temps",
+      "summary": "Un diviseur qui se décompose (6 = 2 × 3) se fait en deux divisions simples. Les critères de divisibilité (pair, somme des chiffres…) disent par quoi commencer.",
+      "how": "{d} = {p} × {q} : divise {a} par {p} ({half}), puis par {q}."
+    },
+    "regroup-factors": {
+      "name": "Regrouper les facteurs",
+      "summary": "Dans une suite de multiplications, l’ordre ne compte pas : rapproche ceux qui font un nombre rond.",
+      "how": "Commence par {x} × {y} = {round}, puis multiplie par {rest}."
+    },
+    "diff-squares": {
+      "name": "Autour d’un nombre rond",
+      "summary": "Deux nombres à égale distance d’un nombre rond : (m − d) × (m + d) = m² − d².",
+      "how": "{x} et {y} sont à {d} de {m} : calcule {m}² − {d}²."
+    },
+    "mul-by-99": {
+      "name": "Multiplier par 99",
+      "summary": "× 99, c’est × 100 moins une fois le nombre.",
+      "how": "Calcule {n} × 100, puis retire {n}."
+    },
+    "div-by-25": {
+      "name": "Diviser par 25",
+      "summary": "Il y a 4 fois 25 dans 100 : multiplie par 4, puis divise par 100.",
+      "how": "{a} × 4 = {quadruple}, puis divise par 100."
+    },
+    "neighbor-square": {
+      "name": "Carré d’un voisin",
+      "summary": "Pour un nombre juste à côté d’une dizaine : (m ± 1)² = m² ± 2m + 1.",
+      "how": "{n} est juste {below, plural, =1 {avant} other {après}} {m} : {m}² = {square}, puis {below, plural, =1 {retire} other {ajoute}} 2 × {m} {below, plural, =1 {−} other {+}} 1 = {gap}."
+    },
+    "powers-of-2": {
+      "name": "Puissances de 2",
+      "summary": "Retiens deux repères, 2⁵ = 32 et 2¹⁰ = 1024, puis double ou divise par 2.",
+      "how": "Pars du repère 2 puissance {ref} = {refValue}, puis {down, plural, =1 {divise par 2} other {double}} {count, plural, one {une fois} =2 {deux fois} other {# fois}}."
+    },
+    "sqrt-bracketing": {
+      "name": "Racine carrée par encadrement",
+      "summary": "Encadre le nombre entre les carrés de deux dizaines, puis regarde son dernier chiffre.",
+      "how": "{n} est entre {low}² et {high}², donc sa racine est entre {low} et {high}. {single, plural, =1 {Il finit par 5 : c’est {root}.} other {Il finit par {last} : {cand1} ou {cand2}. {mid}² tranche : c’est {root}.}}"
+    },
+    "mul-by-15": {
+      "name": "Multiplier par 15",
+      "summary": "× 15, c’est × 10 plus sa moitié.",
+      "how": "Calcule {n} × 10, puis ajoute sa moitié."
     }
   }
 }

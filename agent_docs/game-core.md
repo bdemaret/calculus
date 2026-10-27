@@ -12,13 +12,14 @@ Logique pure, déterministe, sans I/O. Tout est réexporté par `src/index.ts`.
 | `rng.ts` | RNG à graine (`createRng`, `hashSeed`, `randInt`, `pick`, `randomSeed`) |
 | `levels.ts` | Les 5 niveaux (`LEVELS`, `DIFFICULTIES`, `ALL_OPERATIONS`, `BASIC_OPERATIONS`, `isBasicOperation`) : bornes (dont `powMax` / `sqrtMax`), opérations et temps par défaut |
 | `settings.ts` | `defaultSettings(difficulty, mode, game)` (opérations, parenthèses et temps viennent de `GAMES[game].defaults`), `sanitizeSettings` (jeu absent → `standard`, mode non proposé par le jeu → son premier mode, temps borné par `GAMES[game].timeRange`) |
-| `generator.ts` | Génération des calculs (`generateQuestion(seed, index, settings)`) + évaluateur (`evaluateText`, `evaluateTokens`, `tokenize`, `renderTokens`) ; symboles `OPERATION_SYMBOL` / `SYMBOL_OPERATION` |
+| `generator.ts` | Génération des calculs (`generateQuestion(seed, index, settings)`, `tagsOf`) + évaluateur (`evaluateText`, `evaluateTokens`, `tokenize`, `renderTokens`) ; symboles `OPERATION_SYMBOL` / `SYMBOL_OPERATION` |
 | `modes.ts` | Règles des modes (`GameModeRules`, `battleRoyale`, `speedRace`, `MODES`) |
 | `engine.ts` | `GameEngine` : manches, réponses, clôture, classement ; `rules` = le mode, `game` = le jeu |
 | `report.ts` | `buildReport` : bilan de fin de partie (stats par joueur, par opération, revue des manches) |
 | `elo.ts` | Elo multijoueur : `computeRatingChanges` (duels deux à deux selon le rang, `ELO_K` = 32 divisé par le nombre d'adversaires), `INITIAL_RATING` = 1000. Placement : pendant `PLACEMENT_GAMES` = 5 parties, Elo caché, et le joueur ne compte pas comme adversaire pour les classés. `describeRatingChange` → `RatingChange` (`rated` / `placement` / `revealed`), seule forme montrée aux joueurs |
 | `protocol.ts` | Contrat réseau navigateur ↔ serveur : `RoomSnapshot`, `ClientMessages`, `ServerMessages`, `GameTokenPayload`, `JOIN_ERRORS`, codes de lobby |
 | `publicLobbies.ts` | Lobbys publics de l'accueil : `PUBLIC_LOBBY_COUNT` = 2, `PUBLIC_LOBBY_DURATION_MS` = 2 min, `randomPublicSettings(rng, avoid)` (jeu, mode et niveau au hasard, différents des lobbys déjà ouverts, toujours en simultané, jamais « chacun son tour » ; seulement les jeux jouables à un, donc jamais la bombe, puisqu'un lobby public peut se lancer avec un seul joueur ; réglages par défaut du jeu et du niveau), types `PublicLobbyInfo` / `PublicLobbyList` |
+| `techniques/` | Techniques de calcul mental (module éducatif) : `TECHNIQUE_IDS` / `TECHNIQUES` (`catalog.ts`), `detectTechnique(text)`, `explainTechnique(id, text)`, `generateDrill(id, seed, index)`, `techniquesOfLevel`, arbre d'un énoncé (`tree.ts` : `parseCalc`, `CalcNode`) |
 
 ## Invariants à respecter
 
@@ -35,6 +36,15 @@ Logique pure, déterministe, sans I/O. Tout est réexporté par `src/index.ts`.
 - Jetons : `^` suivi de l'exposant (écrit en exposant Unicode : « 7² », « 2¹⁰ »), `√` devant un nombre (« √49 »). `tokenize` relit les deux (et `^` ASCII), `renderTokens` les écrit collés.
 - Génération : le calcul est construit avec les opérations de base, puis une puissance ou une racine remplace un nombre (`withSpecial`), et le tout est réévalué (aucun intermédiaire négatif). Avec seulement `pow`/`sqrt`, un calcul d'un terme (« 13² »). Exposants entre 2 et `settings.powerMax` (2 à 10, 2 par défaut), valeur ≤ `LevelConfig.powMax` ; racines ≤ `sqrtMax`.
 - Nombre manquant : on ne cache jamais un exposant ni `^`/`√` ; un opérateur caché est toujours l'une des quatre opérations de base (`PlayerAnswer.op` est une `BasicOperation`).
+
+## Techniques de calcul (`techniques/`)
+
+- 21 techniques réparties sur les 5 niveaux (`TechniqueDefinition.level`) : compléments à 10 et à 100, ± 9, presque-doubles, compensation, × 5 / 9 / 11 / 15 / 25 / 99, ÷ 5 / 25, distributivité, diviser en deux temps (critères de divisibilité), regroupement de facteurs, (a + b)(a − b), carrés (en 5, voisins d'un rond), puissances de 2, racine par encadrement.
+- Une technique ne regarde qu'un **morceau dont les opérandes sont des nombres écrits** (« 48 × 5 » dans « 200 − 48 × 5 »), pour que le conseil désigne un morceau visible de l'énoncé. Les tables (« 7 × 9 », « 5 + 4 », « 4 × 25 ») ne déclenchent rien : chaque `explain` a ses seuils.
+- `detectTechnique(text)` : au plus un conseil, en suivant `DETECTION_ORDER` (les plus précises d'abord : un carré en 5 avant la distributivité). `text` est un énoncé complet : `null` s'il contient « ? » ou « = » (remplir le trou d'un nombre manquant avant). `explainTechnique(id, text)` force une technique (entraînement).
+- `TechniqueHint` : `technique`, `target` (le morceau), `result`, `params` (nombres repris par les textes `techniques.<id>` du site) et `steps` (`{ text, value }`, petits calculs justes). **Aucun texte de langue** dans game-core : le site relie les étapes avec ses messages.
+- `generateDrill(id, seed, index)` : calcul d'entraînement déterministe (graine `seed:id:index`), retiré tant que `detectTechnique` n'y reconnaît pas cette technique (50 essais, puis `example`).
+- Tests (`test/techniques.test.ts`) : chaque exemple et 300 entraînements par technique sont reconnus par elle, toutes les étapes tombent juste (intermédiaires entiers ≥ 0), et les conseils trouvés dans 2 000 calculs du jeu par niveau aussi. Environ 15 à 30 % des calculs d'une partie reçoivent un conseil : à remesurer si on ajoute une technique ou change un seuil.
 
 ## Cycle d'une manche (GameEngine)
 
@@ -98,4 +108,4 @@ Une réponse d'une autre forme que `game.answerKind(question)` (la forme peut ch
 
 ## Tests
 
-`pnpm --filter @calculus/game-core test` (Vitest, `test/game-core.test.ts`, `test/expression.test.ts`, `test/missing.test.ts`, `test/right-count.test.ts`, `test/bomb.test.ts`). Les tests des générateurs balaient tous les niveaux × combinaisons d'opérations (× parenthèses, × type de trou) : à garder exhaustifs quand on touche `generator.ts`, `levels.ts` ou un jeu. Le solveur du bon compte et la génération de la bombe tiennent en quelques millisecondes par manche : à remesurer si on agrandit les tirages.
+`pnpm --filter @calculus/game-core test` (Vitest, `test/game-core.test.ts`, `test/expression.test.ts`, `test/missing.test.ts`, `test/right-count.test.ts`, `test/bomb.test.ts`, `test/techniques.test.ts`). Les tests des générateurs balaient tous les niveaux × combinaisons d'opérations (× parenthèses, × type de trou) : à garder exhaustifs quand on touche `generator.ts`, `levels.ts` ou un jeu. Le solveur du bon compte et la génération de la bombe tiennent en quelques millisecondes par manche : à remesurer si on agrandit les tirages.

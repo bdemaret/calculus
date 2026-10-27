@@ -24,6 +24,8 @@ model User {
   voiceInput    Boolean   @default(false)
   /// Affichage des divisions : "standard" (12 ÷ 4) ou "fraction" (barre de fraction)
   divisionDisplay String  @default("standard")
+  /// Conseils de technique de calcul dans le rapport de fin de partie
+  showTips      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   sessions      Session[]

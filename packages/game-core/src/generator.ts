@@ -343,7 +343,8 @@ function withSpecial(rng: Rng, cfg: LevelConfig, built: Built, special: Special,
   return { tokens, value: evaluateTokens(tokens, true) };
 }
 
-function tagsOf(tokens: Token[]): OpTag[] {
+/** Opérations (et parenthèses) présentes dans un calcul. */
+export function tagsOf(tokens: readonly Token[]): OpTag[] {
   const tags = new Set<OpTag>();
   for (const t of tokens) {
     if (t === "(") tags.add("paren");

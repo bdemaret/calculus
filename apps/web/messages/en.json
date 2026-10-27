@@ -25,7 +25,8 @@
     "admin": "Admin",
     "profileRequests": "{name}, {count, plural, one {# pending friend request} other {# pending friend requests}}",
     "guild": "Guild",
-    "guildInvites": "Guild, {count, plural, one {# pending invitation} other {# pending invitations}}"
+    "guildInvites": "Guild, {count, plural, one {# pending invitation} other {# pending invitations}}",
+    "learn": "Techniques"
   },
   "home": {
     "title": "Who’s the <hl>fastest</hl> at mental math?",
@@ -336,7 +337,15 @@
     "deletedPlayer": "Deleted account",
     "reviewClosest": "closest",
     "findLobby": "Find another lobby",
-    "publicEnd": "This lobby is over. More are waiting on the home page."
+    "publicEnd": "This lobby is over. More are waiting on the home page.",
+    "reviewTips": "With a technique ({count})",
+    "tipsSummary": "{count, plural, one {# calculation could be done with a technique} other {# calculations could be done with a technique}}{missed, plural, =0 {.} one {, including # you missed.} other {, including # you missed.}}",
+    "tipLabel": "{name}: {target}",
+    "tipLearn": "See the technique",
+    "tipPractice": "Practise",
+    "tipsHide": "Stop showing tips",
+    "tipsHideHelp": "you can turn them back on in your preferences",
+    "tipsShow": "Show technique tips"
   },
   "auth": {
     "loginTitle": "Log in",
@@ -432,7 +441,11 @@
       "fr": "Français",
       "en": "English"
     },
-    "prefError": "The preference couldn’t be saved."
+    "prefError": "The preference couldn’t be saved.",
+    "tips": "End-of-game tips",
+    "tipsOn": "Show",
+    "tipsOff": "Turn off help",
+    "tipsHelp": "In the end-of-game report, point out the calculations a mental math technique would have made easier, and explain how."
   },
   "friends": {
     "title": "My friends",
@@ -595,7 +608,7 @@
           "title": "The data we collect",
           "body": [
             [
-              "Your account: username, email address, password (stored hashed, never in plain text), sign-up date, profile photo if you add one, and input preference (keyboard or voice) and division display preference.",
+              "Your account: username, email address, password (stored hashed, never in plain text), sign-up date, profile photo if you add one, and preferences for input (keyboard or voice), division display and end-of-game tips.",
               "Your games: settings, questions asked, answers, response times, scores, rank, Elo and statistics.",
               "Your friends: requests sent and received, friendships, game invitations.",
               "Your guild: the guild you belong to, your role (leader or member), when you joined, invitations, crest, and the time of your last visit to the site (to show members whether you are online).",
@@ -983,6 +996,136 @@
       "name-taken": "Another guild already has this name.",
       "in-guild": "You are already in a guild: leave it first.",
       "generic": "Something went wrong, try again."
+    }
+  },
+  "learn": {
+    "title": "Mental math techniques",
+    "intro": "Tricks to calculate faster in your head, sorted by level. Each one comes with a worked example, step by step.",
+    "levelsNav": "Go to level",
+    "level": "Level {level} · {name}",
+    "count": "{count, plural, one {# technique} other {# techniques}}",
+    "steps": "Calculation steps",
+    "train": "Practise",
+    "practiceTitle": "Practise: {name}",
+    "back": "All techniques",
+    "streak": "streak",
+    "timer": "Timer",
+    "timerOff": "None",
+    "timerSeconds": "{seconds} s",
+    "right": "right!",
+    "howTo": "How to do it",
+    "next": "Next calculation",
+    "kicker": "Remember",
+    "trainOn": "Practise: {name}",
+    "prevLevel": "Previous level: {name}",
+    "nextLevel": "Next level: {name}",
+    "pagerNav": "Neighbouring levels"
+  },
+  "techniques": {
+    "complement-10": {
+      "name": "Making 10",
+      "summary": "To add a small number, first fill up to the next ten, then add what is left.",
+      "how": "{a} + {c} = {ten} fills up the ten, then {rest} is left to add."
+    },
+    "plus-minus-9": {
+      "name": "Adding or taking away 9",
+      "summary": "9 is 10 − 1: add (or take away) 10, then fix it by 1. It works with 19, 29… too.",
+      "how": "{minus, plural, =1 {Take away {round} instead of {b}, then add 1 back.} other {Add {round} instead of {b}, then take 1 away.}}"
+    },
+    "near-doubles": {
+      "name": "Near doubles",
+      "summary": "Two neighbouring numbers: start from the double you know, then add the gap.",
+      "how": "{a} + {a} = {double}, then add the gap: {d}."
+    },
+    "complement-100": {
+      "name": "Making 100",
+      "summary": "For 100 minus a number, the tens go up to 9 and the units up to 10.",
+      "how": "Tens up to 9: {tens}; units up to 10: {units}. So {b} needs {complement} to make 100{hundreds, plural, =0 {.} other {, to add to the {hundreds} left over.}}"
+    },
+    "compensation-sub": {
+      "name": "Subtracting by compensation",
+      "summary": "Add the same number to both terms to land on a round ten: the difference stays the same.",
+      "how": "Add {c} to both numbers: {a} − {b} becomes {a2} − {b2}, much easier."
+    },
+    "mul-by-5": {
+      "name": "Multiplying by 5",
+      "summary": "× 5 is × 10, then half.",
+      "how": "Work out {n} × 10, then halve it."
+    },
+    "mul-by-9": {
+      "name": "Multiplying by 9",
+      "summary": "× 9 is × 10 minus the number once.",
+      "how": "Work out {n} × 10, then take away {n}."
+    },
+    "mul-by-11": {
+      "name": "Multiplying by 11",
+      "summary": "For a two-digit number, spread its digits apart and slip their sum in the middle.",
+      "how": "Spread {t} and {u} apart and slip their sum, {s}, in the middle{carry, plural, =1 {: it is over 9, so carry 1 to the hundreds.} other {.}}"
+    },
+    "distributivity": {
+      "name": "Splitting a factor",
+      "summary": "Split a factor into tens and units, multiply each part, then add them up.",
+      "how": "{x} = {tens} + {units}: work out {tens} × {y} and {units} × {y}, then add them."
+    },
+    "mul-by-25": {
+      "name": "Multiplying by 25",
+      "summary": "25 is 100 ÷ 4: multiply by 100, then divide by 4.",
+      "how": "Work out {n} × 100, then divide by 4."
+    },
+    "div-by-5": {
+      "name": "Dividing by 5",
+      "summary": "÷ 5 is × 2, then ÷ 10.",
+      "how": "Double {a} ({double}), then divide by 10."
+    },
+    "square-ending-5": {
+      "name": "Squaring a number ending in 5",
+      "summary": "Multiply the tens digit by the next number, then write 25 at the end.",
+      "how": "{t} × {next} = {product}, then write 25 after it."
+    },
+    "div-by-steps": {
+      "name": "Dividing in two steps",
+      "summary": "A divisor that splits up (6 = 2 × 3) can be done as two easy divisions. Divisibility rules (even, sum of digits…) tell you where to start.",
+      "how": "{d} = {p} × {q}: divide {a} by {p} ({half}), then by {q}."
+    },
+    "regroup-factors": {
+      "name": "Regrouping factors",
+      "summary": "In a chain of multiplications the order does not matter: bring together the ones that make a round number.",
+      "how": "Start with {x} × {y} = {round}, then multiply by {rest}."
+    },
+    "diff-squares": {
+      "name": "Around a round number",
+      "summary": "Two numbers the same distance from a round number: (m − d) × (m + d) = m² − d².",
+      "how": "{x} and {y} are {d} away from {m}: work out {m}² − {d}²."
+    },
+    "mul-by-99": {
+      "name": "Multiplying by 99",
+      "summary": "× 99 is × 100 minus the number once.",
+      "how": "Work out {n} × 100, then take away {n}."
+    },
+    "div-by-25": {
+      "name": "Dividing by 25",
+      "summary": "There are four 25s in 100: multiply by 4, then divide by 100.",
+      "how": "{a} × 4 = {quadruple}, then divide by 100."
+    },
+    "neighbor-square": {
+      "name": "Squaring a neighbour",
+      "summary": "For a number right next to a ten: (m ± 1)² = m² ± 2m + 1.",
+      "how": "{n} is just {below, plural, =1 {before} other {after}} {m}: {m}² = {square}, then {below, plural, =1 {take away} other {add}} 2 × {m} {below, plural, =1 {−} other {+}} 1 = {gap}."
+    },
+    "powers-of-2": {
+      "name": "Powers of 2",
+      "summary": "Remember two landmarks, 2⁵ = 32 and 2¹⁰ = 1024, then double or halve.",
+      "how": "Start from the landmark 2 to the power {ref} = {refValue}, then {down, plural, =1 {halve} other {double}} {count, plural, one {once} =2 {twice} other {# times}}."
+    },
+    "sqrt-bracketing": {
+      "name": "Square roots by bracketing",
+      "summary": "Squeeze the number between the squares of two tens, then look at its last digit.",
+      "how": "{n} is between {low}² and {high}², so its root is between {low} and {high}. {single, plural, =1 {It ends in 5: it is {root}.} other {It ends in {last}: {cand1} or {cand2}. {mid}² decides: it is {root}.}}"
+    },
+    "mul-by-15": {
+      "name": "Multiplying by 15",
+      "summary": "× 15 is × 10 plus half of that.",
+      "how": "Work out {n} × 10, then add half of it."
     }
   }
 }

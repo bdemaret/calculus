@@ -1,10 +1,13 @@
 "use client";
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { GAMES, PLACEMENT_GAMES, type GameId, type GameModeId, type GameReport, type PlayerReport, type RatingChange, type RoundReview } from "@calculus/game-core";
+import { GAMES, PLACEMENT_GAMES, TECHNIQUES, detectTechnique, type GameId, type GameModeId, type GameReport, type PlayerReport, type RatingChange, type RoundReview } from "@calculus/game-core";
 import { revealSeparator } from "@/lib/answer";
 import { formatPercent, formatSeconds, formatSigned } from "@/lib/format";
+import { useShowTips } from "@/lib/tips";
+import { Link } from "@/i18n/navigation";
 import { MathText } from "./MathText";
+import { TechniqueSteps } from "./TechniqueSteps";
 
 interface Props {
   report: GameReport;
@@ -188,9 +191,18 @@ export function EloDelta({ change }: { change: { before: number; after: number }
 /** Revoir les calculs : chaque manche, la bonne réponse et ce que chaque joueur a répondu. */
 function Review({ report, meId, online, game, mode }: { report: GameReport; meId: string | null; online: boolean; game: GameId; mode: GameModeId }) {
   const t = useTranslations("report");
+  const tt = useTranslations();
   const locale = useLocale();
-  const [onlyMisses, setOnlyMisses] = useState(false);
+  const [filter, setFilter] = useState<"all" | "misses" | "tips">("all");
   const rounds = report.review;
+  // Conseils : seulement au calcul mental. Au nombre manquant, le calcul complet ne dit pas comment trouver le trou.
+  // Désactivables : réglage du compte, ou de ce navigateur pour un invité.
+  const tips = useShowTips();
+  const hints = useMemo(
+    () => new Map(rounds.map((r) => [r.round, tips.show && game === "standard" ? detectTechnique(r.text) : null])),
+    [rounds, game, tips.show],
+  );
+  const withTip = rounds.filter((r) => hints.get(r.round));
   // Toi d'abord, puis les autres dans l'ordre du classement.
   const order = [...report.players].sort((a, b) => (a.playerId === meId ? -1 : b.playerId === meId ? 1 : 0));
   const missed = (r: RoundReview) => {
@@ -203,7 +215,7 @@ function Review({ report, meId, online, game, mode }: { report: GameReport; meId
     if (mode === "battle-royale") return pl.eliminatedAt == null || pl.eliminatedAt >= r.round - 1;
     return true;
   };
-  const shown = onlyMisses ? rounds.filter(missed) : rounds;
+  const shown = filter === "misses" ? rounds.filter(missed) : filter === "tips" ? withTip : rounds;
 
   return (
     <section className="review" aria-labelledby="review-title">
@@ -211,18 +223,47 @@ function Review({ report, meId, online, game, mode }: { report: GameReport; meId
         <h3 id="review-title">{t("reviewTitle")}</h3>
         {meId ? (
           <div className="seg" role="group" aria-label={t("reviewFilter")}>
-            <button type="button" aria-pressed={!onlyMisses} onClick={() => setOnlyMisses(false)}>
+            <button type="button" aria-pressed={filter === "all"} onClick={() => setFilter("all")}>
               {t("reviewAll", { count: rounds.length })}
             </button>
-            <button type="button" aria-pressed={onlyMisses} disabled={misses === 0} onClick={() => setOnlyMisses(true)}>
+            <button type="button" aria-pressed={filter === "misses"} disabled={misses === 0} onClick={() => setFilter("misses")}>
               {t("reviewMisses", { count: misses })}
             </button>
+            {withTip.length > 0 ? (
+              <button type="button" aria-pressed={filter === "tips"} onClick={() => setFilter("tips")}>
+                {t("reviewTips", { count: withTip.length })}
+              </button>
+            ) : null}
           </div>
         ) : null}
       </div>
+      {withTip.length > 0 ? (
+        <p className="muted rv-tips-summary">
+          {t("tipsSummary", { count: withTip.length, missed: withTip.filter(missed).length })}{" "}
+          <button
+            className="link-btn"
+            type="button"
+            onClick={() => {
+              setFilter((f) => (f === "tips" ? "all" : f));
+              void tips.setShow(false);
+            }}
+          >
+            {t("tipsHide")}
+          </button>
+          {tips.guest ? null : <> · {t("tipsHideHelp")}</>}
+        </p>
+      ) : !tips.show && tips.guest && game === "standard" ? (
+        // Un invité n'a pas de préférences : c'est ici qu'il les réaffiche.
+        <p className="muted rv-tips-summary">
+          <button className="link-btn" type="button" onClick={() => void tips.setShow(true)}>
+            {t("tipsShow")}
+          </button>
+        </p>
+      ) : null}
       <ol className="review-list">
         {shown.map((r) => {
           const mineA = meId ? r.answers.find((a) => a.playerId === meId) : undefined;
+          const hint = hints.get(r.round);
           return (
             <li className="rv" key={r.round}>
               <span className="rv-n">{r.round}</span>
@@ -282,6 +323,20 @@ function Review({ report, meId, online, game, mode }: { report: GameReport; meId
                   );
                 })}
               </div>
+              {hint ? (
+                // Mis en avant quand on a raté ce calcul : c'est là que la technique aurait servi.
+                <details className={`rv-tip${missed(r) ? " missed" : ""}`}>
+                  <summary>
+                    <span aria-hidden="true">💡 </span>
+                    {t("tipLabel", { name: tt(`techniques.${hint.technique}.name`), target: hint.target })}
+                  </summary>
+                  <TechniqueSteps hint={hint} />
+                  <p className="rv-tip-links">
+                    <Link href={`/learn?level=${TECHNIQUES[hint.technique].level}#${hint.technique}`}>{t("tipLearn")}</Link>
+                    <Link href={`/learn/${hint.technique}`}>{t("tipPractice")}</Link>
+                  </p>
+                </details>
+              ) : null}
             </li>
           );
         })}

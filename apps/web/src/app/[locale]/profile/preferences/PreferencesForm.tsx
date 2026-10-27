@@ -7,7 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import type { DivisionDisplay } from "@/lib/division";
 import { isVoiceSupported } from "@/lib/useVoiceInput";
 
-export function PreferencesForm({ voiceInput, divisionDisplay }: { voiceInput: boolean; divisionDisplay: DivisionDisplay }) {
+export function PreferencesForm({ voiceInput, divisionDisplay, showTips }: { voiceInput: boolean; divisionDisplay: DivisionDisplay; showTips: boolean }) {
   const t = useTranslations("profile");
   const locale = useLocale();
   const router = useRouter();
@@ -18,6 +18,8 @@ export function PreferencesForm({ voiceInput, divisionDisplay }: { voiceInput: b
   const [voiceSupported, setVoiceSupported] = useState(true);
   const [division, setDivision] = useState(divisionDisplay);
   const [divisionState, setDivisionState] = useState<"idle" | "saved" | "error">("idle");
+  const [tips, setTips] = useState(showTips);
+  const [tipsState, setTipsState] = useState<"idle" | "saved" | "error">("idle");
 
   useEffect(() => setVoiceSupported(isVoiceSupported()), []);
 
@@ -37,6 +39,15 @@ export function PreferencesForm({ voiceInput, divisionDisplay }: { voiceInput: b
     const { error } = await authClient.updateUser({ divisionDisplay: next });
     if (error) setDivision(before);
     setDivisionState(error ? "error" : "saved");
+    router.refresh();
+  };
+
+  const changeTips = async (on: boolean) => {
+    if (on === tips) return;
+    setTips(on);
+    const { error } = await authClient.updateUser({ showTips: on });
+    if (error) setTips(!on);
+    setTipsState(error ? "error" : "saved");
     router.refresh();
   };
 
@@ -93,6 +104,22 @@ export function PreferencesForm({ voiceInput, divisionDisplay }: { voiceInput: b
           </div>
           {divisionState === "saved" ? <p className="form-ok">{t("inputSaved")}</p> : null}
           {divisionState === "error" ? <p className="form-error">{t("prefError")}</p> : null}
+        </fieldset>
+      </div>
+      <div className="profile-card">
+        <fieldset className="field">
+          <legend>{t("tips")}</legend>
+          <div className="seg" role="group">
+            <button type="button" aria-pressed={tips} onClick={() => changeTips(true)}>
+              {t("tipsOn")}
+            </button>
+            <button type="button" aria-pressed={!tips} onClick={() => changeTips(false)}>
+              {t("tipsOff")}
+            </button>
+          </div>
+          <p className="muted">{t("tipsHelp")}</p>
+          {tipsState === "saved" ? <p className="form-ok">{t("inputSaved")}</p> : null}
+          {tipsState === "error" ? <p className="form-error">{t("prefError")}</p> : null}
         </fieldset>
       </div>
     </div>

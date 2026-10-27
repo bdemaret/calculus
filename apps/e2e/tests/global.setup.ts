@@ -19,7 +19,7 @@ setup("prépare la base e2e", async () => {
  */
 setup("compile les pages à l'avance", async ({ request }) => {
   setup.setTimeout(240_000);
-  const pages = ["/fr", "/fr/games", "/fr/solo", "/fr/online", "/fr/login", "/fr/signup", "/fr/forgot-password", "/fr/reset-password", "/fr/dashboard", "/fr/profile", "/fr/profile/friends", "/fr/profile/preferences", "/fr/friends", "/fr/guild", "/fr/leaderboard/standard/battle-royale", "/fr/legal", "/fr/privacy", "/fr/terms", "/en/privacy", "/en"];
+  const pages = ["/fr", "/fr/games", "/fr/solo", "/fr/online", "/fr/login", "/fr/signup", "/fr/forgot-password", "/fr/reset-password", "/fr/dashboard", "/fr/profile", "/fr/profile/friends", "/fr/profile/preferences", "/fr/learn", "/fr/learn/mul-by-9", "/fr/friends", "/fr/guild", "/fr/leaderboard/standard/battle-royale", "/fr/legal", "/fr/privacy", "/fr/terms", "/en/privacy", "/en"];
   for (const path of pages) {
     const res = await request.get(path, { timeout: 120_000 });
     if (res.status() >= 500) throw new Error(`${path} répond ${res.status()}`);

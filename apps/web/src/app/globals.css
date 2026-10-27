@@ -176,6 +176,31 @@ p { margin: 0; }
 .mode-item h3 { display: flex; align-items: baseline; gap: 10px; }
 .tag { font-family: var(--font-hand); font-size: 22px; color: var(--margin-red); font-weight: 700; }
 
+/* Techniques de calcul : onglets par niveau, une fiche bristol « À retenir » par technique */
+.learn-level { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.technique-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: stretch; }
+.technique-card { display: flex; flex-direction: column; gap: 10px; padding: 20px 22px 18px; background: var(--surface); border: 2px solid var(--ink-deep); border-radius: var(--radius-card); box-shadow: var(--sticker); scroll-margin-top: 16px; }
+.technique-card:target { box-shadow: var(--sticker), 0 0 0 4px var(--hl); animation: pop .28s ease-out; }
+.technique-kicker { font-family: var(--font-hand); font-size: 22px; font-weight: 700; line-height: 1; color: var(--margin-red); transform: rotate(-2deg); transform-origin: left; width: max-content; }
+.technique-card h4 { font-size: 22px; font-weight: 760; letter-spacing: -0.015em; line-height: 1.15; }
+.technique-card .muted { font-size: 15px; }
+.technique-example { font-family: var(--font-hand); font-size: 34px; line-height: 1.1; color: var(--ink); overflow-wrap: anywhere; }
+.technique-card .technique-steps ol { font-size: 24px; }
+.technique-card-foot { margin-top: auto; padding-top: 14px; border-top: 1.5px dashed var(--line-strong); }
+.learn-pager { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; font-weight: 650; }
+@media (max-width: 720px) {
+  .technique-cards { grid-template-columns: minmax(0, 1fr); }
+  .technique-card { padding: 16px; }
+  .technique-example { font-size: 30px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .technique-card:target { animation: none; }
+}
+.technique-steps { display: grid; gap: 6px; font-size: 15px; }
+.technique-steps ol { margin: 0; padding-left: 22px; display: grid; gap: 2px; font-family: var(--font-hand); font-size: 22px; color: var(--ink); }
+.practice-explain { display: grid; gap: 8px; max-width: 62ch; }
+.practice-explain .technique-steps { font-size: 17px; }
+
 /* Accueil : lobbys ouverts à droite du menu */
 .home { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 32px; align-items: start; }
 .public-lobbies { position: sticky; top: 24px; margin-top: 32px; display: grid; gap: 14px; }
@@ -387,6 +412,13 @@ p { margin: 0; }
 .rv-a.none { border-style: dashed; color: var(--muted); }
 .rv-a.me { border-width: 2.5px; padding: 2px 9px; }
 .rv-a .pt { font-family: var(--font-hand); font-size: 17px; color: var(--margin-red); font-weight: 700; }
+/* Conseil de technique, sous les réponses d'une manche */
+.rv-tip { grid-column: 2; font-size: 14px; }
+.rv-tip summary { cursor: pointer; width: max-content; max-width: 100%; color: var(--muted); font-weight: 650; }
+.rv-tip.missed summary { color: var(--ink); }
+.rv-tip[open] { display: grid; gap: 8px; }
+.rv-tip .technique-steps ol { font-size: 20px; }
+.rv-tip-links { display: flex; flex-wrap: wrap; gap: 4px 16px; }
 @media (max-width: 720px) {
   .rv { grid-template-columns: 38px minmax(0, 1fr); padding-right: 12px; }
   .rv-q { font-size: 19px; }
