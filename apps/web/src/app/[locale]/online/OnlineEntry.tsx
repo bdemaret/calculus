@@ -61,7 +61,6 @@ export function OnlineEntry({ accountName }: { accountName: string | null }) {
       </Margin>
       <div className="setup-head">
         <h2>{t("online.title")}</h2>
-        <p className="muted">{t("online.intro")}</p>
       </div>
       {accountName ? (
         <p>{t("online.connectedAs", { name: accountName })}</p>

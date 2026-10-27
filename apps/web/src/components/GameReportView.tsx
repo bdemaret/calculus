@@ -126,7 +126,6 @@ export function GameReportView({ report: raw, meId, online, game, mode, timePerQ
             <div className="stack">
               <h3>{t("timelineTitle")}</h3>
               <Timeline points={mine.timeline} maxMs={timePerQuestion * 1000} label={t("timelineTitle")} />
-              <p className="callout">{t("timelineLegend")}</p>
             </div>
             <div className="stack">
               {/* Le bon compte n'a pas d'opération imposée : pas de statistiques par opération. */}

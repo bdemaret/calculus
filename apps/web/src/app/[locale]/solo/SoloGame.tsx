@@ -174,7 +174,6 @@ export function SoloGame({ loggedIn, playerName }: Props) {
         </Margin>
         <div className="setup-head">
           <h2>{t("solo.title")}</h2>
-          <p className="muted">{t("solo.intro")}</p>
         </div>
         <SettingsForm id="solo-settings" settings={settings} onChange={changeSettings} online={false} />
         <div className="actions">

@@ -125,7 +125,6 @@
   },
   "solo": {
     "title": "Play solo",
-    "intro": "Pick your challenge. Your settings are kept for next time.",
     "start": "Start the game",
     "marginSolo": "solo",
     "loginToSave": "Log in to keep your stats.",
@@ -134,7 +133,6 @@
   },
   "online": {
     "title": "Play online",
-    "intro": "Up to 12 players per lobby. Share the code; the host sets the rules and starts the game.",
     "margin": "online",
     "pseudo": "Your nickname",
     "pseudoPlaceholder": "e.g. Basile",
@@ -267,7 +265,7 @@
     "invalidStep": "This step doesn’t work: available numbers only, no negative result, exact divisions.",
     "gap": "{gap} away from the target.",
     "closestHint": "{gap} away from the target. Submit to propose it: if nobody finds it, the closest scores.",
-    "proposed": "Proposed: {value}. The closest scores if nobody finds it.",
+    "proposed": "Proposed: {value}",
     "closest": "the closest"
   },
   "report": {
@@ -292,7 +290,6 @@
     "fastestTime": "fastest",
     "bestStreak": "best streak",
     "timelineTitle": "Your time for each calculation",
-    "timelineLegend": "Blue bars: correct answers. Red crosses: mistakes or time’s up.",
     "byOpTitle": "By type of calculation",
     "hardest": "Most missed calculation",
     "again": "Replay the same game",
@@ -376,7 +373,6 @@
     "division": "Division display",
     "divisionStandard": "Standard (12 ÷ 4)",
     "divisionFraction": "Fraction",
-    "divisionHelp": "As a fraction, a division is written with a bar: the dividend above, the divisor below.",
     "friends": "My friends",
     "friendRequests": "{count, plural, one {# friend request} other {# friend requests}}",
     "deleteOpen": "Delete my account",
@@ -752,8 +748,7 @@
     "unavailable": "Open lobbies are unavailable right now.",
     "startsIn": "starts in {time}",
     "starting": "starting now",
-    "join": "Join →",
-    "rule": "Starts after 2 minutes, or as soon as the lobby is full."
+    "join": "Join →"
   },
   "feedback": {
     "title": "Send feedback",

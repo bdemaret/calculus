@@ -94,7 +94,6 @@ export function ProfileForm({
             {t("divisionFraction")}
           </button>
         </div>
-        <p className="muted">{t("divisionHelp")}</p>
         {divisionState === "saved" ? <p className="form-ok">{t("inputSaved")}</p> : null}
         {divisionState === "error" ? <p className="form-error">{t("error")}</p> : null}
       </fieldset>

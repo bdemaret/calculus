@@ -125,7 +125,6 @@
   },
   "solo": {
     "title": "Jouer solo",
-    "intro": "Choisis ton défi. Tes réglages sont gardés pour la prochaine fois.",
     "start": "Lancer la partie",
     "marginSolo": "solo",
     "loginToSave": "Connecte-toi pour garder tes statistiques.",
@@ -134,7 +133,6 @@
   },
   "online": {
     "title": "Jouer en ligne",
-    "intro": "Jusqu’à 12 joueurs par lobby. Partage le code ; le créateur choisit les règles et lance la partie.",
     "margin": "en ligne",
     "pseudo": "Ton pseudo",
     "pseudoPlaceholder": "ex. Basile",
@@ -267,7 +265,7 @@
     "invalidStep": "Ce calcul ne marche pas : nombres disponibles seulement, pas de résultat négatif, divisions justes.",
     "gap": "À {gap} du compte.",
     "closestHint": "À {gap} du compte. Valide pour le proposer : si personne ne trouve, le plus proche marque.",
-    "proposed": "Proposé : {value}. Le plus proche marque si personne ne trouve.",
+    "proposed": "Proposé : {value}",
     "closest": "le plus proche"
   },
   "report": {
@@ -292,7 +290,6 @@
     "fastestTime": "plus rapide",
     "bestStreak": "meilleure série",
     "timelineTitle": "Ton temps à chaque calcul",
-    "timelineLegend": "Barres bleues : bonnes réponses. Croix rouges : erreurs ou temps écoulé.",
     "byOpTitle": "Par type de calcul",
     "hardest": "Le calcul le plus raté",
     "again": "Rejouer la même partie",
@@ -376,7 +373,6 @@
     "division": "Affichage des divisions",
     "divisionStandard": "Standard (12 ÷ 4)",
     "divisionFraction": "Fraction",
-    "divisionHelp": "En fraction, une division s’écrit avec une barre : le dividende au-dessus, le diviseur en dessous.",
     "friends": "Mes amis",
     "friendRequests": "{count, plural, one {# demande d’ami} other {# demandes d’ami}}",
     "deleteOpen": "Supprimer mon compte",
@@ -749,8 +745,7 @@
     "unavailable": "Les lobbys ouverts sont indisponibles pour le moment.",
     "startsIn": "départ dans {time}",
     "starting": "départ imminent",
-    "join": "Rejoindre →",
-    "rule": "Départ au bout de 2 minutes, ou dès que le lobby est plein."
+    "join": "Rejoindre →"
   },
   "feedback": {
     "title": "Faire un retour",

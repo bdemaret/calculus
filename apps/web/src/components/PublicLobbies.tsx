@@ -98,7 +98,6 @@ export function PublicLobbies() {
           })}
         </ul>
       )}
-      <p className="note">{t("publicLobbies.rule")}</p>
     </aside>
   );
 }
