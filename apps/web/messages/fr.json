@@ -22,7 +22,8 @@
     "soundOn": "Activer le son",
     "soundOff": "Couper le son",
     "language": "Switch to English",
-    "admin": "Admin"
+    "admin": "Admin",
+    "profileRequests": "{name}, {count, plural, one {# demande d’ami en attente} other {# demandes d’ami en attente}}"
   },
   "home": {
     "title": "Qui calcule le plus <hl>vite</hl> ?",
@@ -194,6 +195,16 @@
     "autoStartIn": "Départ dans {time}",
     "autoStartSoon": "Départ imminent…",
     "publicHint": "Lobby ouvert, sans hôte : la partie se lance seule au bout de 2 minutes, ou dès que {max} joueurs sont là."
+  },
+  "lobbyBanner": {
+    "title": "Lobby {code}",
+    "inProgress": "Partie en cours",
+    "nextGame": "Partie terminée, en attente de la suivante",
+    "needPlayers": "En attente de joueurs ({count} minimum)",
+    "youStart": "C’est toi qui lances la partie",
+    "waitingHost": "En attente du lancement par l’hôte",
+    "back": "Revenir au lobby",
+    "leave": "Quitter"
   },
   "game": {
     "yourAnswer": "Ta réponse",
@@ -376,7 +387,6 @@
     "division": "Affichage des divisions",
     "divisionStandard": "Standard (12 ÷ 4)",
     "divisionFraction": "Fraction",
-    "friends": "Mes amis",
     "friendRequests": "{count, plural, one {# demande d’ami} other {# demandes d’ami}}",
     "deleteOpen": "Supprimer mon compte",
     "deleteTitle": "Supprimer mon compte",
@@ -385,7 +395,42 @@
     "deleteBtn": "Supprimer définitivement",
     "deleteCancel": "Annuler",
     "deleteWrongPassword": "Mot de passe incorrect.",
-    "deleteError": "La suppression a échoué. Réessaie."
+    "deleteError": "La suppression a échoué. Réessaie.",
+    "tabs": {
+      "label": "Rubriques du profil",
+      "account": "Mon profil",
+      "friends": "Mes amis",
+      "preferences": "Mes préférences"
+    },
+    "identityTitle": "Photo et pseudo",
+    "avatarAdd": "Ajouter une photo",
+    "avatarChange": "Changer la photo",
+    "avatarRemove": "Retirer la photo",
+    "avatarHelp": "PNG, JPEG ou WebP, recadrée en carré. Seuls toi et tes amis la voient.",
+    "avatarSaved": "Photo enregistrée.",
+    "avatarRemoved": "Photo retirée.",
+    "avatarError": "Cette image n’a pas pu être utilisée. Essaie une autre photo (PNG, JPEG ou WebP).",
+    "loginTitle": "Connexion",
+    "email": "Adresse e-mail",
+    "emailHelp": "Elle sert à te connecter et à retrouver ton mot de passe. Elle n’est jamais montrée aux autres joueurs.",
+    "passwordTitle": "Changer de mot de passe",
+    "passwordCurrent": "Mot de passe actuel",
+    "passwordNew": "Nouveau mot de passe",
+    "passwordConfirm": "Confirme le nouveau mot de passe",
+    "passwordHelp": "8 caractères au moins. Tes autres appareils seront déconnectés.",
+    "passwordSave": "Changer le mot de passe",
+    "passwordSaved": "Mot de passe changé.",
+    "passwordMismatch": "Les deux nouveaux mots de passe ne sont pas identiques.",
+    "passwordWrong": "Mot de passe actuel incorrect.",
+    "passwordTooShort": "Le nouveau mot de passe doit faire 8 caractères au moins.",
+    "passwordTooMany": "Trop de tentatives. Réessaie dans un moment.",
+    "passwordError": "Le mot de passe n’a pas pu être changé. Réessaie.",
+    "language": "Langue",
+    "languages": {
+      "fr": "Français",
+      "en": "English"
+    },
+    "prefError": "La préférence n’a pas pu être enregistrée."
   },
   "friends": {
     "title": "Mes amis",
@@ -424,7 +469,6 @@
     "outgoingTitle": "Demandes envoyées",
     "pending": "en attente de réponse",
     "cancel": "Annuler",
-    "backToProfile": "Retour au profil",
     "lobbyTitle": "Inviter des amis",
     "lobbyInvite": "Inviter",
     "lobbyInvited": "invité",
@@ -547,7 +591,7 @@
           "title": "Les données que nous collectons",
           "body": [
             [
-              "Ton compte : pseudo, adresse e-mail, mot de passe (enregistré sous forme hachée, jamais en clair), date d’inscription et préférences de saisie (clavier ou voix) et d’affichage des divisions.",
+              "Ton compte : pseudo, adresse e-mail, mot de passe (enregistré sous forme hachée, jamais en clair), date d’inscription, photo de profil si tu en ajoutes une, et préférences de saisie (clavier ou voix) et d’affichage des divisions.",
               "Tes parties : réglages, calculs posés, réponses, temps de réponse, scores, rang, Elo et statistiques.",
               "Tes amis : demandes envoyées et reçues, liens d’amitié, invitations à une partie.",
               "Tes retours : le message envoyé depuis « Faire un retour », son type, la page d’où il vient et, si tu n’es pas connecté, l’e-mail que tu choisis de laisser.",
@@ -573,6 +617,7 @@
           "body": [
             [
               "Ton pseudo, ton Elo, ta place au classement, ton nombre de parties et ton pourcentage de victoires sont publics.",
+              "Ta photo de profil n’est visible que par toi et tes amis.",
               "Les résultats d’une partie en ligne (pseudos, scores, réponses) sont visibles par toute personne qui a le lien de son rapport, partagé avec les joueurs de la partie.",
               "Ton adresse e-mail n’est jamais affichée. Un joueur qui la connaît déjà peut s’en servir pour t’envoyer une demande d’ami."
             ]

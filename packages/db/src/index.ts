@@ -616,6 +616,8 @@ export const INVITE_TTL_MS = 10 * 60 * 1000;
 export interface FriendSummary {
   id: string;
   name: string;
+  /** Adresse de la photo de profil, null sans photo */
+  image: string | null;
   gamesPlayed: number;
   /** Victoires en ligne */
   wins: number;
@@ -623,12 +625,18 @@ export interface FriendSummary {
   accuracy: number | null;
 }
 
+export interface FriendRequestSummary {
+  id: string;
+  name: string;
+  image: string | null;
+}
+
 export interface FriendsData {
   friends: FriendSummary[];
   /** Demandes reçues, à accepter ou refuser */
-  incoming: { id: string; name: string }[];
+  incoming: FriendRequestSummary[];
   /** Demandes envoyées, pas encore acceptées */
-  outgoing: { id: string; name: string }[];
+  outgoing: FriendRequestSummary[];
 }
 
 export type FriendRequestResult =
@@ -638,6 +646,7 @@ export type FriendRequestResult =
 const friendUserSelect = {
   id: true,
   name: true,
+  image: true,
   stats: { select: { gamesPlayed: true, wins: true, answered: true, correct: true } },
 } as const;
 
@@ -655,12 +664,13 @@ export async function getFriends(userId: string): Promise<FriendsData> {
       data.friends.push({
         id: other.id,
         name: other.name,
+        image: other.image,
         gamesPlayed: s?.gamesPlayed ?? 0,
         wins: s?.wins ?? 0,
         accuracy: s?.answered ? s.correct / s.answered : null,
       });
-    } else if (r.requesterId === userId) data.outgoing.push({ id: other.id, name: other.name });
-    else data.incoming.push({ id: other.id, name: other.name });
+    } else if (r.requesterId === userId) data.outgoing.push({ id: other.id, name: other.name, image: other.image });
+    else data.incoming.push({ id: other.id, name: other.name, image: other.image });
   }
   const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
   data.friends.sort(byName);
@@ -836,6 +846,46 @@ export async function eraseUserGames(userId: string): Promise<void> {
     prisma.game.deleteMany({ where: { solo: true, players: { some: { userId } } } }),
     prisma.gamePlayer.updateMany({ where: { userId }, data: { displayName: "" } }),
   ]);
+}
+
+/* ------------------------------------------------------------------ */
+/* Photos de profil                                                     */
+/* ------------------------------------------------------------------ */
+
+/** Enregistre (ou remplace) la photo de profil ; renvoie sa version, à mettre dans l'adresse pour casser le cache. */
+export async function saveAvatar(userId: string, data: Uint8Array, mime: string): Promise<number> {
+  const bytes = Buffer.from(data);
+  const row = await prisma.avatar.upsert({
+    where: { userId },
+    create: { userId, data: bytes, mime },
+    update: { data: bytes, mime },
+    select: { updatedAt: true },
+  });
+  return row.updatedAt.getTime();
+}
+
+export async function deleteAvatar(userId: string): Promise<void> {
+  await prisma.avatar.deleteMany({ where: { userId } });
+}
+
+/**
+ * Photo de profil de `userId`, visible seulement par son propriétaire et ses amis.
+ * Null si elle n'existe pas ou si `viewerId` n'a pas le droit de la voir.
+ */
+export async function getAvatarFor(userId: string, viewerId: string): Promise<{ data: Uint8Array; mime: string; updatedAt: Date } | null> {
+  if (userId !== viewerId) {
+    const friends = await prisma.friendship.count({
+      where: {
+        status: "accepted",
+        OR: [
+          { requesterId: userId, addresseeId: viewerId },
+          { requesterId: viewerId, addresseeId: userId },
+        ],
+      },
+    });
+    if (!friends) return null;
+  }
+  return prisma.avatar.findUnique({ where: { userId }, select: { data: true, mime: true, updatedAt: true } });
 }
 
 /* ------------------------------------------------------------------ */

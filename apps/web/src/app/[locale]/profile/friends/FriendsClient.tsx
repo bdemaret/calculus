@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { defaultSettings, sanitizeSettings } from "@calculus/game-core";
 import type { FriendsData } from "@calculus/db";
-import { Link, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { Margin, MarginNote } from "@/components/Margin";
 import { Avatar } from "@/components/PlayerChips";
 import { JoinError, createLobby } from "@/lib/colyseus";
@@ -12,7 +12,7 @@ import { local } from "@/lib/storage";
 
 type Feedback = { ok: boolean; text: string } | null;
 
-/** Page « Mes amis » : ajout par pseudo ou e-mail, demandes en attente, liste des amis à inviter. */
+/** Onglet « Mes amis » du profil : ajout par pseudo ou e-mail, demandes en attente, liste des amis à inviter. */
 export function FriendsClient({ data }: { data: FriendsData }) {
   const t = useTranslations();
   const format = useFormatter();
@@ -68,14 +68,11 @@ export function FriendsClient({ data }: { data: FriendsData }) {
   }
 
   return (
-    <section className="setup">
+    <div className="stack" style={{ gap: 28 }}>
       <Margin>
         <MarginNote value={t("friends.margin")} />
       </Margin>
-      <div className="setup-head">
-        <h2>{t("friends.title")}</h2>
-        <p className="muted">{t("friends.intro")}</p>
-      </div>
+      <p className="muted">{t("friends.intro")}</p>
 
       <form className="friend-add" onSubmit={add}>
         <label className="field-label" htmlFor="friend-handle">
@@ -107,7 +104,7 @@ export function FriendsClient({ data }: { data: FriendsData }) {
           <ul className="friend-list">
             {data.incoming.map((u) => (
               <li key={u.id}>
-                <Avatar name={u.name} />
+                <Avatar name={u.name} image={u.image} />
                 <span className="nm">{u.name}</span>
                 <span className="friend-actions">
                   <button className="btn" type="button" disabled={busy === u.id} onClick={() => call("PATCH", u.id)}>
@@ -129,7 +126,7 @@ export function FriendsClient({ data }: { data: FriendsData }) {
           <ul className="friend-list">
             {data.friends.map((f) => (
               <li key={f.id}>
-                <Avatar name={f.name} />
+                <Avatar name={f.name} image={f.image} />
                 <span className="nm">
                   {f.name}
                   <span className="sub">
@@ -167,7 +164,7 @@ export function FriendsClient({ data }: { data: FriendsData }) {
           <ul className="friend-list">
             {data.outgoing.map((u) => (
               <li key={u.id}>
-                <Avatar name={u.name} />
+                <Avatar name={u.name} image={u.image} />
                 <span className="nm">
                   {u.name}
                   <span className="sub">{t("friends.pending")}</span>
@@ -182,10 +179,6 @@ export function FriendsClient({ data }: { data: FriendsData }) {
           </ul>
         </div>
       ) : null}
-
-      <p>
-        <Link href="/profile">{t("friends.backToProfile")}</Link>
-      </p>
-    </section>
+    </div>
   );
 }

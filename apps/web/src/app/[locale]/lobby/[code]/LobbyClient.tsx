@@ -10,13 +10,14 @@ import { Check } from "@/components/Check";
 import { ExpressionBuilder } from "@/components/ExpressionBuilder";
 import { GameReportView } from "@/components/GameReportView";
 import { InviteFriends } from "@/components/InviteFriends";
+import { AutoStart } from "@/components/LobbyBanner";
 import { Margin, MarginNote } from "@/components/Margin";
 import { Avatar, PlayerChips, type ChipPlayer } from "@/components/PlayerChips";
 import { SettingsForm } from "@/components/SettingsForm";
 import { TimerBar } from "@/components/TimerBar";
 import { JoinError, joinLobby, leaveLobby, readRoom, subscribeRoom, type LobbyState } from "@/lib/colyseus";
 import { answerFromInput, answerKindOfPuzzle, revealSeparator, shownAnswer } from "@/lib/answer";
-import { formatCountdown, formatSeconds } from "@/lib/format";
+import { formatSeconds } from "@/lib/format";
 import { cleanName } from "@/lib/names";
 import { celebrate, sfx } from "@/lib/sound";
 import { local } from "@/lib/storage";
@@ -250,7 +251,9 @@ function WaitingRoom({
         {snap.isPublic ? (
           <>
             <div className="actions">
-              <AutoStart at={snap.autoStartAt} clockOffset={clockOffset} />
+              <p className="auto-start" aria-live="off">
+                <AutoStart at={snap.autoStartAt} clockOffset={clockOffset} />
+              </p>
               <button className="btn ghost" type="button" onClick={onLeave}>
                 {t("lobby.leave")}
               </button>
@@ -292,22 +295,6 @@ function WaitingRoom({
         <SettingsForm id="lobby-settings" settings={snap.settings} onChange={updateSettings} online readOnly={!isHost} />
       </div>
     </section>
-  );
-}
-
-/** Compte à rebours avant le lancement automatique d'un lobby public. */
-function AutoStart({ at, clockOffset }: { at: number | null; clockOffset: number }) {
-  const t = useTranslations();
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  const left = at === null ? 0 : at - clockOffset - now;
-  return (
-    <p className="auto-start" role="timer" aria-live="off">
-      {left > 0 ? t("lobby.autoStartIn", { time: formatCountdown(left) }) : t("lobby.autoStartSoon")}
-    </p>
   );
 }
 

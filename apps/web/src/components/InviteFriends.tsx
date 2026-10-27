@@ -37,7 +37,7 @@ export function InviteFriends({ code, presentIds }: { code: string; presentIds: 
         <ul className="friend-list compact">
           {invitable.map((f) => (
             <li key={f.id}>
-              <Avatar name={f.name} />
+              <Avatar name={f.name} image={f.image} />
               <span className="nm">{f.name}</span>
               <span className="friend-actions">
                 {state[f.id] === "sent" ? (
@@ -55,7 +55,7 @@ export function InviteFriends({ code, presentIds }: { code: string; presentIds: 
         <p className="muted">{friends.length ? t("lobbyAllHere") : t("lobbyEmpty")}</p>
       )}
       <p>
-        <Link href="/friends">{t("manage")}</Link>
+        <Link href="/profile/friends">{t("manage")}</Link>
       </p>
     </div>
   );

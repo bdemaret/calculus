@@ -27,6 +27,13 @@ function checkDivisionDisplay(data: Record<string, unknown>) {
     throw new APIError("BAD_REQUEST", { code: "INVALID_DIVISION_DISPLAY", message: "Affichage des divisions invalide" });
 }
 
+/** Seule une adresse posée par `/api/avatar` est acceptée : l'API Better Auth laisserait sinon mettre n'importe quelle URL. */
+const AVATAR_URL = /^\/api\/avatar\/[A-Za-z0-9_-]{1,64}\?v=\d{1,15}$/;
+function checkImage(data: Record<string, unknown>) {
+  if (data.image !== undefined && data.image !== null && !(typeof data.image === "string" && AVATAR_URL.test(data.image)))
+    throw new APIError("BAD_REQUEST", { code: "INVALID_IMAGE", message: "Photo de profil invalide" });
+}
+
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
   database: prismaAdapter(prisma, { provider: "postgresql" }),
@@ -57,13 +64,15 @@ export const auth = betterAuth({
       create: {
         before: async (user) => {
           checkDivisionDisplay(user);
-          return { data: { ...user, name: validName(user.name) } };
+          // Pas de photo à l'inscription : elle s'ajoute depuis le profil.
+          return { data: { ...user, image: null, name: validName(user.name) } };
         },
       },
       // `name` vaut undefined quand seul un autre champ change (préférences de dictée, de divisions).
       update: {
         before: async (data) => {
           checkDivisionDisplay(data);
+          checkImage(data);
           return { data: data.name !== undefined ? { ...data, name: validName(data.name) } : data };
         },
       },

@@ -5,8 +5,8 @@ import { usePathname, useRouter } from "@/i18n/navigation";
 import { isSoundOn, setSoundOn, sfx } from "@/lib/sound";
 import { currentTheme, setTheme, type Theme } from "@/lib/theme";
 
-/** Thème, son et langue. */
-export function HeaderTools() {
+/** Thème, son et langue ; connecté, la langue se change dans « Mes préférences » (`showLanguage` à false). */
+export function HeaderTools({ showLanguage = true }: { showLanguage?: boolean }) {
   const t = useTranslations("nav");
   const locale = useLocale();
   const router = useRouter();
@@ -61,19 +61,21 @@ export function HeaderTools() {
       >
         {t("sound")}
       </button>
-      <button
-        className="icon-btn"
-        type="button"
-        lang={other}
-        title={t("language")}
-        onClick={() =>
-          startTransition(() => {
-            router.replace(pathname, { locale: other });
-          })
-        }
-      >
-        {other.toUpperCase()}
-      </button>
+      {showLanguage ? (
+        <button
+          className="icon-btn"
+          type="button"
+          lang={other}
+          title={t("language")}
+          onClick={() =>
+            startTransition(() => {
+              router.replace(pathname, { locale: other });
+            })
+          }
+        >
+          {other.toUpperCase()}
+        </button>
+      ) : null}
     </>
   );
 }

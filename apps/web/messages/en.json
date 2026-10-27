@@ -22,7 +22,8 @@
     "soundOn": "Turn sound on",
     "soundOff": "Mute",
     "language": "Passer en français",
-    "admin": "Admin"
+    "admin": "Admin",
+    "profileRequests": "{name}, {count, plural, one {# pending friend request} other {# pending friend requests}}"
   },
   "home": {
     "title": "Who’s the <hl>fastest</hl> at mental math?",
@@ -194,6 +195,16 @@
     "autoStartIn": "Starts in {time}",
     "autoStartSoon": "Starting…",
     "publicHint": "Open lobby, no host: the game starts on its own after 2 minutes, or as soon as {max} players are in."
+  },
+  "lobbyBanner": {
+    "title": "Lobby {code}",
+    "inProgress": "Game in progress",
+    "nextGame": "Game over, waiting for the next one",
+    "needPlayers": "Waiting for players ({count} minimum)",
+    "youStart": "You start the game",
+    "waitingHost": "Waiting for the host to start",
+    "back": "Back to lobby",
+    "leave": "Leave"
   },
   "game": {
     "yourAnswer": "Your answer",
@@ -376,7 +387,6 @@
     "division": "Division display",
     "divisionStandard": "Standard (12 ÷ 4)",
     "divisionFraction": "Fraction",
-    "friends": "My friends",
     "friendRequests": "{count, plural, one {# friend request} other {# friend requests}}",
     "deleteOpen": "Delete my account",
     "deleteTitle": "Delete my account",
@@ -385,7 +395,42 @@
     "deleteBtn": "Delete permanently",
     "deleteCancel": "Cancel",
     "deleteWrongPassword": "Wrong password.",
-    "deleteError": "Deletion failed. Try again."
+    "deleteError": "Deletion failed. Try again.",
+    "tabs": {
+      "label": "Profile sections",
+      "account": "My profile",
+      "friends": "My friends",
+      "preferences": "My preferences"
+    },
+    "identityTitle": "Photo and username",
+    "avatarAdd": "Add a photo",
+    "avatarChange": "Change photo",
+    "avatarRemove": "Remove photo",
+    "avatarHelp": "PNG, JPEG or WebP, cropped to a square. Only you and your friends can see it.",
+    "avatarSaved": "Photo saved.",
+    "avatarRemoved": "Photo removed.",
+    "avatarError": "This image couldn’t be used. Try another photo (PNG, JPEG or WebP).",
+    "loginTitle": "Sign-in",
+    "email": "Email address",
+    "emailHelp": "It’s used to sign in and recover your password. It’s never shown to other players.",
+    "passwordTitle": "Change password",
+    "passwordCurrent": "Current password",
+    "passwordNew": "New password",
+    "passwordConfirm": "Confirm the new password",
+    "passwordHelp": "At least 8 characters. Your other devices will be signed out.",
+    "passwordSave": "Change password",
+    "passwordSaved": "Password changed.",
+    "passwordMismatch": "The two new passwords don’t match.",
+    "passwordWrong": "Current password is incorrect.",
+    "passwordTooShort": "The new password must be at least 8 characters.",
+    "passwordTooMany": "Too many attempts. Try again in a moment.",
+    "passwordError": "The password couldn’t be changed. Try again.",
+    "language": "Language",
+    "languages": {
+      "fr": "Français",
+      "en": "English"
+    },
+    "prefError": "The preference couldn’t be saved."
   },
   "friends": {
     "title": "My friends",
@@ -424,7 +469,6 @@
     "outgoingTitle": "Requests sent",
     "pending": "waiting for an answer",
     "cancel": "Cancel",
-    "backToProfile": "Back to profile",
     "lobbyTitle": "Invite friends",
     "lobbyInvite": "Invite",
     "lobbyInvited": "invited",
@@ -548,7 +592,7 @@
           "title": "The data we collect",
           "body": [
             [
-              "Your account: username, email address, password (stored hashed, never in plain text), sign-up date and input preference (keyboard or voice) and division display preference.",
+              "Your account: username, email address, password (stored hashed, never in plain text), sign-up date, profile photo if you add one, and input preference (keyboard or voice) and division display preference.",
               "Your games: settings, questions asked, answers, response times, scores, rank, Elo and statistics.",
               "Your friends: requests sent and received, friendships, game invitations.",
               "Your feedback: the message sent from “Send feedback”, its type, the page it came from and, if you are not signed in, the email you choose to leave.",
@@ -574,6 +618,7 @@
           "body": [
             [
               "Your username, Elo, leaderboard position, number of games and win rate are public.",
+              "Your profile photo is only visible to you and your friends.",
               "Results of an online game (usernames, scores, answers) are visible to anyone with the link to its report, which is shared with the game’s players.",
               "Your email address is never displayed. A player who already knows it can use it to send you a friend request."
             ]

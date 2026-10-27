@@ -11,7 +11,19 @@ let current: Room | null = null;
 
 const RECONNECT_KEY = "calculus:reconnect";
 
-const gameServerUrl = () => process.env.NEXT_PUBLIC_GAME_SERVER_URL ?? "ws://localhost:2567";
+/**
+ * Adresse du serveur de jeu. Si elle vise `localhost` alors que la page est ouverte depuis une autre
+ * machine (téléphone sur le réseau local, ex. http://192.168.1.102:3000), `localhost` désignerait cet
+ * appareil : on prend alors l'hôte de la page, en gardant le port du serveur de jeu.
+ */
+function gameServerUrl(): string {
+  const url = new URL(process.env.NEXT_PUBLIC_GAME_SERVER_URL ?? "ws://localhost:2567");
+  const local = ["localhost", "127.0.0.1", "[::1]"];
+  if (typeof window !== "undefined" && local.includes(url.hostname) && !local.includes(window.location.hostname)) {
+    url.hostname = window.location.hostname;
+  }
+  return url.toString().replace(/\/$/, "");
+}
 
 function getClient(): Client {
   client = client ?? new Client(gameServerUrl());
@@ -128,14 +140,34 @@ export function readRoom(room: Room): LobbyState | null {
   return stores.get(room)?.state ?? null;
 }
 
+/* Lobby en cours, suivi hors de sa page (bandeau d'attente). */
+const currentListeners = new Set<() => void>();
+
+function setCurrent(room: Room | null) {
+  current = room;
+  currentListeners.forEach((l) => l());
+}
+
+export function subscribeCurrentLobby(listener: () => void): () => void {
+  currentListeners.add(listener);
+  return () => currentListeners.delete(listener);
+}
+
+/** Salle du lobby où l'on se trouve, même quand on navigue ailleurs sur le site. */
+export function readCurrentLobby(): Room | null {
+  return current;
+}
+
 function remember(room: Room) {
   attach(room);
-  current = room;
+  // On n'est jamais dans deux lobbys à la fois : l'ancien est quitté.
+  if (current && current !== room) void current.leave(true);
+  setCurrent(room);
   try {
     sessionStorage.setItem(RECONNECT_KEY, JSON.stringify({ roomId: room.roomId, token: room.reconnectionToken }));
   } catch {}
   room.onLeave(() => {
-    if (current === room) current = null;
+    if (current === room) setCurrent(null);
   });
 }
 
@@ -190,7 +222,7 @@ export function leaveLobby() {
     sessionStorage.removeItem(RECONNECT_KEY);
   } catch {}
   const room = current;
-  current = null;
+  setCurrent(null);
   room?.leave(true);
 }
 

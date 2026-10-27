@@ -34,6 +34,13 @@ export function PlayerChips({ players, meId }: { players: ChipPlayer[]; meId: st
   );
 }
 
-export function Avatar({ name }: { name: string }) {
-  return <span className="avatar">{name.slice(0, 1).toUpperCase()}</span>;
+/** Photo de profil si le joueur en a une (et qu'on a le droit de la voir), sinon l'initiale du pseudo. */
+export function Avatar({ name, image, className }: { name: string; image?: string | null; className?: string }) {
+  const cls = className ? `avatar ${className}` : "avatar";
+  if (image) return <img className={`${cls} has-image`} src={image} alt="" width={26} height={26} />;
+  return (
+    <span className={cls} aria-hidden="true">
+      {name.slice(0, 1).toUpperCase()}
+    </span>
+  );
 }

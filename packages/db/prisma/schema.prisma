@@ -18,6 +18,7 @@ model User {
   name          String
   email         String    @unique
   emailVerified Boolean   @default(false)
+  /// Adresse de la photo de profil (`/api/avatar/<id>?v=<version>`), null sans photo
   image         String?
   /// Saisie des réponses à la voix (reconnaissance vocale du navigateur)
   voiceInput    Boolean   @default(false)
@@ -36,8 +37,21 @@ model User {
   invitesSent     GameInvite[] @relation("InviteFrom")
   invitesReceived GameInvite[] @relation("InviteTo")
   feedbacks       Feedback[]
+  avatar          Avatar?
 
   @@map("user")
+}
+
+/// Photo de profil, recadrée et réduite par le navigateur avant l'envoi
+model Avatar {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Octets de l'image (PNG, JPEG ou WebP, vérifiés à la réception)
+  data      Bytes
+  mime      String
+  updatedAt DateTime @updatedAt
+
+  @@map("avatar")
 }
 
 model Session {

@@ -9,10 +9,10 @@ test.describe("amis", () => {
     const other = await ctx.newPage();
     const friend = await signUp(other.request);
 
-    // Depuis le profil, page « Mes amis », demande par e-mail.
+    // Depuis le profil, onglet « Mes amis », demande par e-mail.
     await page.goto("/fr/profile");
-    await page.getByRole("link", { name: t("profile.friends") }).click();
-    await expect(page).toHaveURL(/\/fr\/friends$/);
+    await page.getByRole("navigation", { name: t("profile.tabs.label") }).getByRole("link", { name: t("profile.tabs.friends") }).click();
+    await expect(page).toHaveURL(/\/fr\/profile\/friends$/);
     await page.getByLabel(t("friends.addLabel")).fill(friend.email);
     await page.getByRole("button", { name: t("friends.add") }).click();
     await expect(page.getByText(t("friends.result.sent", { name: friend.name }))).toBeVisible();

@@ -22,9 +22,11 @@ Prisma 6 + PostgreSQL. Schéma : `packages/db/prisma/schema.prisma`. Client et r
 | `getLeaderboard(board, viewerId?)` | `board` = `{ game, mode, difficulty }`. Top 100 (`LEADERBOARD_SIZE`) des joueurs sortis du placement, places ex æquo « 1, 2, 2, 4 », nombre de classés, place du joueur connecté (`me`) ou parties de placement jouées (`mePlacement`). Victoires = 1re place d'une partie classée (`GamePlayer.ratingGames` non null), comptées par `groupBy` pour les joueurs affichés |
 | `searchLeaderboard(board, query)` | Joueurs classés dont le pseudo contient `query` (insensible à la casse, 20 au plus), avec leur place même hors du top 100 |
 | `getPlayerProfile(userId, viewerId?)` | Profil public : pseudo, places (par jeu, mode et difficulté) là où le placement est fini (place, nombre de classés, Elo, parties, victoires) et lien d'amitié avec le joueur connecté (`self`, `none`, `outgoing`, `incoming`, `friends`, null pour un visiteur) |
-| `getFriends(userId)` | Amis (avec parties, victoires, réussite), demandes reçues et envoyées |
+| `getFriends(userId)` | Amis (avec photo, parties, victoires, réussite), demandes reçues et envoyées |
 | `sendFriendRequest(fromId, handle)` / `sendFriendRequestTo(fromId, userId)` | Demande par pseudo (insensible à la casse ; `ambiguous` si plusieurs comptes), e-mail ou id de compte ; accepte directement une demande croisée |
 | `acceptFriendRequest` / `removeFriendship` | Accepter ; retirer, refuser ou annuler (supprime aussi les invitations entre les deux) |
+| `saveAvatar(userId, data, mime)` / `deleteAvatar(userId)` | Photo de profil (table `avatar`) ; `saveAvatar` renvoie la version à mettre dans `user.image` |
+| `getAvatarFor(userId, viewerId)` | Photo d'un joueur pour lui-même ou un ami accepté, null sinon |
 | `eraseUserGames(userId)` | Avant suppression d'un compte : supprime ses parties solo et vide son pseudo dans les parties en ligne |
 | `sendGameInvite` / `getGameInvites` / `dismissGameInvite` | Invitations à un lobby, réservées aux amis acceptés |
 | `createFeedback(input, now)` | Enregistre un retour ; false si la limite horaire est atteinte (constantes dans `src/feedback.ts`, exporté aussi en `@calculus/db/feedback` pour le client) |

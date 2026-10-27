@@ -1,13 +1,20 @@
 import { getTranslations } from "next-intl/server";
+import { prisma } from "@calculus/db";
 import { Link } from "@/i18n/navigation";
 import { isAdminEmail } from "@/lib/admin";
 import { getSession } from "@/lib/auth";
 import { HeaderTools } from "./HeaderTools";
+import { Avatar } from "./PlayerChips";
 import { InviteNotice } from "./InviteNotice";
+import { LobbyBanner } from "./LobbyBanner";
 
 export async function Header() {
   const t = await getTranslations("nav");
   const session = await getSession().catch(() => null);
+  // Demandes d'ami reçues en attente : pastille sur le pseudo, qui mène alors à l'onglet Amis.
+  const requests = session
+    ? await prisma.friendship.count({ where: { addresseeId: session.user.id, status: "pending" } }).catch(() => 0)
+    : 0;
   return (
     <>
       <header className="top">
@@ -32,7 +39,15 @@ export async function Header() {
               <Link className="nav-link" href="/dashboard">
                 {t("dashboard")}
               </Link>
-              <Link className="nav-link" href="/profile">
+              <Link
+                className="nav-link nav-profile"
+                href={requests > 0 ? "/profile/friends" : "/profile"}
+                aria-label={requests > 0 ? t("profileRequests", { name: session.user.name, count: requests }) : undefined}
+              >
+                <span className="nav-avatar">
+                  <Avatar name={session.user.name} image={session.user.image} />
+                  {requests > 0 ? <span className="nav-dot" aria-hidden="true">{requests > 9 ? "9+" : requests}</span> : null}
+                </span>
                 {session.user.name}
               </Link>
             </>
@@ -41,9 +56,10 @@ export async function Header() {
               {t("login")}
             </Link>
           )}
-          <HeaderTools />
+          <HeaderTools showLanguage={!session} />
         </nav>
       </header>
+      <LobbyBanner />
       {session ? <InviteNotice /> : null}
     </>
   );

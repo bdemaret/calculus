@@ -4,9 +4,9 @@
  *
  *  1. crée ou corrige le fichier .env (secrets, port de la base) ;
  *  2. démarre la base de données dans Docker et attend qu'elle réponde ;
- *  3. installe les dépendances ;
+ *  3. installe les dépendances et régénère le client Prisma ;
  *  4. crée ou met à jour les tables ;
- *  5. lance le site et le serveur de jeu.
+ *  5. arrête un éventuel ancien `pnpm dev`, puis lance le site et le serveur de jeu.
  *
  * `pnpm lancer --reset` efface en plus la base locale (comptes et parties) pour repartir de zéro.
  */
@@ -98,6 +98,9 @@ if (!ready) fail("La base ne répond pas sur le port 5433 après 60 secondes. Re
 /* 3. Dépendances -------------------------------------------------------- */
 step(3, "Installation des dépendances");
 if (!run("pnpm install")) fail("`pnpm install` a échoué (voir le message ci-dessus).");
+// `pnpm install` ne relance pas toujours le postinstall : on régénère le client Prisma pour
+// qu'il suive schema.prisma même quand aucune dépendance n'a changé (après une fusion, par exemple).
+if (!run("pnpm --filter @calculus/db generate")) fail("La génération du client Prisma a échoué (voir le message ci-dessus).");
 
 /* 4. Tables ------------------------------------------------------------- */
 step(4, "Tables de la base");
@@ -119,4 +122,22 @@ if (noDev) {
   process.exit(0);
 }
 step(5, "Lancement : site sur http://localhost:3000, serveur de jeu sur le port 2567 (Ctrl + C pour arrêter)");
+// Un ancien `pnpm dev` resté ouvert garderait les ports et l'ancien client Prisma en mémoire :
+// le nouveau site ne démarrerait pas et on verrait toujours l'ancien. On l'arrête d'abord.
+if (process.platform !== "win32") {
+  for (const port of [3000, 2567]) {
+    const pids = (() => {
+      try {
+        return execSync(`lsof -ti tcp:${port} -sTCP:LISTEN`, { encoding: "utf8" }).split("\n").filter(Boolean);
+      } catch {
+        return [];
+      }
+    })();
+    if (pids.length) {
+      console.log(`  Arrêt de l'ancien processus sur le port ${port} (${pids.join(", ")})`);
+      quiet(`kill ${pids.join(" ")}`);
+    }
+  }
+  spawnSync("sleep", ["1"]);
+}
 run("pnpm dev");

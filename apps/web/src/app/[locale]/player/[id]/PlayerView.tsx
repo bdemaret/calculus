@@ -139,7 +139,7 @@ function FriendAction({ profile }: { profile: PlayerProfile }) {
       content = (
         <>
           <span className="muted">{t("player.friends", { name })}</span>
-          <Link href="/friends">{t("friends.manage")}</Link>
+          <Link href="/profile/friends">{t("friends.manage")}</Link>
         </>
       );
       break;

@@ -103,9 +103,8 @@ test.describe("profil", () => {
     await expect(name).toHaveValue("Nouveau nom");
   });
 
-  test("activer la dictée est gardé sur le compte", async ({ page, user }) => {
-    await page.goto("/fr/profile");
-    await expect(page.getByText(user.email)).toBeVisible();
+  test("activer la dictée est gardé sur le compte", async ({ page, user: _connected }) => {
+    await page.goto("/fr/profile/preferences");
     const voice = page.getByRole("button", { name: t("profile.inputVoice"), exact: true });
     const keyboard = page.getByRole("button", { name: t("profile.inputKeyboard"), exact: true });
     await expect(keyboard).toHaveAttribute("aria-pressed", "true");
@@ -113,6 +112,63 @@ test.describe("profil", () => {
     await expect(page.getByText(t("profile.inputSaved"))).toBeVisible();
     await page.reload();
     await expect(voice).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("changer de mot de passe demande l'ancien puis sert à la connexion suivante", async ({ page, user }) => {
+    const auth = new AuthPages(page);
+    const next = `${user.password}-neuf`;
+    await page.goto("/fr/profile");
+    await page.getByLabel(t("profile.passwordCurrent"), { exact: true }).fill("pas-le-bon-mot-de-passe");
+    await page.getByLabel(t("profile.passwordNew"), { exact: true }).fill(next);
+    await page.getByLabel(t("profile.passwordConfirm"), { exact: true }).fill(`${next}!`);
+    await page.getByRole("button", { name: t("profile.passwordSave") }).click();
+    await expect(page.getByText(t("profile.passwordMismatch"))).toBeVisible();
+
+    await page.getByLabel(t("profile.passwordConfirm"), { exact: true }).fill(next);
+    await page.getByRole("button", { name: t("profile.passwordSave") }).click();
+    await expect(page.getByText(t("profile.passwordWrong"))).toBeVisible();
+
+    await page.getByLabel(t("profile.passwordCurrent"), { exact: true }).fill(user.password);
+    await page.getByLabel(t("profile.passwordNew"), { exact: true }).fill(next);
+    await page.getByLabel(t("profile.passwordConfirm"), { exact: true }).fill(next);
+    await page.getByRole("button", { name: t("profile.passwordSave") }).click();
+    await expect(page.getByText(t("profile.passwordSaved"))).toBeVisible();
+
+    await auth.logout();
+    await auth.login(user.email, next);
+    await expect(page).toHaveURL(/\/fr\/dashboard$/);
+  });
+
+  test("ajouter puis retirer une photo de profil", async ({ page, user: _connected }) => {
+    await page.goto("/fr/profile");
+    // PNG de 1 × 1 pixel : recadré et réduit par le navigateur avant l'envoi.
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+    // Le champ fichier est caché derrière le bouton « Ajouter une photo ».
+    await page.locator('input[type="file"]').setInputFiles({ name: "photo.png", mimeType: "image/png", buffer: png });
+    await expect(page.getByText(t("profile.avatarSaved"))).toBeVisible();
+    const headerAvatar = page.getByRole("navigation", { name: t("nav.main") }).locator("img.avatar");
+    await expect(headerAvatar).toHaveAttribute("src", /^\/api\/avatar\/[^/?]+\?v=\d+$/);
+    const res = await page.request.get((await headerAvatar.getAttribute("src"))!);
+    expect(res.headers()["content-type"]).toMatch(/^image\/(webp|jpeg)$/);
+
+    await page.getByRole("button", { name: t("profile.avatarRemove") }).click();
+    await expect(page.getByText(t("profile.avatarRemoved"))).toBeVisible();
+    await expect(headerAvatar).toHaveCount(0);
+  });
+
+  test("la photo de profil est vérifiée par le serveur", async ({ page, user: _connected }) => {
+    // Requêtes avec la session du compte que la fixture a connecté.
+    const request = page.request;
+    // Une adresse d'image quelconque est refusée par l'API de Better Auth.
+    const update = await request.post("/api/auth/update-user", { data: { image: "https://exemple.test/pixel.png" }, headers: { origin: WEB_URL } });
+    expect(update.status()).toBe(400);
+    expect(await update.json()).toMatchObject({ code: "INVALID_IMAGE" });
+    // Un fichier qui n'est pas une image est refusé, quel que soit le type annoncé.
+    const upload = await request.post("/api/avatar", { multipart: { file: { name: "photo.png", mimeType: "image/png", buffer: Buffer.from("<svg/>") } } });
+    expect(upload.status()).toBe(415);
+    // Sans être ami, la photo d'un autre joueur reste invisible.
+    const other = await request.get("/api/avatar/un-autre-joueur");
+    expect(other.status()).toBe(404);
   });
 
   test("le pseudo est nettoyé et validé par le serveur, pas seulement par le formulaire", async ({ request }) => {
