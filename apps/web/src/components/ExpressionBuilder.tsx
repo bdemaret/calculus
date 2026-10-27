@@ -152,7 +152,7 @@ interface Props {
   onChange: (v: string) => void;
   /** Envoie l'expression complète, qui enchaîne toutes les étapes. */
   onSubmit: (expr: string) => void;
-  /** On peut proposer un total qui ne tombe pas pile : le plus proche marque si personne ne trouve. */
+  /** Un total qui ne tombe pas pile est une proposition : le plus proche marque si personne ne trouve. */
   allowClosest?: boolean;
   disabled?: boolean;
   status?: "right" | "wrong" | null;
@@ -163,8 +163,8 @@ interface Props {
 /**
  * Le bon compte, en étapes : on pose un calcul (« 75 + 2 = 77 »), son résultat devient une nouvelle plaque,
  * et ainsi de suite jusqu'à n'avoir plus qu'un nombre. On peut aussi tout écrire d'un coup, avec des parenthèses.
- * On valide quand toutes les plaques sont utilisées et que le total tombe pile (ou, à plusieurs, pour proposer
- * le plus proche) ; le serveur revérifie tout.
+ * On valide dès que toutes les plaques sont utilisées : un total qui ne tombe pas pile compte comme une erreur
+ * (ou, à plusieurs, comme une proposition pour le plus proche) ; le serveur revérifie tout.
  */
 export function ExpressionBuilder({ text, puzzle, value, onChange, onSubmit, allowClosest = false, disabled, status, shake, autoFocus = true }: Props) {
   const t = useTranslations("game");
@@ -180,7 +180,7 @@ export function ExpressionBuilder({ text, puzzle, value, onChange, onSubmit, all
 
   const texts = steps.map((s) => s.text);
   const setLine = (v: string) => onChange(encodeSteps(texts, cleanInput(v, "expr", 0)));
-  const ready = !!complete && (complete.value === target || allowClosest);
+  const ready = !!complete;
   const submit = () => {
     if (ready && complete && !disabled) onSubmit(complete.expr);
   };
@@ -239,8 +239,8 @@ export function ExpressionBuilder({ text, puzzle, value, onChange, onSubmit, all
         autoComplete="off"
         onSubmit={(e) => {
           e.preventDefault();
-          // Entrée : valide un compte juste ; sinon pose le calcul en cours comme étape. Une proposition
-          // qui ne tombe pas pile demande une deuxième Entrée, une fois le total affiché comme étape.
+          // Entrée : valide un compte juste ; sinon pose le calcul en cours comme étape. Un total qui ne
+          // tombe pas pile demande une deuxième Entrée, une fois affiché comme étape.
           if (complete?.value === target || !canCommit) submit();
           else commit();
         }}

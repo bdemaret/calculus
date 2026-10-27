@@ -9,7 +9,7 @@ import { SoloPage } from "../../pages/SoloPage";
 const RIGHT_COUNT = { game: "right-count", operations: ["add", "sub"], timePerQuestion: 45 } as const;
 
 test.describe("le bon compte en solo", () => {
-  test("on ne valide qu'avec toutes les plaques et le bon total", async ({ page }) => {
+  test("on ne valide qu'avec toutes les plaques", async ({ page }) => {
     await presetSolo(page, { ...RIGHT_COUNT, operations: [...RIGHT_COUNT.operations] });
     const solo = new SoloPage(page);
     await solo.goto();
@@ -28,16 +28,14 @@ test.describe("le bon compte en solo", () => {
     await box.fill(first);
     await expect(page.locator(".count-total")).toContainText(first);
     await expect(ok).toBeDisabled();
-    // Toutes les plaques, mauvais total : Entrée le pose comme étape, sans valider (seul, pas de « plus proche »).
+    // Toutes les plaques, mauvais total : Entrée le pose d'abord comme étape, sans valider ; OK le permet ensuite.
     await box.fill(q.wrong);
     await box.press("Enter");
     const steps = page.getByRole("list", { name: t("game.steps") });
     await expect(steps.getByRole("listitem")).toHaveCount(1);
     await expect(box).toHaveValue("");
     await expect(tiles).toHaveCount(1);
-    await box.press("Enter");
-    await expect(ok).toBeDisabled();
-    await expect(box).toBeEnabled();
+    await expect(ok).toBeEnabled();
     // Effacer dans une ligne vide rouvre l'étape.
     await box.press("Backspace");
     await expect(steps).toHaveCount(0);
