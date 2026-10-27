@@ -41,6 +41,7 @@ Lire le fichier pertinent dans `agent_docs/` avant de travailler sur une zone :
 | [agent_docs/web.md](agent_docs/web.md) | Pages, i18n, auth, routes API, conventions UI et thème |
 | [agent_docs/database.md](agent_docs/database.md) | Schéma Prisma, `saveGame` / `getDashboard`, migrations |
 | [agent_docs/e2e.md](agent_docs/e2e.md) | Tests Playwright : environnement isolé, fixtures, conventions, couverture |
+| [agent_docs/security.md](agent_docs/security.md) | Pièges de sécurité à ne pas reproduire (aléa serveur, secrets, droits par e-mail, limites), à lire avant toute route API, message réseau ou variable d'environnement |
 | [agent_docs/legal.md](agent_docs/legal.md) | Pages légales, données personnelles collectées, suppression de compte, points RGPD restant à traiter |
 | [agent_docs/workflow.md](agent_docs/workflow.md) | Commandes, vérifications avant de rendre la main, style de code, feuille de route |
 

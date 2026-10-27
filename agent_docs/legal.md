@@ -23,7 +23,7 @@ Site édité depuis la France, gratuit, avec des comptes : **pas de CGV** (rien 
 - `RateLimit` : la clé contient l'**adresse IP** (compteurs du rate limit, production seulement).
 - `Verification` : jetons de réinitialisation (1 h), liés à l'id du compte.
 - Parties : `Game`, `GamePlayer` (pseudo au moment de la partie, y compris celui des **invités**), `Question`, `Answer` (nombre, opérateur ou expression saisis), `Rating`, `UserStats`. À la bombe, le calcul construit par un joueur est montré à un autre joueur et gardé avec son auteur (`Question.authorPlayerKey`) : il ne contient que des chiffres, des opérateurs et des parenthèses (validé par `parseExpression`), donc aucun texte libre à modérer. Couvert par « calculs posés, réponses » dans `legal.privacy`.
-- Retours : `Feedback` (message libre, page, langue, e-mail facultatif d'un invité ; détaché du compte à sa suppression). Lisibles par les administrateurs (`ADMIN_EMAILS`), qui voient aussi pseudo, e-mail et statistiques de chaque compte dans le panel.
+- Retours : `Feedback` (message libre, page, langue, e-mail facultatif d'un invité ; détaché du compte à sa suppression). Lisibles par les administrateurs (`ADMIN_USER_IDS`), qui voient aussi pseudo, e-mail et statistiques de chaque compte dans le panel.
 - Social : `Friendship` (recherche possible par e-mail, jamais affiché), `GameInvite` (10 min), guilde (`GuildMember` avec `lastSeenAt` = dernière activité, visible des membres comme « en ligne / hors ligne » ; `GuildInvite` ; blason `GuildCrest`, image libre envoyée par le chef, sans modération). La photo de profil est aussi visible des membres de la guilde.
 - Navigateur seulement (`localStorage`) : thème, son, réglages.
 

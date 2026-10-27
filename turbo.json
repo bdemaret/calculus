@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["DATABASE_URL", "GAME_TOKEN_SECRET", "BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "NEXT_PUBLIC_GAME_SERVER_URL", "RESEND_API_KEY", "EMAIL_FROM", "WEB_ORIGIN", "PORT", "GAME_SERVER_PORT", "AUTH_RATE_LIMIT_DISABLED", "LEGAL_PUBLISHER", "LEGAL_CONTACT_EMAIL", "ADMIN_EMAILS"],
+  "globalEnv": ["DATABASE_URL", "GAME_TOKEN_SECRET", "BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "NEXT_PUBLIC_GAME_SERVER_URL", "RESEND_API_KEY", "EMAIL_FROM", "WEB_ORIGIN", "PORT", "GAME_SERVER_PORT", "AUTH_RATE_LIMIT_DISABLED", "LEGAL_PUBLISHER", "LEGAL_CONTACT_EMAIL", "ADMIN_USER_IDS"],
   "tasks": {
     "build": { "dependsOn": ["^build"], "outputs": [".next/**", "!.next/cache/**", "dist/**"] },
     "dev": { "cache": false, "persistent": true, "dependsOn": ["^generate"] },

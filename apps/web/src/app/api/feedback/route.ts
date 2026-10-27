@@ -8,11 +8,11 @@ const body = z.object({
   kind: z.enum(FEEDBACK_KINDS),
   message: z.string().trim().min(FEEDBACK_MIN_LENGTH).max(FEEDBACK_MAX_LENGTH),
   contact: z.union([z.literal(""), z.email().max(200)]).optional(),
-  // Chemin interne seulement (pas d'adresse complète ni de paramètres).
+  // Chemin interne seulement (pas d'adresse complète ni de paramètres ; « //hote » désignerait un autre site).
   page: z
     .string()
     .max(200)
-    .regex(/^\/[\w\-/]*$/)
+    .regex(/^\/(?!\/)[\w\-/]*$/)
     .optional(),
   locale: z.enum(routing.locales),
   // Piège à robots : champ caché, toujours vide pour un humain.

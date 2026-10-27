@@ -4,24 +4,28 @@ import { SignJWT } from "jose";
 import type { AdminRoomSummary } from "@calculus/game-core";
 import { getSession } from "./auth";
 
-/** E-mails des administrateurs (`ADMIN_EMAILS`, séparés par des virgules), en minuscules. */
-function adminEmails(): Set<string> {
+/**
+ * Ids des comptes administrateurs (`ADMIN_USER_IDS`, séparés par des virgules).
+ * Jamais d'e-mail : ils ne sont pas vérifiés à l'inscription, n'importe qui pourrait prendre
+ * une adresse de la liste restée sans compte. Un id n'est jamais réattribué.
+ */
+function adminUserIds(): Set<string> {
   return new Set(
-    (process.env.ADMIN_EMAILS ?? "")
+    (process.env.ADMIN_USER_IDS ?? "")
       .split(",")
-      .map((e) => e.trim().toLowerCase())
+      .map((id) => id.trim())
       .filter(Boolean),
   );
 }
 
-export function isAdminEmail(email: string | null | undefined): boolean {
-  return !!email && adminEmails().has(email.toLowerCase());
+export function isAdminUser(userId: string | null | undefined): boolean {
+  return !!userId && adminUserIds().has(userId);
 }
 
 /** Session de l'utilisateur courant s'il est administrateur, sinon null. */
 export async function getAdminSession() {
   const session = await getSession().catch(() => null);
-  return session && isAdminEmail(session.user.email) ? session : null;
+  return session && isAdminUser(session.user.id) ? session : null;
 }
 
 /** Adresse HTTP du serveur de jeu, déduite de son adresse WebSocket. */

@@ -4,14 +4,16 @@ import { WebSocketTransport } from "@colyseus/ws-transport";
 import { PRESENCE_ROOM } from "@calculus/game-core";
 import { GameRoom, liveRooms } from "./GameRoom";
 import { PresenceRoom } from "./PresenceRoom";
+import { gameTokenSecretError } from "./env";
 import { verifyAdminToken } from "./token";
 import { publicLobbies } from "./publicLobbies";
 
 // GAME_SERVER_PORT en local ; PORT est fourni automatiquement par les hébergeurs (Railway…).
 const port = Number(process.env.GAME_SERVER_PORT ?? process.env.PORT ?? 2567);
 
-if (!process.env.GAME_TOKEN_SECRET) {
-  console.error("GAME_TOKEN_SECRET manquant. Copie .env.example en .env à la racine du projet.");
+const secretError = gameTokenSecretError();
+if (secretError) {
+  console.error(secretError);
   process.exit(1);
 }
 

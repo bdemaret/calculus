@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@calculus/db";
 import { Link } from "@/i18n/navigation";
-import { isAdminEmail } from "@/lib/admin";
+import { isAdminUser } from "@/lib/admin";
 import { getSession } from "@/lib/auth";
 import { HeaderTools } from "./HeaderTools";
 import { Avatar } from "./PlayerChips";
@@ -36,7 +36,7 @@ export async function Header() {
           </Link>
           {session ? (
             <>
-              {isAdminEmail(session.user.email) ? (
+              {isAdminUser(session.user.id) ? (
                 <Link className="nav-link" href="/admin">
                   {t("admin")}
                 </Link>

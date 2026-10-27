@@ -2,7 +2,7 @@ import { getFormatter, getTranslations, setRequestLocale } from "next-intl/serve
 import { z } from "zod";
 import { ADMIN_PAGE_SIZE, listUsers } from "@calculus/db";
 import { Link } from "@/i18n/navigation";
-import { isAdminEmail, requireAdmin } from "@/lib/admin";
+import { isAdminUser, requireAdmin } from "@/lib/admin";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -52,7 +52,7 @@ export default async function AdminUsersPage({ params, searchParams }: { params:
                 <tr key={u.id}>
                   <td>
                     <Link href={`/admin/users/${u.id}`}>{u.name}</Link>
-                    {isAdminEmail(u.email) ? <span className="tag-mini">{t("admin")}</span> : null}
+                    {isAdminUser(u.id) ? <span className="tag-mini">{t("admin")}</span> : null}
                   </td>
                   <td>{u.email}</td>
                   <td>{date(u.createdAt)}</td>

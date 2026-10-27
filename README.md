@@ -88,10 +88,11 @@ Pour tester une partie en ligne seul : ouvre le site dans une fenêtre normale e
 3. **Serveur de jeu** : sur [Railway](https://railway.app) (ou Fly.io), crée un service depuis ton dépôt GitHub.
    - Commande d'installation : `corepack enable && pnpm install --frozen-lockfile`
    - Commande de démarrage : `pnpm --filter @calculus/game-server start`
-   - Variables : `DATABASE_URL`, `GAME_TOKEN_SECRET`, `WEB_ORIGIN` (l'adresse du site). `PORT` est fourni par Railway.
+   - Variables : `DATABASE_URL`, `GAME_TOKEN_SECRET`, `WEB_ORIGIN` (l'adresse du site). `PORT` est fourni par Railway, `NODE_ENV=production` par le script `start`.
    - Note l'adresse publique du service, par ex. `calculus-game.up.railway.app`.
 4. **Site** : sur [Vercel](https://vercel.com), importe le dépôt et choisis `apps/web` comme dossier racine.
-   - Variables : `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (l'adresse du site), `GAME_TOKEN_SECRET` (le même que sur Railway), `NEXT_PUBLIC_GAME_SERVER_URL` (`wss://` + l'adresse Railway), `RESEND_API_KEY`, `EMAIL_FROM`.
+   - Variables : `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (l'adresse du site), `GAME_TOKEN_SECRET` (le même que sur Railway), `NEXT_PUBLIC_GAME_SERVER_URL` (`wss://` + l'adresse Railway), `RESEND_API_KEY`, `EMAIL_FROM`, et `ADMIN_USER_IDS` pour le panel administrateur (id de ton compte, une fois créé sur le site en ligne).
+   - Secrets : génère `BETTER_AUTH_SECRET` et `GAME_TOKEN_SECRET` avec `openssl rand -base64 32`, deux valeurs différentes. Le site et le serveur de jeu refusent de démarrer avec les valeurs de `.env.example` ou un secret trop court.
 5. **E-mails** : crée une clé sur [Resend](https://resend.com) pour l'envoi des liens « mot de passe oublié ». Sans clé, ces e-mails s'affichent dans le terminal.
 
 ## Comment ça marche

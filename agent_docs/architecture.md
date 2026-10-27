@@ -55,13 +55,14 @@ Un seul `.env` à la racine (modèle : `.env.example`). Chargé par `dotenv -e .
 | --- | --- |
 | `DATABASE_URL` | db (local : Postgres Docker sur le port **5433**) |
 | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | web (Better Auth) |
-| `GAME_TOKEN_SECRET` | web (signe) + game-server (vérifie) — doit être identique |
+| `GAME_TOKEN_SECRET` | web (signe) + game-server (vérifie) — doit être identique, et différent de `BETTER_AUTH_SECRET` |
+| `NODE_ENV` | `production` active les vérifications de démarrage : `assertProductionSecrets` (`apps/web/src/lib/env.ts`, appelé par `lib/auth.ts`) et `gameTokenSecretError` (`apps/game-server/src/env.ts`) refusent un secret vide, recopié de `.env.example` (`remplace-moi`) ou de moins de 32 caractères. Le script `start` du serveur de jeu le fixe lui-même |
 | `NEXT_PUBLIC_GAME_SERVER_URL` | web, côté navigateur (`ws://localhost:2567` en local) |
 | `GAME_SERVER_PORT` / `PORT` | game-server |
-| `WEB_ORIGIN` | game-server |
+| `WEB_ORIGIN` | game-server, en principe ; **lue nulle part aujourd'hui** (aucun filtrage d'origine, voir `security.md`) |
 | `RESEND_API_KEY`, `EMAIL_FROM` | web (e-mails ; sans clé, affichés dans le terminal, sauf en production où rien n'est envoyé ni affiché) |
 | `LEGAL_PUBLISHER`, `LEGAL_CONTACT_EMAIL` | web (mentions légales : éditeur, vide = particulier anonyme ; e-mail de contact affiché dans les pages légales) |
-| `ADMIN_EMAILS` | web (e-mails des administrateurs, séparés par des virgules ; vide = pas de panel admin) |
+| `ADMIN_USER_IDS` | web (ids des comptes administrateurs, séparés par des virgules ; vide = pas de panel admin). Jamais d'e-mails : ils ne sont pas vérifiés |
 | `AUTH_RATE_LIMIT_DISABLED` | web, tests e2e uniquement (`"1"` coupe le rate limit de Better Auth) ; jamais en production |
 
 ## Déploiement

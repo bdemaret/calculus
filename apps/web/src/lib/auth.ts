@@ -7,12 +7,15 @@ import { headers } from "next/headers";
 import { eraseUserGames, prisma } from "@calculus/db";
 import { sendEmail } from "./email";
 import { isDivisionDisplay } from "./division";
+import { assertProductionSecrets } from "./env";
 import { cleanName } from "./names";
 
 // En production, l'adresse du site doit être fixée : sinon les liens des e-mails pointeraient vers localhost.
 if (process.env.NODE_ENV === "production" && !process.env.BETTER_AUTH_URL) {
   throw new Error("BETTER_AUTH_URL manquant : indique l'adresse publique du site.");
 }
+// Importé par toute route ou page qui lit la session : les secrets sont vérifiés dès le démarrage.
+assertProductionSecrets();
 
 /** Nettoie le pseudo côté serveur (le formulaire ne suffit pas : l'API est appelable directement). */
 function validName(raw: unknown): string {
@@ -41,6 +44,8 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 8,
     autoSignIn: true,
+    // Après un « mot de passe oublié » (souvent un compte volé), les autres sessions sont fermées.
+    revokeSessionsOnPasswordReset: true,
     async sendResetPassword({ user, url }) {
       await sendEmail({
         to: user.email,
