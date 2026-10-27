@@ -494,7 +494,8 @@
     "noticeText": "{name} invites you to a game.",
     "noticeJoin": "Join",
     "noticeIgnore": "Ignore",
-    "noticeGuild": "{name} invites you to the “{guild}” guild lobby."
+    "noticeGuild": "{name} invites you to the “{guild}” guild lobby.",
+    "noticeMore": "{count, plural, one {# more invitation waiting} other {# more invitations waiting}}"
   },
   "dashboard": {
     "title": "Dashboard",

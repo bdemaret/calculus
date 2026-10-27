@@ -1,4 +1,4 @@
-import { saveGame } from "@calculus/db";
+import { clearLobbyInvites, saveGame } from "@calculus/db";
 import type { GameEngine, RatingChange } from "@calculus/game-core";
 
 interface PersistInput {
@@ -36,4 +36,12 @@ export async function persistGame({ code, engine, startedAt, hostUserId, guestBy
     console.error(`[partie] ${code} : échec de l'enregistrement`, err);
     return null;
   }
+}
+
+/**
+ * Retire les invitations vers ce lobby : la partie a démarré ou le lobby a fermé, elles ne mènent plus nulle part.
+ * Une erreur ici ne doit jamais interrompre le jeu.
+ */
+export function clearInvites(code: string): void {
+  clearLobbyInvites(code).catch((err) => console.error(`[invitations] ${code} : échec du nettoyage`, err));
 }

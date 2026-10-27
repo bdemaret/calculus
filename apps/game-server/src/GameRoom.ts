@@ -27,7 +27,7 @@ import {
 } from "@calculus/game-core";
 import { z } from "zod";
 import { verifyGameToken, type GameIdentity } from "./token";
-import { persistGame } from "./persist";
+import { clearInvites, persistGame } from "./persist";
 import { PUBLIC_LOBBY_KEY, publicLobbies } from "./publicLobbies";
 
 /** Durées des transitions, en ms. */
@@ -251,6 +251,7 @@ export class GameRoom extends Room {
     activeCodes.delete(this.code);
     if (this.isPublic) publicLobbies.release(this.code);
     liveRooms.delete(this);
+    clearInvites(this.code);
   }
 
   /** Résumé pour le panel administrateur : jamais la réponse du calcul en cours. */
@@ -394,6 +395,8 @@ export class GameRoom extends Room {
     this.phase = "countdown";
     this.deadline = this.startedAt + COUNTDOWN_MS;
     void this.lock();
+    // Partie lancée : les invitations encore en attente vers ce lobby n'ont plus lieu d'être.
+    clearInvites(this.code);
     this.broadcastSnapshot();
     this.timer = this.clock.setTimeout(() => this.nextRound(), COUNTDOWN_MS);
   }

@@ -9,7 +9,7 @@ Serveur Colyseus 0.16 (`@colyseus/core` + `ws-transport`), lancé avec `tsx` (pa
 | `src/publicLobbies.ts` | Registre des lobbys publics de l'accueil (`publicLobbies`) et `PUBLIC_LOBBY_KEY` |
 | `src/PresenceRoom.ts` | Salle `"presence"` (`PRESENCE_ROOM`) : chaque onglet du site la rejoint sans jeton ; diffuse `online` { count } (total de toutes les salles de présence) au plus toutes les 2 s, n'accepte aucun message |
 | `src/token.ts` | `verifyGameToken` : vérifie le JWT émis par le site |
-| `src/persist.ts` | `persistGame` → `saveGame` de `@calculus/db` (erreurs loguées, jamais propagées), renvoie les changements d'Elo |
+| `src/persist.ts` | `persistGame` → `saveGame` de `@calculus/db` (erreurs loguées, jamais propagées), renvoie les changements d'Elo ; `clearInvites` efface les invitations vers le lobby au lancement d'une partie et à la fermeture de la salle |
 
 ## GameRoom
 

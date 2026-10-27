@@ -10,6 +10,8 @@ import { dismissInvite, fetchInvites } from "@/lib/friends";
 const POLL_MS = 15_000;
 /** Onglet en arrière-plan : une vérification par minute suffit (elle garde le joueur « en ligne » dans sa guilde). */
 const HIDDEN_POLL_MS = 60_000;
+/** Bandeaux affichés à la fois (les plus récents) ; les autres prennent la place de ceux qu'on ignore ou rejoint. */
+const MAX_SHOWN = 3;
 
 /** Bandeau des invitations à une partie, affiché sur toutes les pages au joueur connecté. */
 export function InviteNotice() {
@@ -45,8 +47,10 @@ export function InviteNotice() {
     setInvites((list) => list.filter((i) => !isHere(i)));
   }, [invites, isHere]);
 
-  const shown = invites.filter((i) => !isHere(i));
-  if (!shown.length) return null;
+  const pending = invites.filter((i) => !isHere(i));
+  if (!pending.length) return null;
+  const shown = pending.slice(0, MAX_SHOWN);
+  const hidden = pending.length - shown.length;
 
   const drop = (id: string) => {
     setInvites((list) => list.filter((i) => i.id !== id));
@@ -77,6 +81,7 @@ export function InviteNotice() {
           </span>
         </div>
       ))}
+      {hidden > 0 ? <p className="invite-more muted">{t("noticeMore", { count: hidden })}</p> : null}
     </div>
   );
 }

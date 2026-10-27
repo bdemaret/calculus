@@ -613,6 +613,8 @@ export async function getPlayerProfile(userId: string, viewerId?: string): Promi
 const MAX_PENDING_REQUESTS = 50;
 /** Durée de validité d'une invitation à une partie, en ms. */
 export const INVITE_TTL_MS = 10 * 60 * 1000;
+/** Invitations en cours d'un même joueur vers un même destinataire (une par lobby) : au-delà, les plus anciennes sautent. */
+const MAX_INVITES_PER_PAIR = 5;
 
 export interface FriendSummary {
   id: string;
@@ -804,15 +806,37 @@ async function areFriends(a: string, b: string): Promise<boolean> {
   return !!row;
 }
 
-/** Invite un ami dans un lobby (remplace l'invitation précédente). Renvoie false si ce n'est pas un ami. */
+/** Ne garde que les `MAX_INVITES_PER_PAIR` invitations les plus récentes de `fromId` vers chacun de `toIds`. */
+async function trimGameInvites(fromId: string, toIds: string[]): Promise<void> {
+  if (!toIds.length) return;
+  const rows = await prisma.gameInvite.findMany({
+    where: { fromId, toId: { in: toIds } },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    select: { id: true, toId: true },
+  });
+  const kept = new Map<string, number>();
+  const extra: string[] = [];
+  for (const r of rows) {
+    const n = (kept.get(r.toId) ?? 0) + 1;
+    kept.set(r.toId, n);
+    if (n > MAX_INVITES_PER_PAIR) extra.push(r.id);
+  }
+  if (extra.length) await prisma.gameInvite.deleteMany({ where: { id: { in: extra } } });
+}
+
+/**
+ * Invite un ami dans un lobby. Chaque lobby a sa propre invitation (inviter de nouveau au même lobby la renouvelle),
+ * pour que plusieurs invitations du même ami restent visibles. Renvoie false si ce n'est pas un ami.
+ */
 export async function sendGameInvite(fromId: string, toId: string, code: string, now: Date): Promise<boolean> {
   if (fromId === toId || !(await areFriends(fromId, toId))) return false;
   const expiresAt = new Date(now.getTime() + INVITE_TTL_MS);
   await prisma.gameInvite.upsert({
-    where: { fromId_toId: { fromId, toId } },
+    where: { fromId_toId_code: { fromId, toId, code } },
     create: { fromId, toId, code, createdAt: now, expiresAt },
-    update: { code, createdAt: now, expiresAt, guildId: null },
+    update: { createdAt: now, expiresAt },
   });
+  await trimGameInvites(fromId, [toId]);
   return true;
 }
 
@@ -839,6 +863,11 @@ export async function getGameInvites(userId: string, now: Date): Promise<GameInv
 /** Supprime une invitation reçue (rejointe ou ignorée). */
 export async function dismissGameInvite(userId: string, inviteId: string): Promise<void> {
   await prisma.gameInvite.deleteMany({ where: { id: inviteId, toId: userId } });
+}
+
+/** Supprime toutes les invitations vers le lobby `code` : appelé par le serveur de jeu quand la partie démarre ou que le lobby ferme. */
+export async function clearLobbyInvites(code: string): Promise<void> {
+  await prisma.gameInvite.deleteMany({ where: { code } });
 }
 
 /* ------------------------------------------------------------------ */
@@ -1191,15 +1220,19 @@ export async function sendGuildLobbyInvites(userId: string, code: string, now: D
   if (!me) return null;
   const others = await prisma.guildMember.findMany({ where: { guildId: me.guildId, userId: { not: userId } }, select: { userId: true } });
   const expiresAt = new Date(now.getTime() + INVITE_TTL_MS);
-  const data = { code, createdAt: now, expiresAt, guildId: me.guildId };
+  const data = { createdAt: now, expiresAt, guildId: me.guildId };
   await prisma.$transaction(
     others.map((o) =>
       prisma.gameInvite.upsert({
-        where: { fromId_toId: { fromId: userId, toId: o.userId } },
-        create: { fromId: userId, toId: o.userId, ...data },
+        where: { fromId_toId_code: { fromId: userId, toId: o.userId, code } },
+        create: { fromId: userId, toId: o.userId, code, ...data },
         update: data,
       }),
     ),
+  );
+  await trimGameInvites(
+    userId,
+    others.map((o) => o.userId),
   );
   return others.length;
 }

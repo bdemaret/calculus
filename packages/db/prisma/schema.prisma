@@ -257,9 +257,10 @@ model GameInvite {
   createdAt DateTime @default(now())
   expiresAt DateTime
 
-  /// Une seule invitation en cours par paire : une nouvelle remplace l'ancienne.
-  @@unique([fromId, toId])
+  /// Une invitation par lobby et par paire : inviter de nouveau au même lobby la renouvelle.
+  @@unique([fromId, toId, code])
   @@index([toId, expiresAt])
+  @@index([code])
   @@map("game_invite")
 }
 

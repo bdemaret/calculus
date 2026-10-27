@@ -494,7 +494,8 @@
     "noticeText": "{name} t’invite à une partie.",
     "noticeJoin": "Rejoindre",
     "noticeIgnore": "Ignorer",
-    "noticeGuild": "{name} t’invite dans le lobby de la guilde « {guild} »."
+    "noticeGuild": "{name} t’invite dans le lobby de la guilde « {guild} ».",
+    "noticeMore": "{count, plural, one {# autre invitation en attente} other {# autres invitations en attente}}"
   },
   "dashboard": {
     "title": "Tableau de bord",

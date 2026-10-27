@@ -1,5 +1,7 @@
 import { WEB_URL } from "../../env";
 import { t } from "../../fixtures/i18n";
+import type { APIResponse } from "@playwright/test";
+import { Bot } from "../../fixtures/bot";
 import { expect, newUser, signUp, test } from "../../fixtures/test";
 
 test.describe("amis", () => {
@@ -37,6 +39,47 @@ test.describe("amis", () => {
     await expect(page.getByTestId("lobby-slots").locator(".slot.filled").filter({ hasText: friend.name })).toBeVisible();
 
     await ctx.close();
+  });
+
+  test("plusieurs invitations du même ami, retirées quand la partie démarre ou que le lobby ferme", async ({ page, user, request }) => {
+    // L'ami qui invite n'a pas besoin de navigateur : tout passe par l'API, avec sa propre session.
+    const friend = await signUp(request, newUser());
+    expect((await request.post("/api/friends", { data: { handle: user.email } })).ok()).toBe(true);
+    const firstId = async (res: Promise<APIResponse>, list: "incoming" | "friends") =>
+      ((await (await res).json()) as Record<typeof list, { id: string }[]>)[list].map((f) => f.id)[0] ?? "";
+    expect((await page.request.patch("/api/friends", { data: { userId: await firstId(page.request.get("/api/friends"), "incoming") } })).ok()).toBe(true);
+    const meId = await firstId(request.get("/api/friends"), "friends");
+
+    // Quatre lobbys tenus par des bots, chacun avec son invitation (A la plus ancienne).
+    const settings = { game: "standard", mode: "speed-race" } as const;
+    const [a, b, c, d] = [await Bot.create("Hôte A", settings), await Bot.create("Hôte B", settings), await Bot.create("Hôte C", settings), await Bot.create("Hôte D", settings)];
+    const lobbies = [a, b, c, d];
+    const open = new Set(lobbies);
+    try {
+      for (const bot of lobbies) expect((await request.post("/api/invites", { data: { userId: meId, code: bot.code } })).ok()).toBe(true);
+
+      // Trois bandeaux à la fois, les plus récents, et le nombre des autres ; ignorer en fait remonter un.
+      await page.goto("/fr");
+      const notices = page.locator(".invite-notice").filter({ hasText: t("friends.noticeText", { name: friend.name }) });
+      await expect(notices).toHaveCount(3);
+      await expect(page.locator(".invite-more")).toContainText("1");
+      await notices.first().getByRole("button", { name: t("friends.noticeIgnore") }).click();
+      await expect(notices).toHaveCount(3);
+      await expect(page.locator(".invite-more")).toBeHidden();
+
+      // Une partie lancée, puis un lobby fermé : leurs invitations disparaissent, seule reste celle du lobby A.
+      c.start();
+      await c.waitFor((s) => s.phase !== "lobby");
+      await b.leave();
+      open.delete(b);
+      const codes = async () => ((await (await page.request.get("/api/invites")).json()) as { invites: { code: string }[] }).invites.map((i) => i.code);
+      await expect.poll(codes).toEqual([a.code]);
+      await page.reload();
+      await expect(notices).toHaveCount(1);
+    } finally {
+      // Quitter deux fois la même salle ne rend jamais la main.
+      await Promise.all([...open].map((bot) => bot.leave()));
+    }
   });
 
   test("demande par pseudo et erreurs", async ({ page, user, request }) => {
