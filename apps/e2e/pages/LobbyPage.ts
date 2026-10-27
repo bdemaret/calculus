@@ -91,6 +91,17 @@ export class LobbyPage {
     return this.page.getByRole("button", { name: t(key), exact: true });
   }
 
+  /** Bouton « Tous en même temps » ou « Chacun son tour » des réglages du lobby. */
+  turnStyleButton(turnStyle: GameSettings["turnStyle"]) {
+    return this.page.getByRole("button", { name: t(`settings.${turnStyle}`), exact: true });
+  }
+
+  /** L'hôte change la façon de jouer dans les réglages du lobby (un nouveau lobby est toujours en simultané). */
+  async setTurnStyle(turnStyle: GameSettings["turnStyle"]) {
+    await this.turnStyleButton(turnStyle).click();
+    await expect(this.turnStyleButton(turnStyle)).toHaveAttribute("aria-pressed", "true");
+  }
+
   async start() {
     await this.button("lobby.start").click();
   }

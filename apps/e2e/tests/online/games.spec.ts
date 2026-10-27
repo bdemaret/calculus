@@ -39,8 +39,12 @@ test.describe("course de vitesse", () => {
   });
 
   test("chacun son tour : seul le joueur actif répond, sa saisie s'affiche chez les autres", async ({ host, bots }) => {
+    // Même si le dernier lobby était en « chacun son tour », un nouveau lobby commence en simultané.
     const alice = await host("Alice", { mode: "speed-race", rounds: 5, turnStyle: "turns" });
     const code = await alice.create();
+    await expect(alice.turnStyleButton("simultaneous")).toHaveAttribute("aria-pressed", "true");
+    // L'hôte peut ensuite passer en « chacun son tour » dans les réglages du lobby.
+    await alice.setTurnStyle("turns");
     const [bot] = await bots(code, ["Bot"]);
     bot!.play(() => ({ move: "right", typeFirst: true, delayMs: 1_500 }));
     await expect(alice.slot("Bot")).toBeVisible();
@@ -96,10 +100,10 @@ test.describe("nombre manquant, chacun son tour", () => {
       operations: ["add", "sub", "mul", "div"],
       mode: "speed-race",
       rounds: 5,
-      turnStyle: "turns",
       timePerQuestion: 20,
     });
     const code = await alice.create();
+    await alice.setTurnStyle("turns");
     const [bot] = await bots(code, ["Bot"]);
     bot!.play(() => ({ move: "right", typeFirst: true, delayMs: 1_500 }));
     await expect(alice.slot("Bot")).toBeVisible();
