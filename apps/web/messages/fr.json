@@ -23,7 +23,9 @@
     "soundOff": "Couper le son",
     "language": "Switch to English",
     "admin": "Admin",
-    "profileRequests": "{name}, {count, plural, one {# demande d’ami en attente} other {# demandes d’ami en attente}}"
+    "profileRequests": "{name}, {count, plural, one {# demande d’ami en attente} other {# demandes d’ami en attente}}",
+    "guild": "Guilde",
+    "guildInvites": "Guilde, {count, plural, one {# invitation en attente} other {# invitations en attente}}"
   },
   "home": {
     "title": "Qui calcule le plus <hl>vite</hl> ?",
@@ -478,7 +480,8 @@
     "manage": "Gérer mes amis",
     "noticeText": "{name} t’invite à une partie.",
     "noticeJoin": "Rejoindre",
-    "noticeIgnore": "Ignorer"
+    "noticeIgnore": "Ignorer",
+    "noticeGuild": "{name} t’invite dans le lobby de la guilde « {guild} »."
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -594,6 +597,7 @@
               "Ton compte : pseudo, adresse e-mail, mot de passe (enregistré sous forme hachée, jamais en clair), date d’inscription, photo de profil si tu en ajoutes une, et préférences de saisie (clavier ou voix) et d’affichage des divisions.",
               "Tes parties : réglages, calculs posés, réponses, temps de réponse, scores, rang, Elo et statistiques.",
               "Tes amis : demandes envoyées et reçues, liens d’amitié, invitations à une partie.",
+              "Ta guilde : guilde dont tu fais partie, rôle (chef ou membre), date d’arrivée, invitations, blason, et l’heure de ta dernière visite sur le site (pour montrer aux membres si tu es en ligne).",
               "Tes retours : le message envoyé depuis « Faire un retour », son type, la page d’où il vient et, si tu n’es pas connecté, l’e-mail que tu choisis de laisser.",
               "Données techniques : l’adresse IP et le navigateur associés à chaque connexion, et ton adresse IP pour limiter les tentatives répétées (protection contre les abus)."
             ],
@@ -617,7 +621,7 @@
           "body": [
             [
               "Ton pseudo, ton Elo, ta place au classement, ton nombre de parties et ton pourcentage de victoires sont publics.",
-              "Ta photo de profil n’est visible que par toi et tes amis.",
+              "Ta photo de profil n’est visible que par toi, tes amis et les membres de ta guilde, qui voient aussi si tu es en ligne. Le blason d’une guilde est visible par les joueurs connectés qu’elle invite.",
               "Les résultats d’une partie en ligne (pseudos, scores, réponses) sont visibles par toute personne qui a le lien de son rapport, partagé avec les joueurs de la partie.",
               "Ton adresse e-mail n’est jamais affichée. Un joueur qui la connaît déjà peut s’en servir pour t’envoyer une demande d’ami."
             ]
@@ -642,7 +646,7 @@
           "title": "Combien de temps nous les gardons",
           "body": [
             [
-              "Compte, parties, statistiques et amis : tant que ton compte existe.",
+              "Compte, parties, statistiques, amis et guilde : tant que ton compte existe (la guilde, jusqu’à ce que tu la quittes).",
               "Sessions de connexion (adresse IP, navigateur) : 30 jours au plus.",
               "Lien de nouveau mot de passe : 1 heure. Invitation à une partie : 10 minutes.",
               "Retours : le temps de les traiter, puis supprimés au plus tard un an après. Ils restent lisibles par l’équipe du site, sans lien avec ton compte s’il est supprimé."
@@ -910,6 +914,72 @@
       "previous": "Précédents",
       "next": "Suivants",
       "page": "page {page} sur {pages}"
+    }
+  },
+  "guild": {
+    "title": "Guilde",
+    "margin": "la guilde",
+    "intro": "Une guilde regroupe jusqu’à {max} joueurs, amis ou non. Son chef choisit le nom et le blason ; tous les membres peuvent inviter.",
+    "invitesTitle": "Invitations reçues",
+    "invitedBy": "invité·e par {name}",
+    "accept": "Rejoindre",
+    "decline": "Refuser",
+    "createTitle": "Fonder une guilde",
+    "nameLabel": "Nom de la guilde",
+    "namePlaceholder": "ex. Les As du calcul",
+    "create": "Fonder la guilde",
+    "membersCount": "{count, plural, one {# membre} other {# membres}} sur {max}",
+    "leader": "chef",
+    "you": "toi",
+    "rename": "Renommer",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "crestAdd": "Ajouter un blason",
+    "crestChange": "Changer le blason",
+    "crestRemove": "Retirer le blason",
+    "crestError": "Le blason n’a pas pu être enregistré.",
+    "lobbyTitle": "Lobby de guilde",
+    "lobbyText": "Crée un lobby privé et invite d’un coup tous les membres de la guilde.",
+    "lobbyAlone": "Invite d’abord des joueurs dans la guilde pour lancer un lobby de guilde.",
+    "lobbyCreate": "Créer un lobby de guilde",
+    "lobbyCreating": "Création…",
+    "lobbyError": "Le lobby de guilde n’a pas pu être créé.",
+    "onlineTitle": "En ligne ({count})",
+    "offlineTitle": "Hors ligne ({count})",
+    "noneOnline": "Personne n’est en ligne.",
+    "makeLeader": "Nommer chef",
+    "makeLeaderConfirm": "Nommer {name} chef de la guilde ? Tu redeviendras simple membre.",
+    "kick": "Exclure",
+    "kickConfirm": "Exclure {name} de la guilde ?",
+    "inviteTitle": "Inviter dans la guilde",
+    "inviteLabel": "Pseudo ou e-mail",
+    "invitePlaceholder": "ex. Basile ou basile@exemple.fr",
+    "invite": "Inviter",
+    "inviteResult": {
+      "sent": "Invitation envoyée à {name}.",
+      "already-invited": "{name} a déjà une invitation de la guilde."
+    },
+    "friendsTitle": "Tes amis sans guilde",
+    "pendingTitle": "Invitations en attente",
+    "cancelInvite": "Annuler",
+    "leave": "Quitter la guilde",
+    "leaveConfirm": "Quitter la guilde ?",
+    "leaveConfirmLeader": "Quitter la guilde ? Le membre le plus ancien en deviendra le chef.",
+    "leaveConfirmLast": "Tu es le dernier membre : la guilde sera dissoute. Continuer ?",
+    "error": {
+      "not-found": "Aucun joueur trouvé avec ce pseudo ou cet e-mail.",
+      "ambiguous": "Plusieurs joueurs portent ce pseudo : utilise son e-mail.",
+      "self": "Tu fais déjà partie de la guilde.",
+      "already-member": "Ce joueur fait déjà partie de la guilde.",
+      "target-in-guild": "Ce joueur fait déjà partie d’une autre guilde.",
+      "full": "La guilde est complète ({max} membres au plus).",
+      "too-many": "Trop d’invitations en attente : annules-en quelques-unes.",
+      "not-member": "Tu ne fais plus partie de cette guilde.",
+      "not-leader": "Seul le chef de la guilde peut faire ça.",
+      "name-invalid": "Le nom doit faire entre {min} et {max} caractères.",
+      "name-taken": "Une autre guilde porte déjà ce nom.",
+      "in-guild": "Tu fais déjà partie d’une guilde : quitte-la d’abord.",
+      "generic": "Une erreur est survenue, réessaie."
     }
   }
 }

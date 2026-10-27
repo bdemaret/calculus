@@ -38,6 +38,9 @@ model User {
   invitesReceived GameInvite[] @relation("InviteTo")
   feedbacks       Feedback[]
   avatar          Avatar?
+  guildMember     GuildMember?
+  guildInvitesReceived GuildInvite[] @relation("GuildInviteTo")
+  guildInvitesSent     GuildInvite[] @relation("GuildInviteFrom")
 
   @@map("user")
 }
@@ -246,6 +249,9 @@ model GameInvite {
   to        User     @relation("InviteTo", fields: [toId], references: [id], onDelete: Cascade)
   /// Code du lobby à rejoindre
   code      String
+  /// Guilde dont c'est le lobby (invitation envoyée à tous ses membres), null pour une invitation entre amis
+  guildId   String?
+  guild     Guild?   @relation(fields: [guildId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   expiresAt DateTime
 
@@ -253,6 +259,73 @@ model GameInvite {
   @@unique([fromId, toId])
   @@index([toId, expiresAt])
   @@map("game_invite")
+}
+
+/* ---------- Guildes ---------- */
+
+enum GuildRole {
+  leader
+  member
+}
+
+/// Regroupement de joueurs (pas forcément amis), 50 au plus, mené par un chef. Un joueur est dans une guilde au plus.
+model Guild {
+  id          String        @id @default(cuid())
+  name        String
+  /// Nom en minuscules : deux guildes ne peuvent pas porter le même nom, quelle que soit la casse
+  nameKey     String        @unique
+  /// Adresse du blason (`/api/guild/crest/<id>?v=<version>`), null sans blason
+  crest       String?
+  createdAt   DateTime      @default(now())
+  members     GuildMember[]
+  invites     GuildInvite[]
+  crestImage  GuildCrest?
+  gameInvites GameInvite[]
+
+  @@map("guild")
+}
+
+/// Appartenance d'un joueur à une guilde (une ligne par joueur : jamais deux guildes à la fois).
+model GuildMember {
+  userId     String    @id
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guildId    String
+  guild      Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  role       GuildRole @default(member)
+  joinedAt   DateTime  @default(now())
+  /// Dernière activité sur le site (mise à jour toutes les 15 s par le site ouvert), pour « en ligne / hors ligne »
+  lastSeenAt DateTime?
+
+  @@index([guildId])
+  @@map("guild_member")
+}
+
+/// Invitation à entrer dans une guilde, envoyée par n'importe quel membre, jusqu'à acceptation ou refus.
+model GuildInvite {
+  id        String   @id @default(cuid())
+  guildId   String
+  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  toId      String
+  to        User     @relation("GuildInviteTo", fields: [toId], references: [id], onDelete: Cascade)
+  /// Membre qui a invité (null si son compte a été supprimé)
+  fromId    String?
+  from      User?    @relation("GuildInviteFrom", fields: [fromId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@unique([guildId, toId])
+  @@index([toId])
+  @@map("guild_invite")
+}
+
+/// Blason d'une guilde, recadré et réduit par le navigateur avant l'envoi (comme les photos de profil)
+model GuildCrest {
+  guildId   String   @id
+  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  data      Bytes
+  mime      String
+  updatedAt DateTime @updatedAt
+
+  @@map("guild_crest")
 }
 
 /// Elo d'un joueur, propre à chaque jeu, chaque mode et chaque difficulté (1000 au départ, caché pendant les 5 parties de placement).

@@ -22,6 +22,7 @@ import {
 } from "@calculus/game-core";
 import { randomUUID } from "node:crypto";
 import { FEEDBACK_GUESTS_PER_HOUR, FEEDBACK_PER_USER_PER_HOUR, type FeedbackKindName } from "./feedback";
+import { GUILD_MAX_MEMBERS, GUILD_MAX_PENDING_INVITES, GUILD_NAME_MIN, GUILD_ONLINE_MS, cleanGuildName } from "./guild";
 
 export { Prisma };
 export type { PrismaClient };
@@ -685,6 +686,12 @@ export async function getFriends(userId: string): Promise<FriendsData> {
  * Les pseudos n'étant pas uniques, un pseudo partagé par plusieurs comptes renvoie « ambiguous ».
  */
 export async function sendFriendRequest(fromId: string, handle: string): Promise<FriendRequestResult> {
+  const found = await findUserByHandle(handle);
+  return "status" in found ? found : requestFriendship(fromId, found);
+}
+
+/** Compte désigné par un pseudo (insensible à la casse) ou un e-mail ; « ambiguous » si plusieurs comptes portent ce pseudo. */
+async function findUserByHandle(handle: string): Promise<{ id: string; name: string } | { status: "not-found" | "ambiguous" }> {
   const h = handle.trim();
   const matches = await prisma.user.findMany({
     where: h.includes("@") ? { email: { equals: h, mode: "insensitive" } } : { name: { equals: h, mode: "insensitive" } },
@@ -693,7 +700,7 @@ export async function sendFriendRequest(fromId: string, handle: string): Promise
   });
   if (matches.length === 0) return { status: "not-found" };
   if (matches.length > 1) return { status: "ambiguous" };
-  return requestFriendship(fromId, matches[0]!);
+  return matches[0]!;
 }
 
 /** Envoie une demande d'ami à un joueur désigné par son id (depuis son profil public). */
@@ -804,7 +811,7 @@ export async function sendGameInvite(fromId: string, toId: string, code: string,
   await prisma.gameInvite.upsert({
     where: { fromId_toId: { fromId, toId } },
     create: { fromId, toId, code, createdAt: now, expiresAt },
-    update: { code, createdAt: now, expiresAt },
+    update: { code, createdAt: now, expiresAt, guildId: null },
   });
   return true;
 }
@@ -813,6 +820,8 @@ export interface GameInviteSummary {
   id: string;
   code: string;
   fromName: string;
+  /** Nom de la guilde quand c'est un lobby de guilde, null pour une invitation entre amis */
+  guildName: string | null;
   createdAt: string;
 }
 
@@ -822,14 +831,377 @@ export async function getGameInvites(userId: string, now: Date): Promise<GameInv
   const rows = await prisma.gameInvite.findMany({
     where: { toId: userId },
     orderBy: { createdAt: "desc" },
-    include: { from: { select: { name: true } } },
+    include: { from: { select: { name: true } }, guild: { select: { name: true } } },
   });
-  return rows.map((r) => ({ id: r.id, code: r.code, fromName: r.from.name, createdAt: r.createdAt.toISOString() }));
+  return rows.map((r) => ({ id: r.id, code: r.code, fromName: r.from.name, guildName: r.guild?.name ?? null, createdAt: r.createdAt.toISOString() }));
 }
 
 /** Supprime une invitation reçue (rejointe ou ignorée). */
 export async function dismissGameInvite(userId: string, inviteId: string): Promise<void> {
   await prisma.gameInvite.deleteMany({ where: { id: inviteId, toId: userId } });
+}
+
+/* ------------------------------------------------------------------ */
+/* Guildes                                                              */
+/* ------------------------------------------------------------------ */
+
+export * from "./guild";
+
+export type GuildRoleName = "leader" | "member";
+
+export interface GuildMemberSummary {
+  id: string;
+  name: string;
+  image: string | null;
+  role: GuildRoleName;
+  joinedAt: string;
+  /** Site ouvert il y a moins de `GUILD_ONLINE_MS` (toujours vrai pour soi-même) */
+  online: boolean;
+}
+
+/** Invitation envoyée par la guilde, pas encore acceptée. */
+export interface GuildPendingInvite {
+  id: string;
+  userId: string;
+  name: string;
+  /** Membre qui a invité (null si son compte a été supprimé) */
+  fromName: string | null;
+  createdAt: string;
+}
+
+export interface GuildView {
+  id: string;
+  name: string;
+  crest: string | null;
+  createdAt: string;
+  myRole: GuildRoleName;
+  /** Chef d'abord, puis par pseudo */
+  members: GuildMemberSummary[];
+  invites: GuildPendingInvite[];
+  /** Amis sans guilde et pas encore invités, proposés en un clic */
+  invitableFriends: FriendRequestSummary[];
+}
+
+/** Invitation à entrer dans une guilde, reçue par un joueur. */
+export interface ReceivedGuildInvite {
+  id: string;
+  guildId: string;
+  guildName: string;
+  crest: string | null;
+  members: number;
+  fromName: string | null;
+  createdAt: string;
+}
+
+export type GuildError =
+  | "not-member"
+  | "not-leader"
+  | "name-invalid"
+  | "name-taken"
+  | "in-guild"
+  | "full"
+  | "not-found";
+
+export type GuildInviteResult =
+  | { status: "sent" | "already-invited"; name: string }
+  | { status: "not-found" | "ambiguous" | "self" | "already-member" | "target-in-guild" | "full" | "too-many" | "not-member" };
+
+/**
+ * Violation d'unicité Prisma portant sur `field`. Lu par le code et les champs plutôt que par `instanceof` :
+ * empaqueté par Next, le client peut exister en deux exemplaires et la classe d'erreur ne correspond plus.
+ */
+function isUniqueError(err: unknown, field: string): boolean {
+  if (typeof err !== "object" || err === null || (err as { code?: unknown }).code !== "P2002") return false;
+  const target = (err as { meta?: { target?: unknown } }).meta?.target;
+  return Array.isArray(target) ? target.includes(field) : String(target ?? "").includes(field);
+}
+
+/** Clé d'unicité d'un nom de guilde : minuscules, sans accents. */
+const guildNameKey = (name: string) => name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+async function sameGuild(a: string, b: string): Promise<boolean> {
+  const rows = await prisma.guildMember.findMany({ where: { userId: { in: [a, b] } }, select: { guildId: true } });
+  return rows.length === 2 && rows[0]!.guildId === rows[1]!.guildId;
+}
+
+/** Guilde du joueur (membres, invitations en cours, amis à inviter), null s'il n'en a pas. */
+export async function getMyGuild(userId: string, now: Date): Promise<GuildView | null> {
+  const me = await prisma.guildMember.findUnique({ where: { userId }, select: { guildId: true, role: true } });
+  if (!me) return null;
+  const [guild, friendships] = await Promise.all([
+    prisma.guild.findUnique({
+      where: { id: me.guildId },
+      include: {
+        members: { include: { user: { select: { id: true, name: true, image: true } } } },
+        invites: { orderBy: { createdAt: "desc" }, include: { to: { select: { id: true, name: true } }, from: { select: { name: true } } } },
+      },
+    }),
+    prisma.friendship.findMany({
+      where: { status: "accepted", OR: [{ requesterId: userId }, { addresseeId: userId }] },
+      include: {
+        requester: { select: { id: true, name: true, image: true, guildMember: { select: { guildId: true } } } },
+        addressee: { select: { id: true, name: true, image: true, guildMember: { select: { guildId: true } } } },
+      },
+    }),
+  ]);
+  if (!guild) return null;
+
+  const members: GuildMemberSummary[] = guild.members.map((m) => ({
+    id: m.user.id,
+    name: m.user.name,
+    image: m.user.image,
+    role: m.role,
+    joinedAt: m.joinedAt.toISOString(),
+    online: m.userId === userId || (!!m.lastSeenAt && now.getTime() - m.lastSeenAt.getTime() < GUILD_ONLINE_MS),
+  }));
+  members.sort((a, b) => (a.role === b.role ? a.name.localeCompare(b.name) : a.role === "leader" ? -1 : 1));
+
+  const invited = new Set(guild.invites.map((i) => i.toId));
+  const invitableFriends = friendships
+    .map((f) => (f.requesterId === userId ? f.addressee : f.requester))
+    .filter((u) => !u.guildMember && !invited.has(u.id))
+    .map((u) => ({ id: u.id, name: u.name, image: u.image }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    id: guild.id,
+    name: guild.name,
+    crest: guild.crest,
+    createdAt: guild.createdAt.toISOString(),
+    myRole: me.role,
+    members,
+    invites: guild.invites.map((i) => ({
+      id: i.id,
+      userId: i.to.id,
+      name: i.to.name,
+      fromName: i.from?.name ?? null,
+      createdAt: i.createdAt.toISOString(),
+    })),
+    invitableFriends,
+  };
+}
+
+/** Invitations à entrer dans une guilde reçues par le joueur. */
+export async function getReceivedGuildInvites(userId: string): Promise<ReceivedGuildInvite[]> {
+  const rows = await prisma.guildInvite.findMany({
+    where: { toId: userId },
+    orderBy: { createdAt: "desc" },
+    include: { guild: { select: { name: true, crest: true, _count: { select: { members: true } } } }, from: { select: { name: true } } },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    guildId: r.guildId,
+    guildName: r.guild.name,
+    crest: r.guild.crest,
+    members: r.guild._count.members,
+    fromName: r.from?.name ?? null,
+    createdAt: r.createdAt.toISOString(),
+  }));
+}
+
+/** Fonde une guilde dont le joueur devient le chef. */
+export async function createGuild(userId: string, rawName: string): Promise<GuildError | null> {
+  const name = cleanGuildName(rawName);
+  if (name.length < GUILD_NAME_MIN) return "name-invalid";
+  if (await prisma.guildMember.findUnique({ where: { userId }, select: { userId: true } })) return "in-guild";
+  try {
+    await prisma.$transaction([
+      prisma.guild.create({
+        data: { name, nameKey: guildNameKey(name), members: { create: { userId, role: "leader", lastSeenAt: new Date() } } },
+      }),
+      // Déjà dans une guilde : les autres invitations n'ont plus lieu d'être.
+      prisma.guildInvite.deleteMany({ where: { toId: userId } }),
+    ]);
+  } catch (err) {
+    if (isUniqueError(err, "nameKey")) return "name-taken";
+    if (isUniqueError(err, "userId")) return "in-guild";
+    throw err;
+  }
+  return null;
+}
+
+/** Membre chef de sa guilde, sinon l'erreur à renvoyer. */
+async function leaderGuild(userId: string): Promise<{ guildId: string } | { error: GuildError }> {
+  const me = await prisma.guildMember.findUnique({ where: { userId }, select: { guildId: true, role: true } });
+  if (!me) return { error: "not-member" };
+  if (me.role !== "leader") return { error: "not-leader" };
+  return { guildId: me.guildId };
+}
+
+/** Renomme la guilde (chef seulement). */
+export async function renameGuild(userId: string, rawName: string): Promise<GuildError | null> {
+  const lead = await leaderGuild(userId);
+  if ("error" in lead) return lead.error;
+  const name = cleanGuildName(rawName);
+  if (name.length < GUILD_NAME_MIN) return "name-invalid";
+  try {
+    await prisma.guild.update({ where: { id: lead.guildId }, data: { name, nameKey: guildNameKey(name) } });
+  } catch (err) {
+    if (isUniqueError(err, "nameKey")) return "name-taken";
+    throw err;
+  }
+  return null;
+}
+
+/** Invite un joueur (par pseudo, e-mail ou id) dans la guilde de `fromId` : n'importe quel membre peut inviter. */
+export async function inviteToGuild(fromId: string, target: { handle: string } | { userId: string }): Promise<GuildInviteResult> {
+  const me = await prisma.guildMember.findUnique({ where: { userId: fromId }, select: { guildId: true } });
+  if (!me) return { status: "not-member" };
+  const found =
+    "handle" in target
+      ? await findUserByHandle(target.handle)
+      : ((await prisma.user.findUnique({ where: { id: target.userId }, select: { id: true, name: true } })) ?? { status: "not-found" as const });
+  if ("status" in found) return found;
+  if (found.id === fromId) return { status: "self" };
+
+  const [membership, members, pending] = await Promise.all([
+    prisma.guildMember.findUnique({ where: { userId: found.id }, select: { guildId: true } }),
+    prisma.guildMember.count({ where: { guildId: me.guildId } }),
+    prisma.guildInvite.count({ where: { guildId: me.guildId } }),
+  ]);
+  if (membership) return { status: membership.guildId === me.guildId ? "already-member" : "target-in-guild" };
+  if (members >= GUILD_MAX_MEMBERS) return { status: "full" };
+  const existing = await prisma.guildInvite.findUnique({ where: { guildId_toId: { guildId: me.guildId, toId: found.id } }, select: { id: true } });
+  if (existing) return { status: "already-invited", name: found.name };
+  if (pending >= GUILD_MAX_PENDING_INVITES) return { status: "too-many" };
+  try {
+    await prisma.guildInvite.create({ data: { guildId: me.guildId, toId: found.id, fromId } });
+  } catch (err) {
+    if (isUniqueError(err, "toId")) return { status: "already-invited", name: found.name };
+    throw err;
+  }
+  return { status: "sent", name: found.name };
+}
+
+/** Annule une invitation envoyée par sa guilde (n'importe quel membre). */
+export async function cancelGuildInvite(userId: string, inviteId: string): Promise<void> {
+  const me = await prisma.guildMember.findUnique({ where: { userId }, select: { guildId: true } });
+  if (me) await prisma.guildInvite.deleteMany({ where: { id: inviteId, guildId: me.guildId } });
+}
+
+/** Refuse une invitation reçue. */
+export async function declineGuildInvite(userId: string, inviteId: string): Promise<void> {
+  await prisma.guildInvite.deleteMany({ where: { id: inviteId, toId: userId } });
+}
+
+/** Accepte une invitation reçue : le joueur entre dans la guilde si elle n'est pas pleine. */
+export async function acceptGuildInvite(userId: string, inviteId: string, now: Date): Promise<GuildError | null> {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const invite = await tx.guildInvite.findFirst({ where: { id: inviteId, toId: userId }, select: { guildId: true } });
+      if (!invite) return "not-found";
+      // Verrou sur la guilde : deux acceptations simultanées ne dépassent pas la limite de membres.
+      await tx.$queryRaw`SELECT id FROM "guild" WHERE id = ${invite.guildId} FOR UPDATE`;
+      if (await tx.guildMember.findUnique({ where: { userId }, select: { userId: true } })) return "in-guild";
+      if ((await tx.guildMember.count({ where: { guildId: invite.guildId } })) >= GUILD_MAX_MEMBERS) return "full";
+      await tx.guildMember.create({ data: { userId, guildId: invite.guildId, joinedAt: now, lastSeenAt: now } });
+      await tx.guildInvite.deleteMany({ where: { toId: userId } });
+      return null;
+    });
+  } catch (err) {
+    if (isUniqueError(err, "userId")) return "in-guild";
+    throw err;
+  }
+}
+
+/** Exclut un membre (chef seulement). */
+export async function kickGuildMember(userId: string, memberId: string): Promise<GuildError | null> {
+  const lead = await leaderGuild(userId);
+  if ("error" in lead) return lead.error;
+  if (memberId === userId) return "not-found";
+  const [{ count }] = await prisma.$transaction([
+    prisma.guildMember.deleteMany({ where: { userId: memberId, guildId: lead.guildId } }),
+    prisma.gameInvite.deleteMany({ where: { toId: memberId, guildId: lead.guildId } }),
+  ]);
+  return count ? null : "not-found";
+}
+
+/** Passe la tête de la guilde à un autre membre (chef seulement). */
+export async function transferGuildLeadership(userId: string, memberId: string): Promise<GuildError | null> {
+  const lead = await leaderGuild(userId);
+  if ("error" in lead) return lead.error;
+  if (memberId === userId) return "not-found";
+  return prisma.$transaction(async (tx) => {
+    const { count } = await tx.guildMember.updateMany({ where: { userId: memberId, guildId: lead.guildId }, data: { role: "leader" } });
+    if (!count) return "not-found";
+    await tx.guildMember.update({ where: { userId }, data: { role: "member" } });
+    return null;
+  });
+}
+
+/**
+ * Quitte sa guilde. Un chef qui part laisse la tête au plus ancien membre ;
+ * le dernier membre qui part dissout la guilde (blason et invitations compris).
+ */
+export async function leaveGuild(userId: string): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const me = await tx.guildMember.findUnique({ where: { userId }, select: { guildId: true, role: true } });
+    if (!me) return;
+    await tx.$queryRaw`SELECT id FROM "guild" WHERE id = ${me.guildId} FOR UPDATE`;
+    await tx.guildMember.delete({ where: { userId } });
+    await tx.gameInvite.deleteMany({ where: { toId: userId, guildId: me.guildId } });
+    if (me.role !== "leader") return;
+    const next = await tx.guildMember.findFirst({ where: { guildId: me.guildId }, orderBy: [{ joinedAt: "asc" }, { userId: "asc" }] });
+    if (next) await tx.guildMember.update({ where: { userId: next.userId }, data: { role: "leader" } });
+    else await tx.guild.delete({ where: { id: me.guildId } });
+  });
+}
+
+/** Pose (ou remplace) le blason de sa guilde (chef seulement) ; renvoie son adresse. */
+export async function saveGuildCrest(userId: string, data: Uint8Array, mime: string): Promise<{ crest: string } | { error: GuildError }> {
+  const lead = await leaderGuild(userId);
+  if ("error" in lead) return lead;
+  const bytes = Buffer.from(data);
+  const row = await prisma.guildCrest.upsert({
+    where: { guildId: lead.guildId },
+    create: { guildId: lead.guildId, data: bytes, mime },
+    update: { data: bytes, mime },
+    select: { updatedAt: true },
+  });
+  // La version dans l'adresse casse le cache du navigateur à chaque nouveau blason.
+  const crest = `/api/guild/crest/${lead.guildId}?v=${row.updatedAt.getTime()}`;
+  await prisma.guild.update({ where: { id: lead.guildId }, data: { crest } });
+  return { crest };
+}
+
+/** Retire le blason de sa guilde (chef seulement). */
+export async function deleteGuildCrest(userId: string): Promise<GuildError | null> {
+  const lead = await leaderGuild(userId);
+  if ("error" in lead) return lead.error;
+  await prisma.$transaction([
+    prisma.guildCrest.deleteMany({ where: { guildId: lead.guildId } }),
+    prisma.guild.update({ where: { id: lead.guildId }, data: { crest: null } }),
+  ]);
+  return null;
+}
+
+/** Blason d'une guilde (montré aux membres et aux joueurs invités, donc à tout joueur connecté). */
+export async function getGuildCrest(guildId: string): Promise<{ data: Uint8Array; mime: string; updatedAt: Date } | null> {
+  return prisma.guildCrest.findUnique({ where: { guildId }, select: { data: true, mime: true, updatedAt: true } });
+}
+
+/** Note que le joueur a le site ouvert (pour « en ligne » dans sa guilde) ; sans effet hors guilde. */
+export async function touchGuildPresence(userId: string, now: Date): Promise<void> {
+  await prisma.guildMember.updateMany({ where: { userId }, data: { lastSeenAt: now } });
+}
+
+/** Invite tous les autres membres de sa guilde dans le lobby `code`. Renvoie le nombre d'invités, null hors guilde. */
+export async function sendGuildLobbyInvites(userId: string, code: string, now: Date): Promise<number | null> {
+  const me = await prisma.guildMember.findUnique({ where: { userId }, select: { guildId: true } });
+  if (!me) return null;
+  const others = await prisma.guildMember.findMany({ where: { guildId: me.guildId, userId: { not: userId } }, select: { userId: true } });
+  const expiresAt = new Date(now.getTime() + INVITE_TTL_MS);
+  const data = { code, createdAt: now, expiresAt, guildId: me.guildId };
+  await prisma.$transaction(
+    others.map((o) =>
+      prisma.gameInvite.upsert({
+        where: { fromId_toId: { fromId: userId, toId: o.userId } },
+        create: { fromId: userId, toId: o.userId, ...data },
+        update: data,
+      }),
+    ),
+  );
+  return others.length;
 }
 
 /* ------------------------------------------------------------------ */
@@ -839,9 +1211,11 @@ export async function dismissGameInvite(userId: string, inviteId: string): Promi
 /**
  * Efface les traces d'un joueur avant la suppression de son compte : ses parties solo disparaissent,
  * et son pseudo est retiré des parties en ligne (laissé vide), qui restent pour les autres joueurs.
+ * Il quitte aussi sa guilde (un chef laisse la tête au plus ancien membre, un dernier membre la dissout).
  * Le reste (sessions, Elo, statistiques, amis, invitations) part en cascade avec la ligne `user`.
  */
 export async function eraseUserGames(userId: string): Promise<void> {
+  await leaveGuild(userId);
   await prisma.$transaction([
     prisma.game.deleteMany({ where: { solo: true, players: { some: { userId } } } }),
     prisma.gamePlayer.updateMany({ where: { userId }, data: { displayName: "" } }),
@@ -869,22 +1243,11 @@ export async function deleteAvatar(userId: string): Promise<void> {
 }
 
 /**
- * Photo de profil de `userId`, visible seulement par son propriétaire et ses amis.
+ * Photo de profil de `userId`, visible seulement par son propriétaire, ses amis et les membres de sa guilde.
  * Null si elle n'existe pas ou si `viewerId` n'a pas le droit de la voir.
  */
 export async function getAvatarFor(userId: string, viewerId: string): Promise<{ data: Uint8Array; mime: string; updatedAt: Date } | null> {
-  if (userId !== viewerId) {
-    const friends = await prisma.friendship.count({
-      where: {
-        status: "accepted",
-        OR: [
-          { requesterId: userId, addresseeId: viewerId },
-          { requesterId: viewerId, addresseeId: userId },
-        ],
-      },
-    });
-    if (!friends) return null;
-  }
+  if (userId !== viewerId && !(await areFriends(userId, viewerId)) && !(await sameGuild(userId, viewerId))) return null;
   return prisma.avatar.findUnique({ where: { userId }, select: { data: true, mime: true, updatedAt: true } });
 }
 

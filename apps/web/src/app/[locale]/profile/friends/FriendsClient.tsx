@@ -1,14 +1,12 @@
 "use client";
 import { useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
-import { defaultSettings, sanitizeSettings } from "@calculus/game-core";
 import type { FriendsData } from "@calculus/db";
 import { useRouter } from "@/i18n/navigation";
 import { Margin, MarginNote } from "@/components/Margin";
 import { Avatar } from "@/components/PlayerChips";
-import { JoinError, createLobby } from "@/lib/colyseus";
-import { inviteFriend } from "@/lib/friends";
-import { local } from "@/lib/storage";
+import { JoinError } from "@/lib/colyseus";
+import { createInviteLobby, inviteFriend } from "@/lib/friends";
 
 type Feedback = { ok: boolean; text: string } | null;
 
@@ -56,11 +54,9 @@ export function FriendsClient({ data }: { data: FriendsData }) {
     setBusy(userId);
     setInviteError(null);
     try {
-      // Les réglages du dernier lobby sont repris, mais un nouveau lobby commence toujours en simultané.
-      const settings = sanitizeSettings({ ...local.get("online", defaultSettings(2, "battle-royale")), turnStyle: "simultaneous" });
-      const room = await createLobby("", settings);
-      if (!(await inviteFriend(userId, room.roomId))) throw new Error("invite");
-      router.push(`/lobby/${room.roomId}`);
+      const code = await createInviteLobby();
+      if (!(await inviteFriend(userId, code))) throw new Error("invite");
+      router.push(`/lobby/${code}`);
     } catch (err) {
       setInviteError(err instanceof JoinError ? t(`errors.${err.code}`) : t("friends.inviteError"));
       setBusy(null);

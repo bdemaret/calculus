@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { GameInviteSummary } from "@calculus/db";
 import { usePathname, useRouter } from "@/i18n/navigation";
@@ -8,6 +8,8 @@ import { dismissInvite, fetchInvites } from "@/lib/friends";
 
 /** Intervalle entre deux vérifications des invitations reçues, en ms. */
 const POLL_MS = 15_000;
+/** Onglet en arrière-plan : une vérification par minute suffit (elle garde le joueur « en ligne » dans sa guilde). */
+const HIDDEN_POLL_MS = 60_000;
 
 /** Bandeau des invitations à une partie, affiché sur toutes les pages au joueur connecté. */
 export function InviteNotice() {
@@ -16,8 +18,11 @@ export function InviteNotice() {
   const pathname = usePathname();
   const [invites, setInvites] = useState<GameInviteSummary[]>([]);
 
+  const lastPoll = useRef(0);
   const refresh = useCallback(async () => {
-    if (document.visibilityState !== "visible") return;
+    const now = Date.now();
+    if (document.visibilityState !== "visible" && now - lastPoll.current < HIDDEN_POLL_MS) return;
+    lastPoll.current = now;
     setInvites(await fetchInvites());
   }, []);
 
@@ -52,7 +57,7 @@ export function InviteNotice() {
     <div className="invite-notices" role="status">
       {shown.map((i) => (
         <div className="invite-notice" key={i.id}>
-          <span>{t("noticeText", { name: i.fromName })}</span>
+          <span>{i.guildName ? t("noticeGuild", { name: i.fromName, guild: i.guildName }) : t("noticeText", { name: i.fromName })}</span>
           <span className="actions">
             <button
               className="btn"

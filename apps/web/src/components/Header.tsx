@@ -15,6 +15,8 @@ export async function Header() {
   const requests = session
     ? await prisma.friendship.count({ where: { addresseeId: session.user.id, status: "pending" } }).catch(() => 0)
     : 0;
+  // Invitations à entrer dans une guilde : pastille sur le lien « Guilde ».
+  const guildInvites = session ? await prisma.guildInvite.count({ where: { toId: session.user.id } }).catch(() => 0) : 0;
   return (
     <>
       <header className="top">
@@ -38,6 +40,10 @@ export async function Header() {
               ) : null}
               <Link className="nav-link" href="/dashboard">
                 {t("dashboard")}
+              </Link>
+              <Link className="nav-link nav-guild" href="/guild" aria-label={guildInvites > 0 ? t("guildInvites", { count: guildInvites }) : undefined}>
+                {t("guild")}
+                {guildInvites > 0 ? <span className="nav-dot" aria-hidden="true">{guildInvites > 9 ? "9+" : guildInvites}</span> : null}
               </Link>
               <Link
                 className="nav-link nav-profile"

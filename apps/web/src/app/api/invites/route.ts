@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { CODE_LENGTH, normalizeCode } from "@calculus/game-core";
-import { dismissGameInvite, getGameInvites, sendGameInvite } from "@calculus/db";
+import { dismissGameInvite, getGameInvites, sendGameInvite, touchGuildPresence } from "@calculus/db";
 import { getSession } from "@/lib/auth";
 
 const inviteBody = z.object({
@@ -13,11 +13,16 @@ const inviteBody = z.object({
 });
 const dismissBody = z.object({ id: z.string().min(1).max(64) });
 
-/** Invitations à une partie reçues par le joueur connecté (interrogé régulièrement par le site). */
+/**
+ * Invitations à une partie reçues par le joueur connecté. Interrogé régulièrement par le site ouvert,
+ * cet appel sert aussi de signal de présence : il marque le joueur « en ligne » dans sa guilde.
+ */
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  return NextResponse.json({ invites: await getGameInvites(session.user.id, new Date()) });
+  const now = new Date();
+  const [invites] = await Promise.all([getGameInvites(session.user.id, now), touchGuildPresence(session.user.id, now)]);
+  return NextResponse.json({ invites });
 }
 
 /** Invite un ami dans le lobby `code`. */
