@@ -37,8 +37,7 @@
     "playOnlineSub": "Create a lobby or join your friends with a code.",
     "playSolo": "Play solo",
     "playSoloKicker": "5 levels",
-    "playSoloSub": "Five levels, from “7 + 4” to “125 × 8 − 36 ÷ 4”.",
-    "feedback": "Send feedback / report a bug"
+    "playSoloSub": "Five levels, from “7 + 4” to “125 × 8 − 36 ÷ 4”."
   },
   "modes": {
     "battle-royale": {

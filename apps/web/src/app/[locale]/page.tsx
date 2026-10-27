@@ -29,11 +29,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             <span className="choice-sub">{t("home.playSoloSub")}</span>
           </Link>
         </section>
-        <p className="feedback-cta">
-          <Link className="btn ghost" href={{ pathname: "/feedback", query: { from: "/" } }}>
-            {t("home.feedback")}
-          </Link>
-        </p>
       </div>
       <PublicLobbies />
     </div>
