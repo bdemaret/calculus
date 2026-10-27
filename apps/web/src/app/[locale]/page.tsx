@@ -1,5 +1,4 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { GAMES, GAME_IDS } from "@calculus/game-core";
 import { Link } from "@/i18n/navigation";
 import { HeroCalc } from "@/components/HeroCalc";
 import { PublicLobbies } from "@/components/PublicLobbies";
@@ -35,25 +34,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             {t("home.feedback")}
           </Link>
         </p>
-        <section className="modes">
-          <h2>{t("home.gamesTitle")}</h2>
-          <div className="mode-list">
-            {GAME_IDS.map((g) => (
-              <div className="mode-item" key={g}>
-                <h3>
-                  {t(`games.${g}.name`)} <span className="tag">{t(`games.${g}.short`)}</span>
-                </h3>
-                <p className="muted">{t(`games.${g}.long`)}</p>
-                <p className="muted">
-                  {t("gamesPage.playableIn")} {GAMES[g].modes.map((m) => t(`modes.${m}.name`)).join(" · ")}
-                </p>
-              </div>
-            ))}
-          </div>
-          <Link className="link-btn" href="/games">
-            {t("home.allRules")}
-          </Link>
-        </section>
       </div>
       <PublicLobbies />
     </div>

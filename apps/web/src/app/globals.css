@@ -171,7 +171,6 @@ p { margin: 0; }
 .choice-sub { position: relative; opacity: .85; max-width: 30ch; }
 .choice-glyph { position: absolute; right: -8px; bottom: -40px; font-size: 168px; font-weight: 800; line-height: 1; font-variation-settings: "opsz" 96, "wdth" 75; opacity: .12; pointer-events: none; }
 
-.modes { margin-top: 56px; display: grid; gap: 20px; max-width: 760px; }
 .mode-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
 .mode-item { display: grid; gap: 6px; }
 .mode-item h3 { display: flex; align-items: baseline; gap: 10px; }
@@ -208,7 +207,6 @@ p { margin: 0; }
   .home .choices, .home .feedback-cta { order: 2; }
   .public-lobbies { order: 3; position: static; margin-top: 40px; max-width: 760px; }
   .lobby-cards { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-  .home .modes { order: 4; }
 }
 
 /* Formulaires de paramètres */
