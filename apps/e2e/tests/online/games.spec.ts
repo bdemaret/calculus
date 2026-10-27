@@ -132,9 +132,8 @@ test.describe("le bon compte en ligne", () => {
     const box = answerBox(page);
     await expect(box).toBeEnabled({ timeout: 20_000 });
     const q = await expectedAnswer(page);
-    // Un total qui ne tombe pas pile : posé comme étape, puis proposé par une deuxième Entrée.
+    // Un total qui ne tombe pas pile, avec toutes les plaques : Entrée le propose aussitôt.
     await box.fill(q.wrong);
-    await box.press("Enter");
     await expect(page.locator(".hint")).toBeVisible();
     await box.press("Enter");
     await expect(box).toBeDisabled();

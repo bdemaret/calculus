@@ -28,9 +28,10 @@ test.describe("le bon compte en solo", () => {
     await box.fill(first);
     await expect(page.locator(".count-total")).toContainText(first);
     await expect(ok).toBeDisabled();
-    // Toutes les plaques, mauvais total : Entrée le pose d'abord comme étape, sans valider ; OK le permet ensuite.
+    // Toutes les plaques, mauvais total : on peut le valider ; « = » le pose comme étape.
     await box.fill(q.wrong);
-    await box.press("Enter");
+    await expect(ok).toBeEnabled();
+    await box.press("=");
     const steps = page.getByRole("list", { name: t("game.steps") });
     await expect(steps.getByRole("listitem")).toHaveCount(1);
     await expect(box).toHaveValue("");

@@ -239,9 +239,8 @@ export function ExpressionBuilder({ text, puzzle, value, onChange, onSubmit, all
         autoComplete="off"
         onSubmit={(e) => {
           e.preventDefault();
-          // Entrée : valide un compte juste ; sinon pose le calcul en cours comme étape. Un total qui ne
-          // tombe pas pile demande une deuxième Entrée, une fois affiché comme étape.
-          if (complete?.value === target || !canCommit) submit();
+          // Entrée, comme OK : valide dès que toutes les plaques sont utilisées ; sinon pose le calcul en cours comme étape.
+          if (complete || !canCommit) submit();
           else commit();
         }}
       >
