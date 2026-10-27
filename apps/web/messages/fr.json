@@ -376,6 +376,10 @@
     "inputVoiceHelp": "À la voix, dis ta réponse : elle s’écrit dans la case, puis appuie sur Entrée pour valider.",
     "inputVoiceUnsupported": "Ton navigateur ne gère pas la reconnaissance vocale (essaie Chrome, Edge ou Safari).",
     "inputSaved": "Préférence enregistrée.",
+    "division": "Affichage des divisions",
+    "divisionStandard": "Standard (12 ÷ 4)",
+    "divisionFraction": "Fraction",
+    "divisionHelp": "En fraction, une division s’écrit avec une barre : le dividende au-dessus, le diviseur en dessous.",
     "friends": "Mes amis",
     "friendRequests": "{count, plural, one {# demande d’ami} other {# demandes d’ami}}",
     "deleteOpen": "Supprimer mon compte",
@@ -547,7 +551,7 @@
           "title": "Les données que nous collectons",
           "body": [
             [
-              "Ton compte : pseudo, adresse e-mail, mot de passe (enregistré sous forme hachée, jamais en clair), date d’inscription et préférence de saisie (clavier ou voix).",
+              "Ton compte : pseudo, adresse e-mail, mot de passe (enregistré sous forme hachée, jamais en clair), date d’inscription et préférences de saisie (clavier ou voix) et d’affichage des divisions.",
               "Tes parties : réglages, calculs posés, réponses, temps de réponse, scores, rang, Elo et statistiques.",
               "Tes amis : demandes envoyées et reçues, liens d’amitié, invitations à une partie.",
               "Tes retours : le message envoyé depuis « Faire un retour », son type, la page d’où il vient et, si tu n’es pas connecté, l’e-mail que tu choisis de laisser.",

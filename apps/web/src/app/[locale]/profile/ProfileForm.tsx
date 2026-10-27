@@ -3,10 +3,19 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { authClient } from "@/lib/auth-client";
+import type { DivisionDisplay } from "@/lib/division";
 import { cleanName } from "@/lib/names";
 import { isVoiceSupported } from "@/lib/useVoiceInput";
 
-export function ProfileForm({ name, voiceInput }: { name: string; voiceInput: boolean }) {
+export function ProfileForm({
+  name,
+  voiceInput,
+  divisionDisplay,
+}: {
+  name: string;
+  voiceInput: boolean;
+  divisionDisplay: DivisionDisplay;
+}) {
   const t = useTranslations("profile");
   const router = useRouter();
   const [value, setValue] = useState(name);
@@ -14,6 +23,8 @@ export function ProfileForm({ name, voiceInput }: { name: string; voiceInput: bo
   const [voice, setVoice] = useState(voiceInput);
   const [voiceState, setVoiceState] = useState<"idle" | "saved" | "error">("idle");
   const [voiceSupported, setVoiceSupported] = useState(true);
+  const [division, setDivision] = useState(divisionDisplay);
+  const [divisionState, setDivisionState] = useState<"idle" | "saved" | "error">("idle");
 
   useEffect(() => setVoiceSupported(isVoiceSupported()), []);
 
@@ -23,6 +34,16 @@ export function ProfileForm({ name, voiceInput }: { name: string; voiceInput: bo
     const { error } = await authClient.updateUser({ voiceInput: on });
     if (error) setVoice(!on);
     setVoiceState(error ? "error" : "saved");
+    router.refresh();
+  };
+
+  const changeDivision = async (next: DivisionDisplay) => {
+    if (next === division) return;
+    const before = division;
+    setDivision(next);
+    const { error } = await authClient.updateUser({ divisionDisplay: next });
+    if (error) setDivision(before);
+    setDivisionState(error ? "error" : "saved");
     router.refresh();
   };
 
@@ -62,6 +83,20 @@ export function ProfileForm({ name, voiceInput }: { name: string; voiceInput: bo
         {voice && !voiceSupported ? <p className="form-error">{t("inputVoiceUnsupported")}</p> : null}
         {voiceState === "saved" ? <p className="form-ok">{t("inputSaved")}</p> : null}
         {voiceState === "error" ? <p className="form-error">{t("error")}</p> : null}
+      </fieldset>
+      <fieldset className="field">
+        <legend>{t("division")}</legend>
+        <div className="seg" role="group">
+          <button type="button" aria-pressed={division === "standard"} onClick={() => changeDivision("standard")}>
+            {t("divisionStandard")}
+          </button>
+          <button type="button" aria-pressed={division === "fraction"} onClick={() => changeDivision("fraction")}>
+            {t("divisionFraction")}
+          </button>
+        </div>
+        <p className="muted">{t("divisionHelp")}</p>
+        {divisionState === "saved" ? <p className="form-ok">{t("inputSaved")}</p> : null}
+        {divisionState === "error" ? <p className="form-error">{t("error")}</p> : null}
       </fieldset>
       <button
         className="btn ghost"

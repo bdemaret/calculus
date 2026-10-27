@@ -135,6 +135,12 @@ p { margin: 0; }
 .calc { font-size: clamp(64px, 15vw, 176px); font-weight: 760; line-height: 1; letter-spacing: -0.03em; font-variation-settings: "opsz" 96, "wdth" 82; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .calc.long { font-size: clamp(40px, 9vw, 120px); white-space: normal; }
 .eq { color: var(--muted); font-weight: 400; }
+/* Division en fraction (préférence du profil) : dividende au-dessus de la barre, diviseur en dessous. */
+.frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; font-size: 0.62em; line-height: 1.05; margin-inline: 0.06em; }
+.frac .frac { font-size: 0.85em; }
+.frac-num, .frac-den { padding-inline: 0.15em; white-space: nowrap; }
+.frac-num { border-bottom: max(2px, 0.07em) solid currentColor; }
+.frac .answer { height: 1.05em; border-bottom-width: 2px; }
 .answer {
   width: 4.2ch; min-width: 2ch; background: transparent; border: 0; border-bottom: 3px dashed var(--line-strong);
   color: var(--ink); font-size: inherit; font-weight: 700; font-variation-settings: "opsz" 96, "wdth" 82; padding: 0; line-height: 1; caret-color: var(--margin-red);

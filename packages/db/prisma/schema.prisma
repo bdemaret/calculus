@@ -21,6 +21,8 @@ model User {
   image         String?
   /// Saisie des réponses à la voix (reconnaissance vocale du navigateur)
   voiceInput    Boolean   @default(false)
+  /// Affichage des divisions : "standard" (12 ÷ 4) ou "fraction" (barre de fraction)
+  divisionDisplay String  @default("standard")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   sessions      Session[]

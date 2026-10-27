@@ -2,6 +2,7 @@ import { getFormatter, getTranslations, setRequestLocale } from "next-intl/serve
 import { prisma } from "@calculus/db";
 import { Link, redirect } from "@/i18n/navigation";
 import { getSession } from "@/lib/auth";
+import { isDivisionDisplay } from "@/lib/division";
 import { ProfileForm } from "./ProfileForm";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
@@ -30,7 +31,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
         </Link>
         {requests ? <span className="note">{t("friendRequests", { count: requests })}</span> : null}
       </p>
-      <ProfileForm name={session.user.name} voiceInput={!!session.user.voiceInput} />
+      <ProfileForm
+        name={session.user.name}
+        voiceInput={!!session.user.voiceInput}
+        divisionDisplay={isDivisionDisplay(session.user.divisionDisplay) ? session.user.divisionDisplay : "standard"}
+      />
     </section>
   );
 }

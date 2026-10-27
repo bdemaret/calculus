@@ -376,6 +376,10 @@
     "inputVoiceHelp": "With voice, say your answer: it fills the box, then press Enter to submit.",
     "inputVoiceUnsupported": "Your browser doesn’t support speech recognition (try Chrome, Edge or Safari).",
     "inputSaved": "Preference saved.",
+    "division": "Division display",
+    "divisionStandard": "Standard (12 ÷ 4)",
+    "divisionFraction": "Fraction",
+    "divisionHelp": "As a fraction, a division is written with a bar: the dividend above, the divisor below.",
     "friends": "My friends",
     "friendRequests": "{count, plural, one {# friend request} other {# friend requests}}",
     "deleteOpen": "Delete my account",
@@ -548,7 +552,7 @@
           "title": "The data we collect",
           "body": [
             [
-              "Your account: username, email address, password (stored hashed, never in plain text), sign-up date and input preference (keyboard or voice).",
+              "Your account: username, email address, password (stored hashed, never in plain text), sign-up date and input preference (keyboard or voice) and division display preference.",
               "Your games: settings, questions asked, answers, response times, scores, rank, Elo and statistics.",
               "Your friends: requests sent and received, friendships, game invitations.",
               "Your feedback: the message sent from “Send feedback”, its type, the page it came from and, if you are not signed in, the email you choose to leave.",

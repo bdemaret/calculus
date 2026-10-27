@@ -6,6 +6,7 @@ import { nextCookies } from "better-auth/next-js";
 import { headers } from "next/headers";
 import { eraseUserGames, prisma } from "@calculus/db";
 import { sendEmail } from "./email";
+import { isDivisionDisplay } from "./division";
 import { cleanName } from "./names";
 
 // En production, l'adresse du site doit être fixée : sinon les liens des e-mails pointeraient vers localhost.
@@ -18,6 +19,12 @@ function validName(raw: unknown): string {
   const name = typeof raw === "string" ? cleanName(raw) : "";
   if (!name) throw new APIError("BAD_REQUEST", { code: "INVALID_NAME", message: "Pseudo invalide" });
   return name;
+}
+
+/** Refuse toute valeur d'affichage des divisions inconnue (champ modifiable par l'API). */
+function checkDivisionDisplay(data: Record<string, unknown>) {
+  if (data.divisionDisplay !== undefined && !isDivisionDisplay(data.divisionDisplay))
+    throw new APIError("BAD_REQUEST", { code: "INVALID_DIVISION_DISPLAY", message: "Affichage des divisions invalide" });
 }
 
 export const auth = betterAuth({
@@ -39,15 +46,27 @@ export const auth = betterAuth({
     additionalFields: {
       /** Préférence de saisie : dicter les réponses au lieu de les taper. */
       voiceInput: { type: "boolean", required: false, defaultValue: false },
+      /** Préférence d'affichage : divisions « 12 ÷ 4 » (standard) ou en fraction. */
+      divisionDisplay: { type: "string", required: false, defaultValue: "standard" },
     },
     // Droit à l'effacement (RGPD) : le profil demande le mot de passe, Better Auth le vérifie.
     deleteUser: { enabled: true, beforeDelete: async (user) => eraseUserGames(user.id) },
   },
   databaseHooks: {
     user: {
-      create: { before: async (user) => ({ data: { ...user, name: validName(user.name) } }) },
-      // `name` vaut undefined quand seul un autre champ change (préférence de dictée).
-      update: { before: async (data) => ({ data: data.name !== undefined ? { ...data, name: validName(data.name) } : data }) },
+      create: {
+        before: async (user) => {
+          checkDivisionDisplay(user);
+          return { data: { ...user, name: validName(user.name) } };
+        },
+      },
+      // `name` vaut undefined quand seul un autre champ change (préférences de dictée, de divisions).
+      update: {
+        before: async (data) => {
+          checkDivisionDisplay(data);
+          return { data: data.name !== undefined ? { ...data, name: validName(data.name) } : data };
+        },
+      },
     },
   },
   // Compteurs en base : en mémoire, chaque instance serverless (Vercel) aurait les siens et la limite ne tiendrait pas.

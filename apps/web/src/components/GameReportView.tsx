@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { GAMES, PLACEMENT_GAMES, type GameId, type GameModeId, type GameReport, type PlayerReport, type RatingChange, type RoundReview } from "@calculus/game-core";
 import { revealSeparator } from "@/lib/answer";
 import { formatPercent, formatSeconds, formatSigned } from "@/lib/format";
+import { MathText } from "./MathText";
 
 interface Props {
   report: GameReport;
@@ -152,7 +153,7 @@ export function GameReportView({ report: raw, meId, online, game, mode, timePerQ
                 <p className="callout">
                   {t("hardest")}
                   <b>
-                    {report.hardest.text} {revealSeparator(game)} {report.hardest.solution ?? report.hardest.answer}
+                    <MathText text={report.hardest.text} /> {revealSeparator(game)} {report.hardest.solution ?? report.hardest.answer}
                   </b>
                 </p>
               ) : null}
@@ -227,7 +228,7 @@ function Review({ report, meId, online, game, mode }: { report: GameReport; meId
             <li className="rv" key={r.round}>
               <span className="rv-n">{r.round}</span>
               <p className="rv-q">
-                {r.text}
+                <MathText text={r.text} />
                 {/* À la bombe, la ligne montre le tirage ; chaque joueur a sa bombe, montrée avec sa réponse. */}
                 {r.bombs ? null : (
                   <>
@@ -249,7 +250,7 @@ function Review({ report, meId, online, game, mode }: { report: GameReport; meId
                   const bomb = r.bombs?.find((b) => b.defuserId === pl.playerId);
                   const bombLine = bomb ? (
                     <span className="rv-bomb">
-                      {bomb.text} = {bomb.answer}
+                      <MathText text={bomb.text} /> = {bomb.answer}
                     </span>
                   ) : null;
                   if (!a)
