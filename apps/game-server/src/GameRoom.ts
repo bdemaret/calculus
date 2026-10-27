@@ -122,6 +122,8 @@ export class GameRoom extends Room {
     this.settings = sanitizeSettings(options?.settings ?? {});
     this.isPublic = options?.publicKey === PUBLIC_LOBBY_KEY;
     if (this.isPublic) {
+      // Un lobby public se joue toujours en simultané, jamais « chacun son tour ».
+      this.settings = sanitizeSettings({ ...this.settings, turnStyle: "simultaneous" });
       // Le lobby public attend ses joueurs même vide ; il sera supprimé à la fin de l'attente.
       this.autoDispose = false;
       this.autoStartAt = Date.now() + PUBLIC_LOBBY_DURATION_MS;

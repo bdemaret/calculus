@@ -56,7 +56,8 @@ export function FriendsClient({ data }: { data: FriendsData }) {
     setBusy(userId);
     setInviteError(null);
     try {
-      const settings = sanitizeSettings(local.get("online", defaultSettings(2, "battle-royale")));
+      // Les réglages du dernier lobby sont repris, mais un nouveau lobby commence toujours en simultané.
+      const settings = sanitizeSettings({ ...local.get("online", defaultSettings(2, "battle-royale")), turnStyle: "simultaneous" });
       const room = await createLobby("", settings);
       if (!(await inviteFriend(userId, room.roomId))) throw new Error("invite");
       router.push(`/lobby/${room.roomId}`);

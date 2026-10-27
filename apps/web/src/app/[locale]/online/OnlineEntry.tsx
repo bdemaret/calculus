@@ -30,7 +30,8 @@ export function OnlineEntry({ accountName }: { accountName: string | null }) {
     }
     setBusy(true);
     try {
-      const settings = sanitizeSettings(local.get("online", defaultSettings(2, "battle-royale")));
+      // Les réglages du dernier lobby sont repris, mais un nouveau lobby commence toujours en simultané.
+      const settings = sanitizeSettings({ ...local.get("online", defaultSettings(2, "battle-royale")), turnStyle: "simultaneous" });
       const room = await createLobby(cleanName(name), settings);
       router.push(`/lobby/${room.roomId}`);
     } catch (err) {

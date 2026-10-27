@@ -6,17 +6,15 @@
 import { GAMES, GAME_IDS } from "./games";
 import { DIFFICULTIES } from "./levels";
 import { pick, type Rng } from "./rng";
-import { MIN_ROUNDS, TURN_STYLES, defaultSettings, sanitizeSettings } from "./settings";
+import { defaultSettings, sanitizeSettings } from "./settings";
 import type { GameSettings } from "./types";
 
 /** Nombre de lobbys publics ouverts en même temps. */
 export const PUBLIC_LOBBY_COUNT = 2;
 /** Durée d'attente d'un lobby public avant le lancement automatique, en ms. */
 export const PUBLIC_LOBBY_DURATION_MS = 2 * 60 * 1000;
-/** Nombre de manches possibles en course de vitesse simultanée. */
+/** Nombre de manches possibles en course de vitesse. */
 const SPEED_RACE_ROUNDS = [10, 15, 20] as const;
-/** En « chacun son tour », chaque joueur reçoit ce nombre de calculs : on reste au plus court. */
-const TURNS_ROUNDS = MIN_ROUNDS;
 /** Nombre d'essais pour obtenir un lobby différent de ceux déjà ouverts. */
 const MAX_TRIES = 20;
 
@@ -35,14 +33,14 @@ export interface PublicLobbyList {
   lobbies: PublicLobbyInfo[];
 }
 
-/** Deux lobbys « se ressemblent » s'ils ont le même jeu, la même façon de jouer et le même niveau. */
+/** Deux lobbys « se ressemblent » s'ils ont le même jeu, le même mode et le même niveau. */
 function sameKind(a: GameSettings, b: GameSettings): boolean {
-  return a.game === b.game && a.mode === b.mode && a.turnStyle === b.turnStyle && a.difficulty === b.difficulty;
+  return a.game === b.game && a.mode === b.mode && a.difficulty === b.difficulty;
 }
 
 /**
- * Tire au hasard les réglages d'un lobby public : jeu, façon de jouer et niveau varient,
- * et on évite de proposer deux fois le même lobby que ceux déjà ouverts.
+ * Tire au hasard les réglages d'un lobby public : jeu, mode et niveau varient,
+ * toujours en simultané (jamais « chacun son tour »), et on évite de proposer deux fois le même lobby que ceux déjà ouverts.
  * Les opérations, parenthèses et temps sont ceux par défaut du jeu et du niveau.
  */
 export function randomPublicSettings(rng: Rng, avoid: readonly GameSettings[] = []): GameSettings {
@@ -61,11 +59,10 @@ function drawSettings(rng: Rng): GameSettings {
   const game = pick(rng, PUBLIC_GAMES);
   const difficulty = pick(rng, DIFFICULTIES);
   const mode = pick(rng, GAMES[game].modes);
-  const turnStyle = GAMES[game].turns ? pick(rng, TURN_STYLES) : "simultaneous";
   // Opérations, parenthèses et temps : ceux du jeu et du niveau.
   return sanitizeSettings({
     ...defaultSettings(difficulty, mode, game),
-    turnStyle,
-    rounds: turnStyle === "turns" ? TURNS_ROUNDS : pick(rng, SPEED_RACE_ROUNDS),
+    turnStyle: "simultaneous",
+    rounds: pick(rng, SPEED_RACE_ROUNDS),
   });
 }

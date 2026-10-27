@@ -297,16 +297,15 @@ describe("lobbys publics", () => {
       const s = randomPublicSettings(createRng(`pub-${i}`));
       expect(sanitizeSettings(s)).toEqual(s);
       expect(randomPublicSettings(createRng(`pub-${i}`))).toEqual(s);
-      // En « chacun son tour », chaque joueur reçoit `rounds` calculs : la partie reste courte.
-      if (s.turnStyle === "turns") expect(s.rounds).toBeLessThanOrEqual(5);
+      // Jamais « chacun son tour » en lobby public.
+      expect(s.turnStyle).toBe("simultaneous");
     }
   });
 
-  it("fait varier le jeu, la façon de jouer et le niveau", () => {
+  it("fait varier le jeu, le mode et le niveau", () => {
     const rng = createRng("variete");
     const drawn = Array.from({ length: 200 }, () => randomPublicSettings(rng));
     expect(new Set(drawn.map((s) => s.mode)).size).toBe(2);
-    expect(new Set(drawn.map((s) => s.turnStyle)).size).toBe(2);
     expect(new Set(drawn.map((s) => s.difficulty)).size).toBe(5);
     // Tous les jeux qui se jouent seul ; jamais la bombe (deux joueurs au moins).
     expect([...new Set(drawn.map((s) => s.game))].sort()).toEqual(["missing", "right-count", "standard"]);
@@ -316,7 +315,7 @@ describe("lobbys publics", () => {
     for (let i = 0; i < 200; i++) {
       const open = randomPublicSettings(createRng(`ouvert-${i}`));
       const next = randomPublicSettings(createRng(`suivant-${i}`), [open]);
-      expect([next.game, next.mode, next.turnStyle, next.difficulty]).not.toEqual([open.game, open.mode, open.turnStyle, open.difficulty]);
+      expect([next.game, next.mode, next.difficulty]).not.toEqual([open.game, open.mode, open.difficulty]);
     }
   });
 });
