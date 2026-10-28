@@ -105,7 +105,7 @@ export const auth = betterAuth({
       },
     },
   },
-  // Compteurs en base : en mémoire, chaque instance serverless (Vercel) aurait les siens et la limite ne tiendrait pas.
+  // Compteurs en base : en mémoire, chaque instance (ou redémarrage) aurait les siens et la limite ne tiendrait pas.
   // Désactivable seulement pour les tests e2e, qui créent des dizaines de comptes depuis la même IP.
   rateLimit: { storage: "database", enabled: process.env.AUTH_RATE_LIMIT_DISABLED === "1" ? false : undefined },
   session: {

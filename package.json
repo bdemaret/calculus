@@ -9,6 +9,7 @@
     "lancer": "node scripts/lancer.mjs",
     "dev": "turbo run dev",
     "build": "turbo run build",
+    "scalingo-postbuild": "bash scripts/scalingo.sh build",
     "test": "turbo run test",
     "e2e": "pnpm --filter @calculus/e2e e2e",
     "e2e:ui": "pnpm --filter @calculus/e2e e2e:ui",

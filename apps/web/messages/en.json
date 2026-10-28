@@ -569,9 +569,7 @@
           "title": "Hosting",
           "body": [
             [
-              "Website: Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, United States (vercel.com).",
-              "Online game server: Railway Corporation, United States (railway.com).",
-              "Database: Neon, servers located in Europe (neon.tech)."
+              "Website, online game server and database: Scalingo SAS, 13 rue Jacques Peirotes, 67000 Strasbourg, France (scalingo.com), servers located in France."
             ]
           ]
         },
@@ -648,9 +646,7 @@
           "body": [
             "Your data is processed by technical providers, only to run the site:",
             [
-              "Vercel (website hosting, United States);",
-              "Neon (database, servers in Europe);",
-              "Railway (online game server, United States);",
+              "Scalingo (hosting of the website, online games and database; French company, servers in France);",
               "Resend (email delivery, United States);",
               "Google Fonts (site fonts): your browser contacts Google’s servers, which receive your IP address;",
               "voice input, if you turn it on: speech recognition is done by your browser, which may send the audio to its vendor (Google for Chrome, Apple for Safari, Microsoft for Edge). Calculus only receives the recognised number, never the audio."

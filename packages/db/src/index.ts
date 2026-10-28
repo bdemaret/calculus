@@ -1315,7 +1315,7 @@ export async function createFeedback(input: FeedbackInput, now: Date): Promise<b
 /**
  * Compte une demande pour `key` dans une fenêtre fixe de `windowMs` et dit si elle passe sous `max`.
  * Compteur en base (table de Better Auth, clés préfixées `calculus:`), pour que la limite tienne
- * entre les instances serverless ; une seule requête atomique, sans course entre deux appels.
+ * entre les instances et les redémarrages ; une seule requête atomique, sans course entre deux appels.
  */
 export async function consumeRateLimit(key: string, max: number, windowMs: number, now: number): Promise<boolean> {
   const fullKey = `calculus:${key}`;

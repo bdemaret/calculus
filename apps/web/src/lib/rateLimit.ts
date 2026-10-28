@@ -2,8 +2,8 @@ import "server-only";
 import { consumeRateLimit } from "@calculus/db";
 
 /**
- * Adresse du visiteur. Sur Vercel, `x-real-ip` et `x-forwarded-for` sont posés par la plateforme
- * (une valeur envoyée par le client est remplacée) ; en local, il n'y en a pas.
+ * Adresse du visiteur, posée par le proxy de l'hébergeur (`x-real-ip`, puis le premier élément de
+ * `x-forwarded-for`) ; en local, il n'y en a pas. À vérifier dans les journaux après un changement d'hébergeur.
  */
 export function requestIp(req: Request): string {
   const real = req.headers.get("x-real-ip");

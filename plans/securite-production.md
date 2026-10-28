@@ -97,7 +97,7 @@ Créer un compte ne demande qu'une adresse (non vérifiée) ; le rate limit de B
 
 **Où** : `apps/web/src/app/api/solo-results/route.ts`.
 
-Un compte peut appeler la route en boucle : chaque appel écrit une partie, jusqu'à 200 calculs et 200 réponses. Cela fait grossir la base Neon (quota, coût) et ralentit `getDashboard`. Le temps de réponse est aussi déclaré par le client (`timeMs`) : les statistiques personnelles (meilleure série, temps moyen, précision visible des amis) sont falsifiables. Ce n'est pas grave, car le solo ne compte pas pour l'Elo.
+Un compte peut appeler la route en boucle : chaque appel écrit une partie, jusqu'à 200 calculs et 200 réponses. Cela fait grossir la base (quota, coût) et ralentit `getDashboard`. Le temps de réponse est aussi déclaré par le client (`timeMs`) : les statistiques personnelles (meilleure série, temps moyen, précision visible des amis) sont falsifiables. Ce n'est pas grave, car le solo ne compte pas pour l'Elo.
 
 Un `startedAt` hors limites (`1e20`) donne une `Invalid Date` et une erreur 500.
 

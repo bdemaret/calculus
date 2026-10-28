@@ -33,7 +33,7 @@ Le dossier `game-core` est utilisé à la fois par le site (mode solo) et par le
 Il te faut :
 
 - **Node.js 22** (https://nodejs.org, version LTS) ;
-- **Docker Desktop** (https://www.docker.com/products/docker-desktop), pour faire tourner la base de données en local. Sinon, crée une base gratuite sur https://neon.tech et colle son adresse dans `.env`.
+- **Docker Desktop** (https://www.docker.com/products/docker-desktop), pour faire tourner la base de données en local. Sinon, colle dans `.env` (`DATABASE_URL` et `DIRECT_URL`) l'adresse d'une base PostgreSQL existante.
 
 Ensuite, dans un terminal ouvert dans le dossier `calculus`, avec Docker Desktop ouvert :
 
@@ -83,21 +83,26 @@ Pour tester une partie en ligne seul : ouvre le site dans une fenêtre normale e
 
 ## Mettre en ligne
 
-Tout est en Europe : Neon à Francfort, Vercel en `fra1` (fixé par `apps/web/vercel.json`), Railway en Europe. Node 24 (`.nvmrc`).
+Tout est chez [Scalingo](https://scalingo.com) (hébergeur français, région **osc-fr1**, Paris) : deux applications construites depuis ce même dépôt (le site, le serveur de jeu) et une base PostgreSQL. Le domaine (acheté chez OVH) a son DNS chez [Cloudflare](https://cloudflare.com) (gratuit).
 
-1. **Base de données** : crée un projet sur [Neon](https://neon.tech), région **AWS Europe Central (Frankfurt)**. Garde deux adresses de connexion :
-   - l'adresse **poolée** (case « Connection pooling » cochée, l'hôte contient `-pooler`) → `DATABASE_URL` ;
-   - l'adresse **directe** (case décochée) → `DIRECT_URL`, utilisée seulement par les migrations.
-2. **Serveur de jeu** : sur [Railway](https://railway.app), crée un service depuis ton dépôt GitHub, région Europe. Le fichier `railway.json` règle le reste : démarrage, santé (`/health`), et **migrations appliquées avant chaque déploiement** (`migrate:deploy`). Ne lance jamais de migration sur la base de production depuis ton ordinateur.
-   - Variables : `DATABASE_URL`, `DIRECT_URL`, `GAME_TOKEN_SECRET`, `WEB_ORIGIN` (l'adresse du site, par ex. `https://calculus.fr` ; plusieurs adresses séparées par des virgules). `PORT` est fourni par Railway, `NODE_ENV=production` par le script `start`. Sans `WEB_ORIGIN`, le serveur refuse de démarrer.
-   - Donne-lui un domaine à toi (par ex. `jeu.calculus.fr`) dans *Settings → Networking*.
-   - Après le premier déploiement, vérifie dans les journaux que les joueurs arrivent avec des adresses IP différentes : les limites par IP en dépendent.
-3. **Site** : sur [Vercel](https://vercel.com), importe le dépôt et choisis `apps/web` comme dossier racine.
-   - Variables : `DATABASE_URL` (adresse poolée), `DIRECT_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (l'adresse du site), `GAME_TOKEN_SECRET` (le même que sur Railway), `NEXT_PUBLIC_GAME_SERVER_URL` (`wss://` + le domaine du serveur de jeu, à poser avant le build : la politique de sécurité du site l'autorise à ce moment-là), `RESEND_API_KEY`, `EMAIL_FROM`, et `ADMIN_USER_IDS` pour le panel administrateur (id de ton compte, une fois créé sur le site en ligne).
-   - Secrets : génère `BETTER_AUTH_SECRET` et `GAME_TOKEN_SECRET` avec `openssl rand -base64 32`, deux valeurs différentes. Le site et le serveur de jeu refusent de démarrer avec les valeurs de `.env.example` ou un secret trop court.
-   - Le plan gratuit (Hobby) de Vercel interdit l'usage commercial : passe au plan Pro s'il y a de la publicité ou un abonnement.
-4. **Ordre** : déploie d'abord le serveur de jeu (il crée les tables), puis le site.
-5. **E-mails** : crée une clé sur [Resend](https://resend.com) pour l'envoi des liens « mot de passe oublié », et vérifie ton domaine (enregistrements SPF/DKIM). Sans clé, ces e-mails s'affichent dans le terminal.
+Le dépôt est déjà prêt : `Procfile` (démarrage et migrations après chaque déploiement) et `scripts/scalingo.sh`, qui fait le bon travail selon la variable `CALCULUS_SERVICE` de chaque application.
+
+1. **Site** : crée une application (par ex. `calculus-web`, région osc-fr1) et relie-la au dépôt GitHub (*Deploy → GitHub*, branche `main`, déploiement automatique).
+   - *Resources* : conteneur **M** (512 Mo), 1 conteneur. *Addons* : **PostgreSQL**, offre Starter 512M.
+   - Variables (*Environment*) :
+     - `CALCULUS_SERVICE` = `web`, `PNPM_SKIP_PRUNING` = `true` (garde Prisma pour les migrations) ;
+     - `DATABASE_URL` = `$SCALINGO_POSTGRESQL_URL`, `DIRECT_URL` = `$SCALINGO_POSTGRESQL_URL` ;
+     - `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (l'adresse du site, par ex. `https://calculusonline.fr`), `GAME_TOKEN_SECRET` ;
+     - `NEXT_PUBLIC_GAME_SERVER_URL` (`wss://` + l'adresse du serveur de jeu ; lue au build, la politique de sécurité du site l'autorise à ce moment-là : après un changement, redéploie le site) ;
+     - `RESEND_API_KEY`, `EMAIL_FROM`, `LEGAL_PUBLISHER`, `LEGAL_CONTACT_EMAIL`, et `ADMIN_USER_IDS` (id de ton compte, une fois créé sur le site en ligne).
+2. **Serveur de jeu** : une deuxième application (par ex. `calculus-jeu`), même région, même dépôt, même branche.
+   - *Resources* : conteneur **S** (256 Mo), **un seul conteneur** (les salles sont en mémoire). Pas d'addon.
+   - Variables : `CALCULUS_SERVICE` = `game-server`, `PNPM_SKIP_PRUNING` = `true`, `DATABASE_URL` et `DIRECT_URL` (la valeur de `SCALINGO_POSTGRESQL_URL` copiée depuis l'application du site), `GAME_TOKEN_SECRET` (le même que le site), `WEB_ORIGIN` (l'adresse du site ; plusieurs adresses séparées par des virgules). `PORT` est fourni par Scalingo, `NODE_ENV=production` par le script `start`. Sans `WEB_ORIGIN`, le serveur refuse de démarrer.
+3. **Secrets** : génère `BETTER_AUTH_SECRET` et `GAME_TOKEN_SECRET` avec `openssl rand -base64 32`, deux valeurs différentes. Le site et le serveur de jeu refusent de démarrer avec les valeurs de `.env.example` ou un secret trop court.
+4. **Migrations** : appliquées automatiquement après chaque déploiement de l'une ou l'autre application (`postdeploy` du `Procfile`). Ne lance jamais de migration sur la base de production depuis ton ordinateur.
+5. **Domaines** : dans chaque application, *Settings → Domains*, ajoute `calculusonline.fr` (site) et `jeu.calculusonline.fr` (serveur de jeu). Dans Cloudflare, crée les enregistrements CNAME que Scalingo indique, en *DNS only* (nuage gris). Scalingo fournit le certificat HTTPS.
+6. **E-mails** : crée une clé sur [Resend](https://resend.com), ajoute ton domaine, et copie dans Cloudflare les enregistrements qu'il demande (SPF/DKIM). Tant que le domaine n'est pas vérifié, Resend n'envoie qu'à ta propre adresse ; sans clé, le site en production n'envoie rien.
+7. **Après le premier déploiement** : vérifie dans les journaux du serveur de jeu que les joueurs arrivent avec des adresses IP différentes (les limites par IP en dépendent).
 
 ## Comment ça marche
 

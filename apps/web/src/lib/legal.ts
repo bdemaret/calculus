@@ -1,7 +1,7 @@
 import "server-only";
 
 /** Date de dernière mise à jour des textes légaux (à changer à chaque modification de fond). */
-export const LEGAL_UPDATED = "2026-10-27";
+export const LEGAL_UPDATED = "2026-10-28";
 
 /**
  * Coordonnées de l'éditeur, lues dans l'environnement pour ne pas les publier dans le dépôt.

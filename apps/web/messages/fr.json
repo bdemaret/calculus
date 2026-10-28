@@ -569,9 +569,7 @@
           "title": "Hébergement",
           "body": [
             [
-              "Site : Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis (vercel.com).",
-              "Serveur des parties en ligne : Railway Corporation, États-Unis (railway.com).",
-              "Base de données : Neon, serveurs situés en Europe (neon.tech)."
+              "Site, serveur des parties en ligne et base de données : Scalingo SAS, 13 rue Jacques Peirotes, 67000 Strasbourg, France (scalingo.com), serveurs situés en France."
             ]
           ]
         },
@@ -647,9 +645,7 @@
           "body": [
             "Tes données sont traitées par des prestataires techniques, seulement pour faire fonctionner le site :",
             [
-              "Vercel (hébergement du site, États-Unis) ;",
-              "Neon (base de données, serveurs en Europe) ;",
-              "Railway (serveur des parties en ligne, États-Unis) ;",
+              "Scalingo (hébergement du site, des parties en ligne et de la base de données ; société française, serveurs en France) ;",
               "Resend (envoi des e-mails, États-Unis) ;",
               "Google Fonts (polices du site) : ton navigateur contacte les serveurs de Google, qui reçoivent ton adresse IP ;",
               "dictée vocale, si tu l’actives : la reconnaissance vocale est faite par ton navigateur, qui peut envoyer le son à son éditeur (Google pour Chrome, Apple pour Safari, Microsoft pour Edge). Calculus ne reçoit que le nombre reconnu, jamais le son."

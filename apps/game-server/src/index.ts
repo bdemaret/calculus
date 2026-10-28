@@ -9,7 +9,7 @@ import { verifyWebSocket } from "./limits";
 import { verifyAdminToken } from "./token";
 import { publicLobbies } from "./publicLobbies";
 
-// GAME_SERVER_PORT en local ; PORT est fourni automatiquement par les hébergeurs (Railway…).
+// GAME_SERVER_PORT en local ; PORT est fourni automatiquement par les hébergeurs (Scalingo…).
 const port = Number(process.env.GAME_SERVER_PORT ?? process.env.PORT ?? 2567);
 
 const startError = gameTokenSecretError() ?? webOriginError();

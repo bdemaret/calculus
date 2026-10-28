@@ -53,8 +53,8 @@ Un seul `.env` à la racine (modèle : `.env.example`). Chargé par `dotenv -e .
 
 | Variable | Utilisée par |
 | --- | --- |
-| `DATABASE_URL` | db (local : Postgres Docker sur le port **5433** ; production : adresse **`-pooler`** de Neon, indispensable avec les fonctions Vercel) |
-| `DIRECT_URL` | db, migrations seulement (`directUrl` de `schema.prisma` ; local : même valeur que `DATABASE_URL`, ajoutée par `pnpm lancer` ; production : adresse directe de Neon) |
+| `DATABASE_URL` | db (local : Postgres Docker sur le port **5433** ; production : `$SCALINGO_POSTGRESQL_URL` de l'addon Scalingo) |
+| `DIRECT_URL` | db, migrations seulement (`directUrl` de `schema.prisma`) : même valeur que `DATABASE_URL`, sauf derrière un pooler de connexions. Ajoutée au `.env` local par `pnpm lancer` |
 | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | web (Better Auth) |
 | `GAME_TOKEN_SECRET` | web (signe) + game-server (vérifie) — doit être identique, et différent de `BETTER_AUTH_SECRET` |
 | `NODE_ENV` | `production` active les vérifications de démarrage : `assertProductionSecrets` (`apps/web/src/lib/env.ts`, appelé par `lib/auth.ts`) et `gameTokenSecretError` (`apps/game-server/src/env.ts`) refusent un secret vide, recopié de `.env.example` (`remplace-moi`) ou de moins de 32 caractères. Le script `start` du serveur de jeu le fixe lui-même |
@@ -68,8 +68,8 @@ Un seul `.env` à la racine (modèle : `.env.example`). Chargé par `dotenv -e .
 
 ## Déploiement
 
-Web sur Vercel (racine `apps/web`, région `fra1` fixée par `apps/web/vercel.json`), serveur de jeu sur Railway (`railway.json` à la racine : build réduit à `prisma generate`, sans quoi Railway construirait aussi le site ; démarrage, santé `/health`, migrations `migrate:deploy` avant chaque déploiement), base sur Neon (Francfort, même région). Node : `.nvmrc` (24) et `engines`. Détails dans `README.md`.
+Tout chez Scalingo (région osc-fr1, France) : deux applications construites depuis ce dépôt, le site (conteneur M) et le serveur de jeu (conteneur S, **un seul**), plus l'addon PostgreSQL rattaché au site. Chaque application choisit son rôle par `CALCULUS_SERVICE` (`web` ou `game-server`) : `scripts/scalingo.sh` construit (`scalingo-postbuild` de la racine, qui remplace le `build` Turborepo), démarre (`web` du `Procfile`) et migre (`postdeploy`). `PNPM_SKIP_PRUNING=true` garde les devDependencies (Prisma CLI, `dotenv-cli`, utilisés au démarrage et par les migrations). Node : `engines` de la racine (lu par le buildpack Scalingo), `.nvmrc` en local. Domaine : DNS chez Cloudflare. Détails dans `README.md`.
 
-- **Migrations** : appliquées uniquement par le `preDeployCommand` de Railway, jamais à la main depuis un poste. Vercel peut déployer le site avant : une migration doit rester compatible avec l'ancien code (ajouter avant d'utiliser, retirer après).
-- **Une seule instance de serveur de jeu** : salles, présence et lobbys publics sont en mémoire. Chaque redéploiement coupe les parties en cours ; plusieurs instances demanderaient `RedisPresence`/`RedisDriver`.
+- **Migrations** : appliquées uniquement par le `postdeploy` des deux applications (Prisma les verrouille : deux déploiements simultanés n'en appliquent qu'un), jamais à la main depuis un poste. Le hook tourne une fois les nouveaux conteneurs démarrés, avant de leur envoyer le trafic : le nouveau code démarre donc sur l'ancien schéma, et en cas d'échec (`hook-error`) l'ancienne version continue de servir. L'ancien code tourne encore pendant la migration : elle doit rester compatible avec lui (ajouter avant d'utiliser, retirer après).
+- **Une seule instance de serveur de jeu** : salles, présence et lobbys publics sont en mémoire. Chaque redéploiement coupe les parties en cours ; plusieurs instances (ou conteneurs Scalingo) demanderaient `RedisPresence`/`RedisDriver`.
 - **En-têtes HTTP** (CSP, `frame-ancestors`, HSTS…) : `headers()` de `apps/web/next.config.ts`. `connect-src` est calculée depuis `NEXT_PUBLIC_GAME_SERVER_URL` au build : toute nouvelle origine appelée par le navigateur doit y être ajoutée.
