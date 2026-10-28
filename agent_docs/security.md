@@ -17,7 +17,7 @@ Relevés lors de l'audit du 27 octobre 2026. Le détail des corrections, classé
 
 ## Avant une mise en production
 
-1. Variables de `README.md` (« Mettre en ligne ») posées sur les deux applications Scalingo, dont `WEB_ORIGIN` sur le serveur de jeu et `DIRECT_URL` à côté de `DATABASE_URL`.
+1. Variables de `README.md` (« Mettre en ligne ») posées sur l'application Scalingo, dont `DIRECT_URL` à côté de `DATABASE_URL` (et `WEB_ORIGIN` si le serveur de jeu tourne dans une application séparée).
 2. Secrets générés (`openssl rand -base64 32`), différents pour `BETTER_AUTH_SECRET` et `GAME_TOKEN_SECRET`, identiques entre le site et le serveur de jeu pour `GAME_TOKEN_SECRET`.
 3. Serveur de jeu lancé par son script `start` (qui fixe `NODE_ENV=production`, sans quoi la vérification du secret ne porte que sur sa présence).
 4. `ADMIN_USER_IDS` : ids de comptes créés sur le site en ligne, jamais d'e-mails.

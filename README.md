@@ -83,26 +83,27 @@ Pour tester une partie en ligne seul : ouvre le site dans une fenêtre normale e
 
 ## Mettre en ligne
 
-Tout est chez [Scalingo](https://scalingo.com) (hébergeur français, région **osc-fr1**, Paris) : deux applications construites depuis ce même dépôt (le site, le serveur de jeu) et une base PostgreSQL. Le domaine (acheté chez OVH) a son DNS chez [Cloudflare](https://cloudflare.com) (gratuit).
+Tout est chez [Scalingo](https://scalingo.com) (hébergeur français, région **osc-fr1**, Paris), dans **une seule application** : le site et le serveur de jeu tournent dans le même processus (`apps/web/server.ts`), à la même adresse, avec une base PostgreSQL. Le domaine (acheté chez OVH) a son DNS chez [Cloudflare](https://cloudflare.com) (gratuit).
 
-Le dépôt est déjà prêt : `Procfile` (démarrage et migrations après chaque déploiement) et `scripts/scalingo.sh`, qui fait le bon travail selon la variable `CALCULUS_SERVICE` de chaque application.
+Le dépôt est déjà prêt : `Procfile` (démarrage, migrations après chaque déploiement) et `scripts/scalingo.sh`, qui fait le bon travail selon la variable `CALCULUS_SERVICE`.
 
-1. **Site** : crée une application (par ex. `calculus-web`, région osc-fr1) et relie-la au dépôt GitHub (*Deploy → GitHub*, branche `main`, déploiement automatique).
-   - *Resources* : conteneur **M** (512 Mo), 1 conteneur. *Addons* : **PostgreSQL**, offre Starter 512M.
-   - Variables (*Environment*) :
-     - `CALCULUS_SERVICE` = `web`, `PNPM_SKIP_PRUNING` = `true` (garde Prisma pour les migrations) ;
-     - `DATABASE_URL` = `$SCALINGO_POSTGRESQL_URL`, `DIRECT_URL` = `$SCALINGO_POSTGRESQL_URL` ;
-     - `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (l'adresse du site, par ex. `https://calculusonline.fr`), `GAME_TOKEN_SECRET` ;
-     - `NEXT_PUBLIC_GAME_SERVER_URL` (`wss://` + l'adresse du serveur de jeu ; lue au build, la politique de sécurité du site l'autorise à ce moment-là : après un changement, redéploie le site) ;
-     - `RESEND_API_KEY`, `EMAIL_FROM`, `LEGAL_PUBLISHER`, `LEGAL_CONTACT_EMAIL`, et `ADMIN_USER_IDS` (id de ton compte, une fois créé sur le site en ligne).
-2. **Serveur de jeu** : une deuxième application (par ex. `calculus-jeu`), même région, même dépôt, même branche.
-   - *Resources* : conteneur **S** (256 Mo), **un seul conteneur** (les salles sont en mémoire). Pas d'addon.
-   - Variables : `CALCULUS_SERVICE` = `game-server`, `PNPM_SKIP_PRUNING` = `true`, `DATABASE_URL` et `DIRECT_URL` (la valeur de `SCALINGO_POSTGRESQL_URL` copiée depuis l'application du site), `GAME_TOKEN_SECRET` (le même que le site), `WEB_ORIGIN` (l'adresse du site ; plusieurs adresses séparées par des virgules). `PORT` est fourni par Scalingo, `NODE_ENV=production` par le script `start`. Sans `WEB_ORIGIN`, le serveur refuse de démarrer.
-3. **Secrets** : génère `BETTER_AUTH_SECRET` et `GAME_TOKEN_SECRET` avec `openssl rand -base64 32`, deux valeurs différentes. Le site et le serveur de jeu refusent de démarrer avec les valeurs de `.env.example` ou un secret trop court.
-4. **Migrations** : appliquées automatiquement après chaque déploiement de l'une ou l'autre application (`postdeploy` du `Procfile`). Ne lance jamais de migration sur la base de production depuis ton ordinateur.
-5. **Domaines** : dans chaque application, *Settings → Domains*, ajoute `calculusonline.fr` (site) et `jeu.calculusonline.fr` (serveur de jeu). Dans Cloudflare, crée les enregistrements CNAME que Scalingo indique, en *DNS only* (nuage gris). Scalingo fournit le certificat HTTPS.
-6. **E-mails** : crée une clé sur [Resend](https://resend.com), ajoute ton domaine, et copie dans Cloudflare les enregistrements qu'il demande (SPF/DKIM). Tant que le domaine n'est pas vérifié, Resend n'envoie qu'à ta propre adresse ; sans clé, le site en production n'envoie rien.
-7. **Après le premier déploiement** : vérifie dans les journaux du serveur de jeu que les joueurs arrivent avec des adresses IP différentes (les limites par IP en dépendent).
+1. **Application** : crée-la (par ex. `calculusonline`, région osc-fr1) et relie-la au dépôt GitHub (branche `main`, déploiement automatique).
+   - *Resources* : conteneur **M** (512 Mo), **un seul conteneur** (les parties en cours sont en mémoire).
+   - *Addons* : **PostgreSQL**, offre Starter 512M (sauvegardes quotidiennes).
+2. **Variables** (*Environment*) :
+   - `CALCULUS_SERVICE` = `all`, `PNPM_SKIP_PRUNING` = `true` (garde Prisma et `tsx`, utilisés au démarrage et par les migrations) ;
+   - `DATABASE_URL` = `$SCALINGO_POSTGRESQL_URL`, `DIRECT_URL` = `$SCALINGO_POSTGRESQL_URL` ;
+   - `BETTER_AUTH_URL` = l'adresse du site (d'abord `https://calculusonline.osc-fr1.scalingo.io`, puis `https://calculusonline.fr`) ;
+   - `NEXT_PUBLIC_GAME_SERVER_URL` = la même adresse en `wss://` (lue au build : après un changement, redéploie) ;
+   - `BETTER_AUTH_SECRET` et `GAME_TOKEN_SECRET` : deux valeurs différentes, générées avec `openssl rand -base64 32`. Le site refuse de démarrer avec les valeurs de `.env.example` ou un secret trop court ;
+   - plus tard : `RESEND_API_KEY`, `EMAIL_FROM`, `LEGAL_PUBLISHER`, `LEGAL_CONTACT_EMAIL`, `ADMIN_USER_IDS` (id de ton compte, une fois créé sur le site en ligne).
+   - `WEB_ORIGIN` est facultative : par défaut, le serveur de jeu n'accepte que l'origine de `BETTER_AUTH_URL` (plusieurs adresses : les séparer par des virgules).
+3. **Migrations** : appliquées automatiquement après chaque déploiement (`postdeploy` du `Procfile`). Ne lance jamais de migration sur la base de production depuis ton ordinateur.
+4. **Domaine** : *Settings → Domains*, ajoute `calculusonline.fr`. Dans Cloudflare, crée l'enregistrement CNAME que Scalingo indique, en *DNS only* (nuage gris). Scalingo fournit le certificat HTTPS. Puis mets à jour `BETTER_AUTH_URL` et `NEXT_PUBLIC_GAME_SERVER_URL`, et redéploie.
+5. **E-mails** : crée une clé sur [Resend](https://resend.com), ajoute ton domaine, et copie dans Cloudflare les enregistrements qu'il demande (SPF/DKIM). Tant que le domaine n'est pas vérifié, Resend n'envoie qu'à ta propre adresse ; sans clé, le site en production n'envoie rien.
+6. **Après le premier déploiement** : vérifie dans les journaux que les joueurs arrivent avec des adresses IP différentes (les limites par IP en dépendent).
+
+Pour séparer plus tard le site et le serveur de jeu (deux applications, montée en charge du site) : `CALCULUS_SERVICE` = `web` sur l'une, `game-server` sur l'autre (avec `WEB_ORIGIN` et `NEXT_PUBLIC_GAME_SERVER_URL` vers l'adresse du serveur de jeu).
 
 ## Comment ça marche
 

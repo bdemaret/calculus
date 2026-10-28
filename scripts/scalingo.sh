@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
-# Déploiement Scalingo : deux applications (site, serveur de jeu) construites depuis ce même dépôt.
-# Chacune choisit son rôle par la variable CALCULUS_SERVICE (`web` ou `game-server`).
+# Déploiement Scalingo, rôle choisi par la variable CALCULUS_SERVICE :
+#   all          site et serveur de jeu dans un seul processus (`apps/web/server.ts`), une seule application
+#   web          le site seul, game-server : le serveur de jeu seul (deux applications depuis ce même dépôt)
 #   build    : appelé par `scalingo-postbuild` (package.json), remplace le `build` de la racine,
-#              qui construirait aussi le site sur l'application du serveur de jeu
+#              qui construirait aussi le site sur une application qui n'en a pas besoin
 #   start    : processus `web` du Procfile
 #   migrate  : processus `postdeploy` du Procfile (Prisma verrouille : deux applications
 #              qui migrent en même temps n'appliquent chaque migration qu'une fois)
 set -euo pipefail
 
 case "${CALCULUS_SERVICE:-}" in
-  web | game-server) ;;
+  all | web | game-server) ;;
   *)
-    echo "CALCULUS_SERVICE doit valoir « web » ou « game-server » (reçu : « ${CALCULUS_SERVICE:-} »)." >&2
+    echo "CALCULUS_SERVICE doit valoir « all », « web » ou « game-server » (reçu : « ${CALCULUS_SERVICE:-} »)." >&2
     exit 1
     ;;
 esac
@@ -19,9 +20,10 @@ esac
 case "${1:-}" in
   build)
     pnpm --filter @calculus/db generate
-    if [ "${CALCULUS_SERVICE}" = web ]; then pnpm --filter @calculus/web build; fi
+    if [ "${CALCULUS_SERVICE}" != game-server ]; then pnpm --filter @calculus/web build; fi
     ;;
   start)
+    if [ "${CALCULUS_SERVICE}" = all ]; then exec pnpm --filter @calculus/web start:combined; fi
     exec pnpm --filter "@calculus/${CALCULUS_SERVICE}" start
     ;;
   migrate)
