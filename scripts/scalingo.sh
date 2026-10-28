@@ -19,6 +19,21 @@ esac
 
 case "${1:-}" in
   build)
+    # Diagnostic : le plugin next-intl charge le binaire natif de @swc/core en lisant next.config.ts.
+    # Un premier build chez Scalingo a échoué là (« Failed to load native binding ») sans dire pourquoi :
+    # on affiche les binaires installés et la cause exacte, sans jamais faire échouer le build ici.
+    echo "Binaires SWC installés :"
+    ls node_modules/.pnpm | grep -E '^@(swc|next)\+(core|swc)' || echo "  (aucun)"
+    (cd apps/web && node -e '
+      const { createRequire } = require("node:module");
+      try {
+        createRequire(require.resolve("next-intl/plugin"))("@swc/core");
+        console.log("@swc/core : binaire natif chargé");
+      } catch (e) {
+        console.log("@swc/core : " + e.message);
+        for (const c of e.cause ?? []) console.log("  - " + String(c?.message ?? c).split("\n")[0]);
+      }
+    ') || true
     pnpm --filter @calculus/db generate
     if [ "${CALCULUS_SERVICE}" != game-server ]; then pnpm --filter @calculus/web build; fi
     ;;
