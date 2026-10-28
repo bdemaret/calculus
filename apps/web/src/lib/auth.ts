@@ -37,8 +37,28 @@ function checkImage(data: Record<string, unknown>) {
     throw new APIError("BAD_REQUEST", { code: "INVALID_IMAGE", message: "Photo de profil invalide" });
 }
 
+/** Adresse IPv4 privée (réseau local : 10.x, 172.16-31.x, 192.168.x). */
+const PRIVATE_IPV4 = /^(10\.\d{1,3}|172\.(1[6-9]|2\d|3[01])|192\.168)\.\d{1,3}\.\d{1,3}$/;
+
+/**
+ * En développement seulement : le site ouvert depuis le réseau local (téléphone, autre poste,
+ * ex. http://192.168.1.102:3000) envoie une origine différente de `BETTER_AUTH_URL`, que Better Auth
+ * refuserait (« Invalid origin »). On accepte alors l'origine de la requête si elle vise une IP privée.
+ */
+function devLanOrigins(request?: Request): string[] {
+  const origin = request?.headers.get("origin");
+  if (!origin) return [];
+  try {
+    const url = new URL(origin);
+    return url.protocol === "http:" && PRIVATE_IPV4.test(url.hostname) ? [url.origin] : [];
+  } catch {
+    return [];
+  }
+}
+
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+  ...(process.env.NODE_ENV !== "production" && { trustedOrigins: devLanOrigins }),
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   emailAndPassword: {
     enabled: true,
