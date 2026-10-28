@@ -12,6 +12,7 @@ export const DATABASE_URL = process.env.E2E_DATABASE_URL ?? "postgresql://calcul
 
 export const serverEnv: Record<string, string> = {
   DATABASE_URL,
+  DIRECT_URL: DATABASE_URL,
   BETTER_AUTH_SECRET: "e2e-better-auth-secret-0123456789abcdef",
   BETTER_AUTH_URL: WEB_URL,
   GAME_TOKEN_SECRET: "e2e-game-token-secret-0123456789abcdef",

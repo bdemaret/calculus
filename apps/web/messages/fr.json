@@ -162,6 +162,7 @@
     "not-found": "Aucun lobby ne porte ce code. Vérifie les 6 caractères.",
     "server-down": "Le serveur de jeu ne répond pas. Réessaie dans un instant.",
     "name-required": "Choisis un pseudo pour jouer en invité.",
+    "busy": "Trop de connexions en ce moment. Réessaie dans une minute.",
     "generic": "Impossible de rejoindre le lobby. Réessaie.",
     "locked": "Ce lobby est complet ou une partie y est en cours."
   },

@@ -83,17 +83,21 @@ Pour tester une partie en ligne seul : ouvre le site dans une fenêtre normale e
 
 ## Mettre en ligne
 
-1. **Base de données** : crée un projet sur [Neon](https://neon.tech), région Europe. Copie l'adresse de connexion.
-2. **Tables** : en local, mets cette adresse dans `DATABASE_URL` puis lance `pnpm --filter @calculus/db migrate:deploy`.
-3. **Serveur de jeu** : sur [Railway](https://railway.app) (ou Fly.io), crée un service depuis ton dépôt GitHub.
-   - Commande d'installation : `corepack enable && pnpm install --frozen-lockfile`
-   - Commande de démarrage : `pnpm --filter @calculus/game-server start`
-   - Variables : `DATABASE_URL`, `GAME_TOKEN_SECRET`, `WEB_ORIGIN` (l'adresse du site). `PORT` est fourni par Railway, `NODE_ENV=production` par le script `start`.
-   - Note l'adresse publique du service, par ex. `calculus-game.up.railway.app`.
-4. **Site** : sur [Vercel](https://vercel.com), importe le dépôt et choisis `apps/web` comme dossier racine.
-   - Variables : `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (l'adresse du site), `GAME_TOKEN_SECRET` (le même que sur Railway), `NEXT_PUBLIC_GAME_SERVER_URL` (`wss://` + l'adresse Railway), `RESEND_API_KEY`, `EMAIL_FROM`, et `ADMIN_USER_IDS` pour le panel administrateur (id de ton compte, une fois créé sur le site en ligne).
+Tout est en Europe : Neon à Francfort, Vercel en `fra1` (fixé par `apps/web/vercel.json`), Railway en Europe. Node 24 (`.nvmrc`).
+
+1. **Base de données** : crée un projet sur [Neon](https://neon.tech), région **AWS Europe Central (Frankfurt)**. Garde deux adresses de connexion :
+   - l'adresse **poolée** (case « Connection pooling » cochée, l'hôte contient `-pooler`) → `DATABASE_URL` ;
+   - l'adresse **directe** (case décochée) → `DIRECT_URL`, utilisée seulement par les migrations.
+2. **Serveur de jeu** : sur [Railway](https://railway.app), crée un service depuis ton dépôt GitHub, région Europe. Le fichier `railway.json` règle le reste : démarrage, santé (`/health`), et **migrations appliquées avant chaque déploiement** (`migrate:deploy`). Ne lance jamais de migration sur la base de production depuis ton ordinateur.
+   - Variables : `DATABASE_URL`, `DIRECT_URL`, `GAME_TOKEN_SECRET`, `WEB_ORIGIN` (l'adresse du site, par ex. `https://calculus.fr` ; plusieurs adresses séparées par des virgules). `PORT` est fourni par Railway, `NODE_ENV=production` par le script `start`. Sans `WEB_ORIGIN`, le serveur refuse de démarrer.
+   - Donne-lui un domaine à toi (par ex. `jeu.calculus.fr`) dans *Settings → Networking*.
+   - Après le premier déploiement, vérifie dans les journaux que les joueurs arrivent avec des adresses IP différentes : les limites par IP en dépendent.
+3. **Site** : sur [Vercel](https://vercel.com), importe le dépôt et choisis `apps/web` comme dossier racine.
+   - Variables : `DATABASE_URL` (adresse poolée), `DIRECT_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (l'adresse du site), `GAME_TOKEN_SECRET` (le même que sur Railway), `NEXT_PUBLIC_GAME_SERVER_URL` (`wss://` + le domaine du serveur de jeu, à poser avant le build : la politique de sécurité du site l'autorise à ce moment-là), `RESEND_API_KEY`, `EMAIL_FROM`, et `ADMIN_USER_IDS` pour le panel administrateur (id de ton compte, une fois créé sur le site en ligne).
    - Secrets : génère `BETTER_AUTH_SECRET` et `GAME_TOKEN_SECRET` avec `openssl rand -base64 32`, deux valeurs différentes. Le site et le serveur de jeu refusent de démarrer avec les valeurs de `.env.example` ou un secret trop court.
-5. **E-mails** : crée une clé sur [Resend](https://resend.com) pour l'envoi des liens « mot de passe oublié ». Sans clé, ces e-mails s'affichent dans le terminal.
+   - Le plan gratuit (Hobby) de Vercel interdit l'usage commercial : passe au plan Pro s'il y a de la publicité ou un abonnement.
+4. **Ordre** : déploie d'abord le serveur de jeu (il crée les tables), puis le site.
+5. **E-mails** : crée une clé sur [Resend](https://resend.com) pour l'envoi des liens « mot de passe oublié », et vérifie ton domaine (enregistrements SPF/DKIM). Sans clé, ces e-mails s'affichent dans le terminal.
 
 ## Comment ça marche
 

@@ -1,4 +1,5 @@
-import { Room, ServerError, type Client, type Delayed } from "@colyseus/core";
+import { randomBytes, randomInt } from "node:crypto";
+import { Room, ServerError, type AuthContext, type Client, type Delayed } from "@colyseus/core";
 import {
   CODE_ALPHABET,
   CODE_LENGTH,
@@ -11,7 +12,6 @@ import {
   MAX_PLAYERS,
   PUBLIC_LOBBY_DURATION_MS,
   buildReport,
-  randomSeed,
   sanitizeSettings,
   type GameReport,
   type AdminRoomSummary,
@@ -27,6 +27,7 @@ import {
 } from "@calculus/game-core";
 import { z } from "zod";
 import { verifyGameToken, type GameIdentity } from "./token";
+import { MAX_GAME_ROOMS, checkMatchmake } from "./limits";
 import { clearInvites, persistGame } from "./persist";
 import { PUBLIC_LOBBY_KEY, publicLobbies } from "./publicLobbies";
 
@@ -50,10 +51,14 @@ const activeCodes = new Set<string>();
 /** Salles ouvertes dans ce processus, lues par la route d'administration (`/admin/rooms`). */
 export const liveRooms = new Set<GameRoom>();
 
+/**
+ * Code de salle tiré avec `node:crypto` : avec `Math.random`, les codes affichés permettraient
+ * de retrouver l'état du générateur, donc de prédire les graines des parties.
+ */
 function generateCode(): string {
   for (;;) {
     let code = "";
-    for (let i = 0; i < CODE_LENGTH; i++) code += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+    for (let i = 0; i < CODE_LENGTH; i++) code += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];
     if (!activeCodes.has(code)) return code;
   }
 }
@@ -114,6 +119,8 @@ export class GameRoom extends Room {
   private autoStartAt: number | null = null;
 
   onCreate(options: { settings?: unknown; publicKey?: unknown }) {
+    // Plafond global : les lobbys publics (créés par le serveur lui-même) passent toujours.
+    if (options?.publicKey !== PUBLIC_LOBBY_KEY && liveRooms.size >= MAX_GAME_ROOMS) throw new ServerError(JOIN_ERRORS.busy, "busy");
     this.code = generateCode();
     activeCodes.add(this.code);
     this.roomId = this.code;
@@ -188,13 +195,17 @@ export class GameRoom extends Room {
       if (!parsed.success || !round || round.activePlayerId !== m.id) return;
       this.broadcast("typing", { playerId: m.id, value: parsed.data.value }, { except: client });
     });
+
+    // Type inconnu : ignoré en silence (sinon Colyseus le logue à chaque fois, logs inondables).
+    this.onMessage("*", () => {});
   }
 
   /**
    * Vérifie le jeton remis par le site. Statique : Colyseus l'appelle pendant le matchmaking,
    * avant de créer la salle ou de réserver une place, donc sans jeton on ne crée rien.
    */
-  static async onAuth(_token: string, options: { token?: unknown }): Promise<GameIdentity> {
+  static async onAuth(_token: string, options: { token?: unknown }, context: AuthContext): Promise<GameIdentity> {
+    checkMatchmake(context);
     const identity = await verifyGameToken(options?.token);
     if (!identity) throw new ServerError(JOIN_ERRORS.badToken, "bad-token");
     return identity;
@@ -386,7 +397,8 @@ export class GameRoom extends Room {
     }
     const players = [...this.members.values()].map((m) => ({ id: m.id, name: m.name }));
     this.guestById = new Map([...this.members.values()].map((m) => [m.id, m.guest]));
-    this.engine = new GameEngine(this.settings, players, randomSeed());
+    // Graine imprévisible (`node:crypto`) : qui la devine connaît tous les calculs de la partie.
+    this.engine = new GameEngine(this.settings, players, randomBytes(16).toString("base64url"));
     this.gameNumber += 1;
     this.report = null;
     this.ratings = null;

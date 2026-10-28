@@ -162,6 +162,7 @@
     "not-found": "No lobby has this code. Check the 6 characters.",
     "server-down": "The game server isn’t responding. Try again in a moment.",
     "name-required": "Pick a nickname to play as a guest.",
+    "busy": "Too many connections right now. Try again in a minute.",
     "generic": "Couldn’t join the lobby. Try again.",
     "locked": "This lobby is full or a game is in progress."
   },

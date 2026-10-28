@@ -53,18 +53,23 @@ Un seul `.env` à la racine (modèle : `.env.example`). Chargé par `dotenv -e .
 
 | Variable | Utilisée par |
 | --- | --- |
-| `DATABASE_URL` | db (local : Postgres Docker sur le port **5433**) |
+| `DATABASE_URL` | db (local : Postgres Docker sur le port **5433** ; production : adresse **`-pooler`** de Neon, indispensable avec les fonctions Vercel) |
+| `DIRECT_URL` | db, migrations seulement (`directUrl` de `schema.prisma` ; local : même valeur que `DATABASE_URL`, ajoutée par `pnpm lancer` ; production : adresse directe de Neon) |
 | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | web (Better Auth) |
 | `GAME_TOKEN_SECRET` | web (signe) + game-server (vérifie) — doit être identique, et différent de `BETTER_AUTH_SECRET` |
 | `NODE_ENV` | `production` active les vérifications de démarrage : `assertProductionSecrets` (`apps/web/src/lib/env.ts`, appelé par `lib/auth.ts`) et `gameTokenSecretError` (`apps/game-server/src/env.ts`) refusent un secret vide, recopié de `.env.example` (`remplace-moi`) ou de moins de 32 caractères. Le script `start` du serveur de jeu le fixe lui-même |
 | `NEXT_PUBLIC_GAME_SERVER_URL` | web, côté navigateur (`ws://localhost:2567` en local) |
 | `GAME_SERVER_PORT` / `PORT` | game-server |
-| `WEB_ORIGIN` | game-server, en principe ; **lue nulle part aujourd'hui** (aucun filtrage d'origine, voir `security.md`) |
+| `WEB_ORIGIN` | game-server : adresse(s) du site, séparées par des virgules. En production seulement, les WebSockets et le matchmaking d'une autre origine sont refusés (`limits.ts`), et le serveur refuse de démarrer sans elle |
 | `RESEND_API_KEY`, `EMAIL_FROM` | web (e-mails ; sans clé, affichés dans le terminal, sauf en production où rien n'est envoyé ni affiché) |
 | `LEGAL_PUBLISHER`, `LEGAL_CONTACT_EMAIL` | web (mentions légales : éditeur, vide = particulier anonyme ; e-mail de contact affiché dans les pages légales) |
 | `ADMIN_USER_IDS` | web (ids des comptes administrateurs, séparés par des virgules ; vide = pas de panel admin). Jamais d'e-mails : ils ne sont pas vérifiés |
-| `AUTH_RATE_LIMIT_DISABLED` | web, tests e2e uniquement (`"1"` coupe le rate limit de Better Auth) ; jamais en production |
+| `AUTH_RATE_LIMIT_DISABLED` | web, tests e2e uniquement (`"1"` coupe le rate limit de Better Auth et celui des routes, `lib/rateLimit.ts`) ; jamais en production |
 
 ## Déploiement
 
-Web sur Vercel (racine `apps/web`), serveur de jeu sur Railway/Fly (`pnpm --filter @calculus/game-server start`, routes `/health` et `/lobbies`), base sur Neon. Détails dans `README.md`.
+Web sur Vercel (racine `apps/web`, région `fra1` fixée par `apps/web/vercel.json`), serveur de jeu sur Railway (`railway.json` à la racine : build réduit à `prisma generate`, sans quoi Railway construirait aussi le site ; démarrage, santé `/health`, migrations `migrate:deploy` avant chaque déploiement), base sur Neon (Francfort, même région). Node : `.nvmrc` (24) et `engines`. Détails dans `README.md`.
+
+- **Migrations** : appliquées uniquement par le `preDeployCommand` de Railway, jamais à la main depuis un poste. Vercel peut déployer le site avant : une migration doit rester compatible avec l'ancien code (ajouter avant d'utiliser, retirer après).
+- **Une seule instance de serveur de jeu** : salles, présence et lobbys publics sont en mémoire. Chaque redéploiement coupe les parties en cours ; plusieurs instances demanderaient `RedisPresence`/`RedisDriver`.
+- **En-têtes HTTP** (CSP, `frame-ancestors`, HSTS…) : `headers()` de `apps/web/next.config.ts`. `connect-src` est calculée depuis `NEXT_PUBLIC_GAME_SERVER_URL` au build : toute nouvelle origine appelée par le navigateur doit y être ajoutée.

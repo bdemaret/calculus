@@ -1309,6 +1309,30 @@ export async function createFeedback(input: FeedbackInput, now: Date): Promise<b
 }
 
 /* ------------------------------------------------------------------ */
+/* Limites de fréquence (routes du site)                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Compte une demande pour `key` dans une fenêtre fixe de `windowMs` et dit si elle passe sous `max`.
+ * Compteur en base (table de Better Auth, clés préfixées `calculus:`), pour que la limite tienne
+ * entre les instances serverless ; une seule requête atomique, sans course entre deux appels.
+ */
+export async function consumeRateLimit(key: string, max: number, windowMs: number, now: number): Promise<boolean> {
+  const fullKey = `calculus:${key}`;
+  // Colonne BIGINT : des BigInt, pour que Postgres ne reçoive pas un flottant.
+  const at = BigInt(now);
+  const windowStart = BigInt(now - windowMs);
+  const rows = await prisma.$queryRaw<{ count: number }[]>`
+    INSERT INTO "rate_limit" ("id", "key", "count", "lastRequest")
+    VALUES (${randomUUID()}, ${fullKey}, 1, ${at})
+    ON CONFLICT ("key") DO UPDATE SET
+      "count" = CASE WHEN "rate_limit"."lastRequest" <= ${windowStart} THEN 1 ELSE "rate_limit"."count" + 1 END,
+      "lastRequest" = CASE WHEN "rate_limit"."lastRequest" <= ${windowStart} THEN ${at} ELSE "rate_limit"."lastRequest" END
+    RETURNING "count"`;
+  return (rows[0]?.count ?? 0) <= max;
+}
+
+/* ------------------------------------------------------------------ */
 /* Panel administrateur                                                 */
 /* ------------------------------------------------------------------ */
 

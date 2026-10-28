@@ -1,10 +1,9 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { matchMaker } from "@colyseus/core";
 import {
   PUBLIC_LOBBY_COUNT,
   createRng,
   randomPublicSettings,
-  randomSeed,
   type PublicLobbyInfo,
   type PublicLobbyList,
 } from "@calculus/game-core";
@@ -60,7 +59,7 @@ class PublicLobbies {
   private fill() {
     while (this.running && this.lobbies.size + this.creating < PUBLIC_LOBBY_COUNT) {
       this.creating += 1;
-      const settings = randomPublicSettings(createRng(randomSeed()), [...this.lobbies.values()].map((l) => l.settings));
+      const settings = randomPublicSettings(createRng(randomBytes(16).toString("base64url")), [...this.lobbies.values()].map((l) => l.settings));
       matchMaker.createRoom("game", { publicKey: PUBLIC_LOBBY_KEY, settings }).then(
         () => {
           this.creating -= 1;

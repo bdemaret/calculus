@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.18.0",
   "engines": {
-    "node": ">=20.9"
+    "node": ">=22.12 <27"
   },
   "scripts": {
     "lancer": "node scripts/lancer.mjs",

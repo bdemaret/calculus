@@ -13,3 +13,24 @@ export function gameTokenSecretError(): string | null {
     return `GAME_TOKEN_SECRET invalide : génère une valeur avec \`openssl rand -base64 32\` (${MIN_SECRET_LENGTH} caractères au moins).`;
   return null;
 }
+
+/**
+ * Origines autorisées à se connecter (`WEB_ORIGIN`, adresses du site séparées par des virgules),
+ * ou null pour n'en filtrer aucune. Le filtre ne s'applique qu'en production : en développement,
+ * le site s'ouvre aussi depuis le réseau local (téléphone), sous une autre adresse.
+ */
+export function allowedOrigins(): Set<string> | null {
+  if (process.env.NODE_ENV !== "production") return null;
+  const origins = (process.env.WEB_ORIGIN ?? "")
+    .split(",")
+    .map((o) => o.trim().replace(/\/$/, ""))
+    .filter(Boolean);
+  return new Set(origins);
+}
+
+/** Message d'erreur si `WEB_ORIGIN` manque en production (sinon aucun navigateur ne pourrait se connecter). */
+export function webOriginError(): string | null {
+  const origins = allowedOrigins();
+  if (origins && origins.size === 0) return "WEB_ORIGIN manquant : indique l'adresse publique du site (ex. https://calculus.fr).";
+  return null;
+}

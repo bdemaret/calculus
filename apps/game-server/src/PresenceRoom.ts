@@ -1,4 +1,6 @@
-import { Room, type Client } from "@colyseus/core";
+import { Room, ServerError, type AuthContext, type Client } from "@colyseus/core";
+import { JOIN_ERRORS } from "@calculus/game-core";
+import { MAX_PRESENCE_CLIENTS, checkMatchmake } from "./limits";
 
 /** Intervalle minimal entre deux diffusions du compteur, en ms (évite une rafale à chaque arrivée). */
 const BROADCAST_MS = 2000;
@@ -22,6 +24,13 @@ export class PresenceRoom extends Room {
   maxClients = MAX_CLIENTS;
 
   private lastSent = -1;
+
+  /** Sans jeton, mais avec l'origine du site, sous le plafond par IP et le plafond global. */
+  static async onAuth(_token: string, _options: unknown, context: AuthContext): Promise<boolean> {
+    checkMatchmake(context);
+    if (onlineCount() >= MAX_PRESENCE_CLIENTS) throw new ServerError(JOIN_ERRORS.busy, "busy");
+    return true;
+  }
 
   onCreate() {
     rooms.add(this);

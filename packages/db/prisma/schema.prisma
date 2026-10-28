@@ -5,9 +5,13 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// DATABASE_URL : connexion du site et du serveur de jeu (en production, l'adresse « -pooler » de Neon).
+// DIRECT_URL : connexion directe, pour les migrations seulement (le pooler ne tient pas leurs verrous).
+// En local, les deux pointent sur la même base.
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 /* ---------- Comptes (tables gérées par Better Auth) ---------- */

@@ -4,16 +4,17 @@ import { WebSocketTransport } from "@colyseus/ws-transport";
 import { PRESENCE_ROOM } from "@calculus/game-core";
 import { GameRoom, liveRooms } from "./GameRoom";
 import { PresenceRoom } from "./PresenceRoom";
-import { gameTokenSecretError } from "./env";
+import { gameTokenSecretError, webOriginError } from "./env";
+import { verifyWebSocket } from "./limits";
 import { verifyAdminToken } from "./token";
 import { publicLobbies } from "./publicLobbies";
 
 // GAME_SERVER_PORT en local ; PORT est fourni automatiquement par les hébergeurs (Railway…).
 const port = Number(process.env.GAME_SERVER_PORT ?? process.env.PORT ?? 2567);
 
-const secretError = gameTokenSecretError();
-if (secretError) {
-  console.error(secretError);
+const startError = gameTokenSecretError() ?? webOriginError();
+if (startError) {
+  console.error(startError);
   process.exit(1);
 }
 
@@ -53,7 +54,8 @@ const httpServer = createServer((req, res) => {
 });
 
 const gameServer = new Server({
-  transport: new WebSocketTransport({ server: httpServer }),
+  // Origine du site et plafond de connexions par IP vérifiés avant d'accepter le WebSocket (`limits.ts`).
+  transport: new WebSocketTransport({ server: httpServer, verifyClient: verifyWebSocket }),
 });
 
 gameServer.define("game", GameRoom);

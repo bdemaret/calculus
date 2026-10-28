@@ -6,7 +6,8 @@ import { DATABASE_URL } from "../env";
 /** Base e2e : applique les migrations (crée la base si besoin) puis repart de zéro. */
 setup("prépare la base e2e", async () => {
   execSync("pnpm --filter @calculus/db exec prisma migrate deploy", {
-    env: { ...process.env, DATABASE_URL },
+    // DIRECT_URL aussi : les migrations passent par elle, et celle du shell viserait la base de développement.
+    env: { ...process.env, DATABASE_URL, DIRECT_URL: DATABASE_URL },
     stdio: "pipe",
   });
   await prisma.$executeRawUnsafe(`TRUNCATE "user", "game", "verification" CASCADE`);

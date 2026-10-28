@@ -40,7 +40,10 @@ export function pick<T>(rng: Rng, items: readonly T[]): T {
   return items[Math.floor(rng() * items.length)] as T;
 }
 
-/** Graine aléatoire lisible, pour une nouvelle partie. */
+/**
+ * Graine aléatoire lisible, pour une partie solo (navigateur). Prévisible (`Math.random`) :
+ * le serveur de jeu tire les siennes avec `node:crypto`.
+ */
 export function randomSeed(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }

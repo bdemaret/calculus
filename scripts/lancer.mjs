@@ -51,6 +51,11 @@ const before = env;
 // La base Docker du projet écoute sur le port 5433, en IPv4 (127.0.0.1 plutôt que « localhost »,
 // qui peut viser l'adresse IPv6 sur Mac).
 env = env.replace(/@localhost:543[23]\/calculus/g, "@127.0.0.1:5433/calculus");
+// Connexion directe des migrations (ajoutée après coup) : en local, la même base que DATABASE_URL.
+if (!/^DIRECT_URL=/m.test(env)) {
+  const database = env.match(/^DATABASE_URL=.*$/m)?.[0];
+  if (database) env = env.replace(database, `${database}\n${database.replace(/^DATABASE_URL/, "DIRECT_URL")}`);
+}
 // Secrets encore à leur valeur d'exemple : on en génère des vrais.
 env = env.replace(/^(BETTER_AUTH_SECRET|GAME_TOKEN_SECRET)="?remplace-moi[^"\n]*"?$/gm, (_, key) => `${key}="${randomBytes(32).toString("base64")}"`);
 if (env !== before) {
