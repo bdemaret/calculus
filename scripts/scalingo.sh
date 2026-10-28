@@ -9,6 +9,12 @@
 #              qui migrent en même temps n'appliquent chaque migration qu'une fois)
 set -euo pipefail
 
+# @swc/core (chargé par le plugin next-intl en lisant next.config.ts, au build comme au démarrage)
+# recopie son binaire natif dans un cache et refuse tout dossier dont un parent est modifiable par
+# un autre utilisateur : c'est le cas de /build et de / chez Scalingo (« Failed to load native binding »).
+# Les conteneurs Scalingo n'ont qu'un utilisateur : on saute ce contrôle, prévu par SWC pour ce cas.
+export SWC_NATIVE_BINDING_CACHE_SKIP_SECURITY_CHECK=1
+
 case "${CALCULUS_SERVICE:-}" in
   all | web | game-server) ;;
   *)
@@ -19,9 +25,8 @@ esac
 
 case "${1:-}" in
   build)
-    # Diagnostic : le plugin next-intl charge le binaire natif de @swc/core en lisant next.config.ts.
-    # Un premier build chez Scalingo a échoué là (« Failed to load native binding ») sans dire pourquoi :
-    # on affiche les binaires installés et la cause exacte, sans jamais faire échouer le build ici.
+    # Diagnostic du binaire natif de @swc/core (voir plus haut) : sans lui, Next affiche seulement
+    # « [cause]: [Array] ». Binaires installés et cause exacte, sans jamais faire échouer le build ici.
     echo "Binaires SWC installés :"
     ls node_modules/.pnpm | grep -E '^@(swc|next)\+(core|swc)' || echo "  (aucun)"
     (cd apps/web && node -e '
