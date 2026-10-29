@@ -16,6 +16,7 @@ import {
   tokenize,
   generateQuestion,
   GAMES,
+  MODES,
   sanitizeSettings,
   type Difficulty,
   type GameSettings,
@@ -202,6 +203,12 @@ describe("course de vitesse", () => {
       now += 1000;
     }
     expect(counts).toEqual({ p0: 5, p1: 5, p2: 5 });
+  });
+
+  it("laisse en ligne une pause de 3 à 5 s pour voir la réponse et qui a marqué", () => {
+    expect(MODES["speed-race"].resultMs).toBeGreaterThanOrEqual(3000);
+    expect(MODES["speed-race"].resultMs).toBeLessThanOrEqual(5000);
+    for (const mode of Object.values(MODES)) expect(mode.resultMs).toBeGreaterThan(0);
   });
 });
 

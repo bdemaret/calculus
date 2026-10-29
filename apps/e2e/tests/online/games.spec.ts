@@ -10,6 +10,9 @@ import { expectedAnswer } from "../../fixtures/oracle";
 import { answerBox } from "../../pages/answer";
 import { LobbyPage } from "../../pages/LobbyPage";
 
+// Parties entières en ligne : la pause entre les manches (4 s en course de vitesse) allonge chaque partie.
+test.describe.configure({ timeout: 90_000 });
+
 test.describe("course de vitesse", () => {
   test("simultanée : le premier qui répond juste prend le point", async ({ host, bots }) => {
     const alice = await host("Alice", { mode: "speed-race", rounds: 5 });
@@ -19,14 +22,22 @@ test.describe("course de vitesse", () => {
     await expect(alice.slot("Bot")).toBeVisible();
     await alice.start();
 
+    const status = alice.page.locator("p.status");
     await alice.play("right");
-    // Manche 2 : Alice ne répond pas, le bot marque.
-    await expect(alice.result).toContainText(t("game.pointFor", { names: "Bot" }), { timeout: 20_000 });
+    await expect(status).toHaveText(t("game.youScored"));
+    // Manche 2 : Alice ne répond pas, le bot marque. Pendant la pause, tout le monde voit qui a marqué
+    // et le calcul avec sa bonne réponse (dans la case, verrouillée), puis le décompte avant la suite.
+    await expect(status).toHaveText(t("game.scored", { name: "Bot" }), { timeout: 20_000 });
+    const box = answerBox(alice.page);
+    await expect(box).toBeDisabled();
+    const shown = await expectedAnswer(alice.page);
+    await expect(box).toHaveValue(shown.answer);
+    await expect(alice.page.locator(".pause-note")).toHaveText(new RegExp(t("game.nextIn", { n: "\\d" })));
     await alice.play("right");
     // Manche 4 : les deux se trompent, personne ne marque.
     const missed = await alice.play("wrong");
     await expect(alice.result).toContainText(`${t("game.no")} : ${missed.answer}`);
-    await expect(alice.result).not.toContainText(t("game.pointFor", { names: "" }).trim());
+    await expect(status).toHaveText(t("game.nobodyScored"));
     await alice.play("right");
 
     await expect(alice.verdict).toHaveText(t("report.first"));
@@ -80,8 +91,9 @@ test.describe("nombre manquant en ligne", () => {
 
     await alice.play("right");
     await alice.play("right");
-    // Manche 3 : le bot trouve avant Alice.
-    await expect(alice.result).toContainText(t("game.pointFor", { names: "Bot" }), { timeout: 30_000 });
+    // Manche 3 : le bot trouve avant Alice, qui voit pendant la pause l'égalité complétée.
+    await expect(alice.page.locator("p.status")).toHaveText(t("game.scored", { name: "Bot" }), { timeout: 30_000 });
+    await expect(answerBox(alice.page)).toHaveValue((await expectedAnswer(alice.page)).answer);
     const missed = await alice.play("wrong");
     await expect(alice.result).toContainText(`${t("game.no")} : ${missed.answer}`);
     await alice.play("right");

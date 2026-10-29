@@ -22,7 +22,12 @@ export interface GameModeRules {
   compare(a: PlayerState, b: PlayerState): number;
   /** Coefficient appliqué au temps de la manche (le battle royale accélère). */
   timeFactor(roundIndex: number): number;
+  /** En ligne, pause après chaque manche (ms) : bonne réponse et points affichés, aucune réponse acceptée. */
+  resultMs: number;
 }
+
+/** Course de vitesse : le point se joue souvent en une seconde, les autres ont besoin de voir qui l'a pris et la réponse. */
+export const SPEED_RACE_RESULT_MS = 4000;
 
 const answered = (round: RoundRecord, id: string) => round.answers.some((a) => a.playerId === id);
 const answerOf = (round: RoundRecord, id: string) => round.answers.find((a) => a.playerId === id);
@@ -80,6 +85,7 @@ export const battleRoyale: GameModeRules = {
     // Le temps diminue de 3 % par manche, sans descendre sous 40 %.
     return Math.max(0.4, Math.pow(0.97, roundIndex));
   },
+  resultMs: 2200,
 };
 
 export const speedRace: GameModeRules = {
@@ -119,6 +125,7 @@ export const speedRace: GameModeRules = {
   timeFactor() {
     return 1;
   },
+  resultMs: SPEED_RACE_RESULT_MS,
 };
 
 export const MODES: Record<GameModeId, GameModeRules> = {

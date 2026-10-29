@@ -63,6 +63,7 @@ engine.questionFor(round, playerId);           // le calcul propre à ce joueur
 
 - Battle royale : `totalRounds` = `BATTLE_ROYALE_ROUND_CAP`, élimination à la première erreur ; si tous les survivants échouent en simultané, personne n'est éliminé (`round.spared`). Le temps accélère via `timeFactor`.
 - Course de vitesse : le point va à la première bonne réponse. En `turnStyle: "turns"`, chaque joueur reçoit `rounds` calculs.
+- `rules.resultMs` : pause en ligne après chaque manche (battle royale 2,2 s, course de vitesse `SPEED_RACE_RESULT_MS` = 4 s), lue par le serveur pour la phase `round-result`.
 
 Une réponse d'une autre forme que `game.answerKind(question)` (la forme peut changer d'un calcul à l'autre) est refusée (`invalid-value`) sans consommer l'essai. `AnswerRecord` garde `value` (nombre) ou `text` (expression, ou symbole affiché d'un opérateur : « ÷ »).
 

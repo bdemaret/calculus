@@ -13,7 +13,7 @@ Serveur Colyseus 0.16 (`@colyseus/core` + `ws-transport`), lancé avec `tsx` (pa
 
 ## GameRoom
 
-- **Phases** (`RoomPhase`) : `lobby → countdown (3 s) → question → round-result (2,2 s) → … → finished`. À la bombe, chaque manche commence par `build` (jusqu'à `buildTime`, ou dès que tous les joueurs en lice ont envoyé leur bombe) puis `assign` (`ASSIGN_MS` = 3 s, on montre qui désamorce quoi) avant `question`.
+- **Phases** (`RoomPhase`) : `lobby → countdown (3 s) → question → round-result → … → finished`. `round-result` dure `rules.resultMs` du mode (battle royale 2,2 s, course de vitesse `SPEED_RACE_RESULT_MS` = 4 s) : `lastRound` (calcul, bonne réponse, qui a marqué) part à tous, les réponses et la saisie (`typing`) sont ignorées jusqu'à la manche suivante. À la bombe, chaque manche commence par `build` (jusqu'à `buildTime`, ou dès que tous les joueurs en lice ont envoyé leur bombe) puis `assign` (`ASSIGN_MS` = 3 s, on montre qui désamorce quoi) avant `question`.
 - **Panel administrateur** : `adminSummary()` utilise un instantané vu par personne (`snapshot("")`) : à la bombe, aucune bombe n'y figure.
 - **Snapshots personnalisés** : `broadcastSnapshot` envoie à chaque membre son propre `snapshot(id)`. À la bombe, `question` est le tirage pendant `build`, puis la bombe de ce joueur seulement (null pour un spectateur) ; `bomb` donne qui a construit, sa propre bombe et les paires (sans les bombes). Les bombes et leurs valeurs n'arrivent qu'en `round-result` (`lastRound.bombs`).
 - **Message `bomb`** (`bombSchema` : `roundIndex`, `expr` ≤ 64) : seulement en phase `build`, une fois par joueur ; réponse `bomb-ack` (acceptée avec le texte et la valeur, ou refusée avec la raison).

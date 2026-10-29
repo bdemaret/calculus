@@ -1,5 +1,5 @@
 import { Client } from "colyseus.js";
-import { JOIN_ERRORS } from "@calculus/game-core";
+import { JOIN_ERRORS, MODES } from "@calculus/game-core";
 import { GAME_HTTP_URL } from "../../env";
 import { Bot } from "../../fixtures/bot";
 import { expect, test } from "../../fixtures/test";
@@ -37,6 +37,38 @@ test.describe("serveur de jeu : protections", () => {
       await new Promise((r) => setTimeout(r, 500));
       expect(alice.snapshots.length - before).toBeLessThanOrEqual(20);
     } finally {
+      await alice.leave();
+    }
+  });
+
+  test("course de vitesse : pause après le point, bonne réponse diffusée, aucune réponse acceptée pendant la pause", async () => {
+    const alice = await Bot.create("Alice", { mode: "speed-race", rounds: 5, difficulty: 1, operations: ["add"] });
+    const bob = await Bot.join(alice.room.roomId, "Bob");
+    try {
+      alice.play(({ index }) => (index === 0 ? { move: "right", delayMs: 1_000 } : "idle"));
+      bob.play(() => "idle");
+      await expect.poll(() => alice.snapshot?.players.length).toBe(2);
+      alice.start();
+      const question = await bob.waitFor((s) => s.phase === "question" && s.roundIndex === 0);
+      // Pendant la manche, la réponse n'est jamais envoyée.
+      expect(question.lastRound).toBeNull();
+      const pause = await bob.waitFor((s) => s.phase === "round-result");
+      const pausedAt = Date.now();
+      // Le point et la bonne réponse arrivent à tous, avec la fin de la pause.
+      expect(pause.lastRound?.scorers).toEqual([alice.playerId]);
+      expect(pause.lastRound?.text).toBe(question.question!.text);
+      expect(pause.question).toBeNull();
+      expect(pause.deadline! - pause.serverNow).toBeGreaterThanOrEqual(MODES["speed-race"].resultMs - 100);
+      // Bob envoie la bonne réponse pendant la pause, pour cette manche et pour la suivante : ignorée.
+      bob.send("answer", { value: pause.lastRound!.answer, questionIndex: 0 });
+      bob.send("answer", { value: pause.lastRound!.answer, questionIndex: 1 });
+      const next = await bob.waitFor((s) => s.phase === "question" && s.roundIndex === 1);
+      expect(Date.now() - pausedAt).toBeGreaterThanOrEqual(MODES["speed-race"].resultMs - 500);
+      expect(next.players.find((p) => p.id === bob.playerId)?.answeredThisRound).toBe(false);
+      expect(next.players.find((p) => p.id === bob.playerId)?.score).toBe(0);
+      expect(bob.acks.filter((a) => a.type === "answer-ack")).toEqual([]);
+    } finally {
+      await bob.leave();
       await alice.leave();
     }
   });

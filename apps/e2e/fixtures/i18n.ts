@@ -11,13 +11,14 @@ const messages: Record<Locale, Messages> = { fr: load("fr"), en: load("en") };
 
 /**
  * Libellé traduit, lu dans les mêmes fichiers que le site : les tests ne cassent pas
- * quand un texte change. Remplace seulement les variables simples (`{name}`), pas les pluriels ICU.
+ * quand un texte change. Remplace seulement les variables simples (`{name}`), pas les pluriels ICU ;
+ * les balises de mise en forme (`<b>…</b>` de `t.rich`) sont retirées, comme à l'écran.
  */
 export function tr(key: string, vars: Record<string, string | number> = {}, locale: Locale = "fr"): string {
   let node: string | Messages | undefined = messages[locale];
   for (const part of key.split(".")) node = typeof node === "object" ? node[part] : undefined;
   if (typeof node !== "string") throw new Error(`Clé de traduction introuvable : ${locale}.${key}`);
-  return node.replace(/\{(\w+)\}/g, (m, name: string) => (name in vars ? String(vars[name]) : m));
+  return node.replace(/\{(\w+)\}/g, (m, name: string) => (name in vars ? String(vars[name]) : m)).replace(/<\/?\w+>/g, "");
 }
 
 export const t = (key: string, vars?: Record<string, string | number>) => tr(key, vars, "fr");

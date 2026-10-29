@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { Room } from "colyseus.js";
 import { GAMES, MAX_PLAYERS, readSteps, type GameSettings, type PlayerAnswer, type RoomSnapshot } from "@calculus/game-core";
@@ -326,9 +326,10 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
     setValue("");
   }, [question?.index]);
 
-  // Compte à rebours affiché.
+  // Compte à rebours affiché (avant la partie, et pendant la pause entre deux manches).
   useEffect(() => {
-    if (snap.phase !== "countdown") return;
+    if (snap.phase !== "countdown" && snap.phase !== "round-result") return;
+    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 100);
     return () => clearInterval(id);
   }, [snap.phase]);
@@ -382,8 +383,16 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
   const receivedFrom = snap.bomb?.pairs?.find((p) => p.defuserId === me);
   const myBomb = last?.bombs?.find((b) => b.defuserId === me);
 
-  let status = "";
-  if (bomb && snap.phase === "build") status = t("game.bomb.building");
+  // Course de vitesse simultanée : pendant la pause, la case montre la bonne réponse à qui n'a pas répondu.
+  const speedRace = snap.settings.mode === "speed-race";
+  const revealInBox = !!last && speedRace && !turns && !myLast && last.puzzle.game !== "right-count";
+  const strong = (chunks: ReactNode) => <strong>{chunks}</strong>;
+
+  let status: ReactNode = "";
+  if (last && speedRace) {
+    const scorer = last.scorers[0];
+    status = !scorer ? t("game.nobodyScored") : scorer === me ? t.rich("game.youScored", { b: strong }) : t.rich("game.scored", { name: nameOf(scorer), b: strong });
+  } else if (bomb && snap.phase === "build") status = t("game.bomb.building");
   else if (bomb && snap.phase === "question" && receivedFrom) status = t("game.bomb.defusing", { name: nameOf(receivedFrom.authorId) });
   else if (snap.phase === "countdown") status = `${t(`modes.${snap.settings.mode}.name`)} · ${t("game.level", { n: snap.settings.difficulty })}`;
   else if (turns && active) status = active.id === me ? t("game.yourTurn") : t("game.turnOf", { name: active.name });
@@ -402,7 +411,14 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
   const lastSolution = myBomb ? String(myBomb.answer) : last?.solution;
   // Mêmes réglages de saisie pour la ligne de calcul et pour le bon compte.
   const lineProps = {
-    value: last && bomb ? (myLast ? shownAnswer(myLast) : "") : last && lastActive && turns && lastActive.playerId !== me ? shownAnswer(lastActive) : shownValue,
+    // Pendant la pause, chacun garde sous les yeux la réponse qu'il a envoyée.
+    value: revealInBox
+      ? last.solution
+      : last && (bomb || (myLast && last.puzzle.game !== "right-count"))
+        ? myLast
+          ? shownAnswer(myLast)
+          : ""
+        : last && lastActive && turns && lastActive.playerId !== me ? shownAnswer(lastActive) : shownValue,
     onChange: onType,
     onSubmit: submit,
     disabled: !canAnswer,
@@ -417,7 +433,7 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
   return (
     <section className="game">
       <Margin>
-        <MarginNote value={`${snap.roundIndex + 1}${snap.totalRounds ? `/${snap.totalRounds}` : ""}`} label={t("game.round")} />
+        <MarginNote value={`${(last?.index ?? snap.roundIndex) + 1}${snap.totalRounds ? `/${snap.totalRounds}` : ""}`} label={t("game.round")} />
         <MarginNote value={<span className="grade">{meP?.score ?? 0}</span>} label={snap.settings.mode === "speed-race" ? t("game.points") : t("game.correct")} />
       </Margin>
       <TimerBar
@@ -468,12 +484,12 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
               <span className="ko">
                 {myLast.value == null && myLast.text == null ? t("game.timeUp") : t("game.no")} : {lastSolution}
               </span>
-            ) : bomb ? null : (
+            ) : bomb || revealInBox ? null : (
               <span>
                 {revealSeparator(snap.settings.game)} {last.solution}
               </span>
             )}
-            {last.scorers.length && me && !last.scorers.includes(me) ? (
+            {!speedRace && last.scorers.length && me && !last.scorers.includes(me) ? (
               <span className="muted"> · {t("game.pointFor", { names: last.scorers.map(nameOf).join(", ") })}</span>
             ) : null}
             {last.spared ? <span className="muted"> · {t("game.spared")}</span> : null}
@@ -481,6 +497,7 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
           </>
         ) : null}
       </p>
+      {last ? <p className="note pause-note">{t("game.nextIn", { n: countLeft })}</p> : null}
       {last?.bombs ? <BombResults snap={snap} last={last} /> : null}
       <PlayerChips players={chips} meId={me} />
       <div className="actions">

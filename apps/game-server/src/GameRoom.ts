@@ -33,7 +33,6 @@ import { PUBLIC_LOBBY_KEY, publicLobbies } from "./publicLobbies";
 
 /** Durées des transitions, en ms. */
 const COUNTDOWN_MS = 3000;
-const ROUND_RESULT_MS = 2200;
 /** La bombe : temps pour montrer qui désamorce la bombe de qui, avant le désamorçage. */
 const ASSIGN_MS = 3000;
 /** Petite marge laissée aux réponses envoyées à la dernière milliseconde. */
@@ -192,7 +191,7 @@ export class GameRoom extends Room {
     this.on("typing", (m, msg, client) => {
       const parsed = typingSchema.safeParse(msg);
       const round = this.engine?.currentRound;
-      if (!parsed.success || !round || round.activePlayerId !== m.id) return;
+      if (!parsed.success || !round || this.phase !== "question" || round.activePlayerId !== m.id) return;
       this.broadcast("typing", { playerId: m.id, value: parsed.data.value }, { except: client });
     });
 
@@ -522,10 +521,11 @@ export class GameRoom extends Room {
       scorers: rec.scorers,
       spared: rec.spared,
     };
+    // Pause propre au mode (`resultMs`) : la réponse et les points sont diffusés, plus aucune réponse n'est acceptée.
     this.phase = "round-result";
-    this.deadline = Date.now() + ROUND_RESULT_MS;
+    this.deadline = Date.now() + engine.rules.resultMs;
     this.broadcastSnapshot();
-    this.timer = this.clock.setTimeout(() => (engine.isOver ? this.finish() : this.nextRound()), ROUND_RESULT_MS);
+    this.timer = this.clock.setTimeout(() => (engine.isOver ? this.finish() : this.nextRound()), engine.rules.resultMs);
   }
 
   private finish() {
