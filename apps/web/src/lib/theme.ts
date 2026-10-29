@@ -6,6 +6,14 @@ export const THEME_KEY = "calculus:theme";
 /** Script exécuté dans <head> avant le premier rendu, pour éviter un flash du mauvais thème. */
 export const themeInitScript = `try{var t=localStorage.getItem("${THEME_KEY}");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
 
+/** Réapplique le choix enregistré : le <html> est recréé quand la langue change, sans repasser par le script. */
+export function applyStoredTheme() {
+  try {
+    const t = localStorage.getItem(THEME_KEY);
+    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+  } catch {}
+}
+
 /** Thème affiché actuellement (choix explicite ou préférence système). */
 export function currentTheme(): Theme {
   const set = document.documentElement.dataset.theme;

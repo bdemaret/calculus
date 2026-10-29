@@ -13,12 +13,13 @@ import {
   randomSeed,
   sanitizeSettings,
   type GameReport,
+  type GameId,
   type GameSettings,
   type PlayerAnswer,
   type RoundRecord,
   type SoloAnswer,
 } from "@calculus/game-core";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { CalcLine } from "@/components/CalcLine";
 import { Check } from "@/components/Check";
 import { ExpressionBuilder } from "@/components/ExpressionBuilder";
@@ -46,12 +47,15 @@ const ME = "me";
 interface Props {
   loggedIn: boolean;
   playerName: string | null;
+  /** Jeu choisi depuis l'onglet Jeux (`?game=`), déjà validé par la page. */
+  preset: GameId | null;
 }
 
 /** Partie solo : tout se passe dans le navigateur, avec le même moteur que le serveur. */
-export function SoloGame({ loggedIn, playerName }: Props) {
+export function SoloGame({ loggedIn, playerName, preset }: Props) {
   const t = useTranslations();
   const locale = useLocale();
+  const router = useRouter();
   const [settings, setSettings] = useState<GameSettings>(() => defaultSettings(2, "speed-race"));
   const [phase, setPhase] = useState<Phase>("setup");
   const [count, setCount] = useState(3);
@@ -69,13 +73,36 @@ export function SoloGame({ loggedIn, playerName }: Props) {
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const log = useRef<SoloAnswer[]>([]);
   const startedAt = useRef(0);
+  const startButton = useRef<HTMLButtonElement>(null);
+  const [showStart, setShowStart] = useState(false);
 
   useEffect(() => {
     const saved = sanitizeSettings(local.get("solo", defaultSettings(2, "speed-race")));
-    // Un jeu qui ne se joue qu'en ligne est remplacé par le premier jeu jouable seul.
-    setSettings(GAMES[saved.game].solo ? saved : sanitizeSettings({ ...saved, game: GAME_IDS.find((g) => GAMES[g].solo) }));
+    if (preset && preset !== saved.game) {
+      // Jeu choisi dans l'onglet Jeux : ses derniers réglages, sinon ceux par défaut au dernier niveau joué.
+      const last = local.get<unknown>(`solo.${preset}`, null);
+      const next = last ? sanitizeSettings({ ...(last as object), game: preset }) : sanitizeSettings({ ...saved, game: preset, ...GAMES[preset].defaults(saved.difficulty) });
+      setSettings(next);
+      local.set("solo", next);
+    } else {
+      // Un jeu qui ne se joue qu'en ligne est remplacé par le premier jeu jouable seul.
+      setSettings(GAMES[saved.game].solo ? saved : sanitizeSettings({ ...saved, game: GAME_IDS.find((g) => GAMES[g].solo) }));
+    }
+    // L'adresse redevient /solo : un rechargement garde ensuite les réglages modifiés.
+    if (preset) {
+      router.replace("/solo", { scroll: false });
+      setShowStart(true);
+    }
     return () => timers.current.forEach(clearTimeout);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Venu de l'onglet Jeux : « Commencer » est amené à l'écran, la partie est à un toucher.
+  useEffect(() => {
+    if (!showStart) return;
+    setShowStart(false);
+    startButton.current?.focus({ preventScroll: true });
+    startButton.current?.scrollIntoView({ block: "center" });
+  }, [showStart]);
 
   const later = (fn: () => void, ms: number) => {
     timers.current.push(setTimeout(fn, ms));
@@ -88,6 +115,8 @@ export function SoloGame({ loggedIn, playerName }: Props) {
   const changeSettings = (s: GameSettings) => {
     setSettings(s);
     local.set("solo", s);
+    // Retenus aussi par jeu, pour les boutons de l'onglet Jeux.
+    local.set(`solo.${s.game}`, s);
   };
 
   function start() {
@@ -216,7 +245,7 @@ export function SoloGame({ loggedIn, playerName }: Props) {
         </div>
         <SettingsForm id="solo-settings" settings={settings} onChange={changeSettings} online={false} />
         <div className="actions">
-          <button className="btn" type="button" onClick={start}>
+          <button ref={startButton} className="btn" type="button" onClick={start}>
             {t("solo.start")}
           </button>
           <Link className="btn ghost" href="/">

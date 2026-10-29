@@ -9,7 +9,11 @@ import { CalcLine } from "./CalcLine";
 import { Check } from "./Check";
 import { Margin, MarginNote } from "./Margin";
 
-/** Un calcul jouable dès l'arrivée sur la page d'accueil. */
+/**
+ * L'échauffement de l'accueil : un calcul jouable sans lancer de partie.
+ * Sur écran tactile il reste replié (sans pavé) tant qu'on ne le touche pas,
+ * pour que le pavé n'occupe pas l'écran et ne passe pas pour le jeu lui-même.
+ */
 export function HeroCalc() {
   const t = useTranslations("home");
   const locale = useLocale();
@@ -18,6 +22,7 @@ export function HeroCalc() {
   const [value, setValue] = useState("");
   const [result, setResult] = useState<{ ok: boolean; ms: number } | null>(null);
   const [streak, setStreak] = useState(0);
+  const [open, setOpen] = useState(false);
   const shownAt = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -43,6 +48,7 @@ export function HeroCalc() {
     timer.current = setTimeout(next, ok ? 900 : 1600);
   };
 
+  const folded = touch && !open;
   return (
     <>
       {streak > 1 ? (
@@ -50,7 +56,16 @@ export function HeroCalc() {
           <MarginNote value={streak} label={t("streak")} />
         </Margin>
       ) : null}
-      {q ? (
+      <p className="warmup-kicker" id="warmup-kicker">
+        {t("warmup")}
+      </p>
+      {q && folded ? (
+        <button type="button" className="warmup-try" aria-describedby="warmup-kicker" onClick={() => setOpen(true)}>
+          <span className="warmup-calc">
+            {q.text} <span className="eq">=</span> ?
+          </span>
+        </button>
+      ) : q ? (
         <CalcLine
           docked={false}
           text={q.text}
@@ -77,7 +92,7 @@ export function HeroCalc() {
           &nbsp;
         </div>
       )}
-      <p className="hint">{touch ? t("hintTouch") : t("hint")}</p>
+      {folded ? null : <p className="hint">{touch ? t("hintTouch") : t("hint")}</p>}
     </>
   );
 }

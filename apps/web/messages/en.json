@@ -31,6 +31,7 @@
   "home": {
     "title": "Who’s the <hl>fastest</hl> at mental math?",
     "lede": "Mental math, alone or with up to twelve players online.",
+    "warmup": "Warm-up",
     "hint": "Type your answer, then press Enter.",
     "hintTouch": "Tap the digits below.",
     "streak": "in a row",
@@ -87,7 +88,9 @@
     "playableIn": "Playable in:",
     "turnTitle": "All at once or taking turns",
     "turnText": "All at once: everyone sees the same calculation at the same time. Taking turns: one player answers while the others watch the answer being typed live. Only battle royale eliminates players.",
-    "levelsTitle": "The five levels"
+    "levelsTitle": "The five levels",
+    "playSoloGame": "Play solo: {game}",
+    "playOnlineGame": "Play online: {game}"
   },
   "levels": {
     "1": "Easy",
@@ -851,6 +854,33 @@
       "too-short": "Write at least a few words.",
       "too-many": "Too many messages sent in the last few minutes. Try again later.",
       "generic": "Sending failed. Try again."
+    }
+  },
+  "changelog": {
+    "title": "What’s new",
+    "footer": "What’s new · v{version}",
+    "version": "Version {version}",
+    "noticeText": "Calculus is now on version {version}: see what’s new.",
+    "noticeOpen": "See what’s new",
+    "noticeDismiss": "Dismiss",
+    "notes": {
+      "v1_1_0": [
+        "On mobile, the keypad stays docked at the bottom of the screen and each key reacts as soon as you press it.",
+        "Online speed race: a 4-second pause between rounds to see the result.",
+        "Games page: a “Play solo” button for each game, which picks up your last settings.",
+        "Home page: the warm-up has its own title, and on mobile the two main choices come first.",
+        "Your light or dark theme now stays in place when you switch languages.",
+        "This what’s new page: the version number shows at the bottom of the page, and a banner announces each new version for 48 hours."
+      ],
+      "v1_0_0": [
+        "Calculus is live!",
+        "Four games: mental math, right on target, missing number and the bomb.",
+        "Solo or up to twelve players online, in battle royale or speed race, across five levels.",
+        "Accounts with statistics, Elo and leaderboards per game, mode and level.",
+        "Friends, guilds, invites and public lobbies.",
+        "Mental math techniques to learn, practice drills and end-of-game tips.",
+        "Voice input, light or dark theme, in French and English."
+      ]
     }
   },
   "admin": {

@@ -7,6 +7,7 @@ import { HeaderTools } from "./HeaderTools";
 import { Avatar } from "./PlayerChips";
 import { InviteNotice } from "./InviteNotice";
 import { LobbyBanner } from "./LobbyBanner";
+import { ReleaseNotice } from "./ReleaseNotice";
 
 export async function Header() {
   const t = await getTranslations("nav");
@@ -70,6 +71,7 @@ export async function Header() {
       </header>
       <LobbyBanner />
       {session ? <InviteNotice /> : null}
+      <ReleaseNotice />
     </>
   );
 }

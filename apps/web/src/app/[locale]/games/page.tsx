@@ -29,6 +29,18 @@ export default async function GamesPage({ params }: { params: Promise<{ locale: 
             <p className="muted">
               {t("gamesPage.playableIn")} {GAMES[g].modes.map((m) => t(`modes.${m}.name`)).join(" · ")}
             </p>
+            {/* Lancer ce jeu : les réglages solo s'ouvrent avec lui déjà choisi. */}
+            <div className="actions">
+              {GAMES[g].solo ? (
+                <Link className="btn" href={{ pathname: "/solo", query: { game: g } }} aria-label={t("gamesPage.playSoloGame", { game: t(`games.${g}.name`) })}>
+                  {t("home.playSolo")}
+                </Link>
+              ) : (
+                <Link className="btn ghost" href="/online" aria-label={t("gamesPage.playOnlineGame", { game: t(`games.${g}.name`) })}>
+                  {t("home.playOnline")}
+                </Link>
+              )}
+            </div>
           </div>
         ))}
       </div>

@@ -2,6 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { HeroCalc } from "@/components/HeroCalc";
 import { PublicLobbies } from "@/components/PublicLobbies";
+import "./home.css";
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -13,6 +14,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <section className="hero">
           <h1 className="headline">{t.rich("home.title", { hl: (chunks) => <mark className="hl">{chunks}</mark> })}</h1>
           <p className="lede">{t("home.lede")}</p>
+        </section>
+        <section className="warmup" aria-labelledby="warmup-kicker">
           <HeroCalc />
         </section>
         <section className="choices" aria-label={t("home.choose")}>

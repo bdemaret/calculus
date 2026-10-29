@@ -180,15 +180,15 @@ p { margin: 0; }
 .check path { stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw .35s ease-out forwards; }
 @keyframes draw { to { stroke-dashoffset: 0; } }
 
-.choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; max-width: 760px; }
-.choice { position: relative; overflow: hidden; text-align: left; display: grid; align-content: start; gap: 6px; padding: 24px 26px 26px; min-height: 168px; border-radius: var(--radius-card); border: 2px solid var(--ink-deep); background: var(--surface); cursor: pointer; box-shadow: var(--sticker); transition: transform .14s, box-shadow .14s; }
+.choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; max-width: 760px; }
+.choice { position: relative; overflow: hidden; text-align: left; display: grid; align-content: start; gap: var(--sub); padding: 22px 24px; min-height: 168px; border-radius: var(--radius-card); border: 2px solid var(--ink-deep); background: var(--surface); cursor: pointer; box-shadow: var(--sticker); transition: transform .14s, box-shadow .14s; }
 .choice:hover { transform: translateY(-3px) rotate(-.4deg); box-shadow: var(--sticker-hover); }
 .choice:active { transform: translateY(4px); box-shadow: 0 0 0 transparent; }
 .choice.primary { background: var(--ink); color: var(--on-ink); }
 .choice-kicker { font-family: var(--font-hand); font-size: 24px; font-weight: 700; line-height: 1; color: var(--margin-red); transform: rotate(-3deg); transform-origin: left; width: max-content; }
 .choice.primary .choice-kicker { color: var(--on-ink-note); }
 /* Au survol, le surligneur balaie tout le titre (pleine hauteur), texte en on-hl dessus. */
-.choice-title { position: relative; font-size: 28px; font-weight: 760; line-height: 1.1; letter-spacing: -0.02em; font-variation-settings: "opsz" 72; width: max-content; max-width: 100%; padding: 0 .14em; margin-left: -.14em; border-radius: .2em .5em .3em .4em; background: linear-gradient(var(--hl), var(--hl)) no-repeat 0 0 / 0% 100%; transition: background-size .3s ease-out, color .15s; }
+.choice-title { position: relative; font-size: 28px; font-weight: 760; line-height: var(--grid); letter-spacing: -0.02em; font-variation-settings: "opsz" 72; width: max-content; max-width: 100%; padding: 0 .14em; margin-left: -.14em; border-radius: .2em .5em .3em .4em; background: linear-gradient(var(--hl), var(--hl)) no-repeat 0 0 / 0% 100%; transition: background-size .3s ease-out, color .15s; }
 .choice:hover .choice-title, .choice:focus-visible .choice-title { background-size: 100% 100%; color: var(--on-hl); }
 .choice.primary .choice-title { background-image: linear-gradient(var(--hl-blue), var(--hl-blue)); }
 .choice-sub { position: relative; opacity: .85; max-width: 30ch; }
@@ -229,18 +229,19 @@ p { margin: 0; }
 
 /* Accueil : lobbys ouverts à droite du menu */
 .home { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 32px; align-items: start; }
-.public-lobbies { position: sticky; top: 24px; margin-top: 32px; display: grid; gap: 14px; }
-.public-lobbies-head { display: grid; gap: 2px; }
+.public-lobbies { position: sticky; top: 24px; margin-top: 32px; display: grid; gap: 16px; }
+.public-lobbies-head { display: grid; gap: 0; }
 .public-lobbies-head h2 { font-size: 26px; }
 .public-lobbies-head .tag { transform: rotate(-2deg); transform-origin: left; width: max-content; }
 .public-lobbies .note { font-size: 19px; }
-.lobby-cards { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
-.lobby-card { display: grid; gap: 8px; padding: 16px 18px; border-radius: var(--radius-card); border: 2px solid var(--ink-deep); background: var(--surface); color: inherit; text-decoration: none; box-shadow: var(--sticker); transition: transform .14s, box-shadow .14s; animation: pop .28s ease-out; }
+.lobby-cards { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
+/* Bord 2 px + rembourrage 14 px = 16 : la carte garde une hauteur multiple de 8. */
+.lobby-card { display: grid; gap: 8px; padding: 14px 16px; border-radius: var(--radius-card); border: 2px solid var(--ink-deep); background: var(--surface); color: inherit; text-decoration: none; box-shadow: var(--sticker); transition: transform .14s, box-shadow .14s; animation: pop .28s ease-out; }
 .lobby-card:hover { transform: translateY(-3px) rotate(-.4deg); box-shadow: var(--sticker-hover); }
 .lobby-card:active { transform: translateY(4px); box-shadow: 0 0 0 transparent; }
-.lobby-card-title { font-size: 21px; font-weight: 760; line-height: 1.1; letter-spacing: -0.015em; }
+.lobby-card-title { font-size: 21px; font-weight: 760; line-height: calc(var(--sub) * 3); letter-spacing: -0.015em; }
 .lobby-card-meta { color: var(--muted); font-size: 14px; }
-.lobby-card-row { display: flex; align-items: center; gap: 10px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.lobby-card-row { display: flex; align-items: center; gap: 10px; min-height: calc(var(--sub) * 3); font-size: 14px; font-variant-numeric: tabular-nums; }
 .lobby-card-players, .lobby-card-time { white-space: nowrap; margin-left: auto; }
 .lobby-dots { display: flex; flex-wrap: wrap; gap: 3px; }
 .lobby-dots span { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--line-strong); }
@@ -560,6 +561,8 @@ img.crest { object-fit: cover; padding: 0; background: var(--line); }
 .invite-notices { display: grid; gap: 8px; margin-bottom: 16px; }
 .invite-more { margin: 0; padding: 0 4px; font-size: 14px; }
 .invite-notice { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sub) 16px; padding: 10px 16px; border-radius: var(--radius-card); border: 2px solid var(--ink); background: var(--surface); font-weight: 650; animation: pop .28s ease-out; }
+.release-notice { margin-bottom: 16px; box-shadow: inset 6px 0 0 var(--hl); }
+.changelog h3 time { font-size: 15px; font-weight: 500; }
 .lobby-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sub) 16px; margin-bottom: 16px; padding: 10px 16px; border-radius: var(--radius-card); border: 2px solid var(--ink); background: var(--surface); box-shadow: inset 6px 0 0 var(--hl); animation: pop .28s ease-out; }
 .lobby-banner-info { display: grid; gap: 0; min-width: 0; }
 .lobby-banner-info .muted { font-size: 14px; }

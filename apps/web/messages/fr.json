@@ -31,6 +31,7 @@
   "home": {
     "title": "Qui calcule le plus <hl>vite</hl> ?",
     "lede": "Calcul mental, seul ou jusqu’à douze joueurs en ligne.",
+    "warmup": "Échauffement",
     "hint": "Tape ta réponse, puis Entrée.",
     "hintTouch": "Touche les chiffres ci-dessous.",
     "streak": "de suite",
@@ -87,7 +88,9 @@
     "playableIn": "Se joue en :",
     "turnTitle": "Simultané ou chacun son tour",
     "turnText": "En simultané, tout le monde voit le même calcul en même temps. En « chacun son tour », un seul joueur répond et les autres regardent sa réponse s’écrire en direct. Seul le battle royale élimine.",
-    "levelsTitle": "Les cinq niveaux"
+    "levelsTitle": "Les cinq niveaux",
+    "playSoloGame": "Jouer solo : {game}",
+    "playOnlineGame": "Jouer en ligne : {game}"
   },
   "levels": {
     "1": "Facile",
@@ -848,6 +851,33 @@
       "too-short": "Écris au moins quelques mots.",
       "too-many": "Trop de messages envoyés ces dernières minutes. Réessaie plus tard.",
       "generic": "L’envoi a échoué. Réessaie."
+    }
+  },
+  "changelog": {
+    "title": "Nouveautés",
+    "footer": "Nouveautés · v{version}",
+    "version": "Version {version}",
+    "noticeText": "Calculus passe en version {version} : découvre les nouveautés.",
+    "noticeOpen": "Voir les nouveautés",
+    "noticeDismiss": "Fermer",
+    "notes": {
+      "v1_1_0": [
+        "Sur mobile, le pavé numérique reste ancré en bas de l’écran et chaque touche réagit dès l’appui.",
+        "Course de vitesse en ligne : une pause de 4 secondes entre les manches pour voir le résultat.",
+        "Page Jeux : un bouton « Jouer solo » par jeu, qui reprend tes derniers réglages.",
+        "Accueil : l’échauffement a son titre, et sur mobile les deux grands choix passent en premier.",
+        "Le thème clair ou sombre choisi reste en place quand tu changes de langue.",
+        "Cette page de nouveautés : le numéro de version s’affiche en bas de page, et un bandeau annonce chaque nouvelle version pendant 48 heures."
+      ],
+      "v1_0_0": [
+        "Mise en ligne de Calculus !",
+        "Quatre jeux : le calcul mental, le bon compte, le nombre manquant et la bombe.",
+        "En solo ou jusqu’à douze joueurs en ligne, en battle royale ou en course de vitesse, sur cinq niveaux.",
+        "Comptes avec statistiques, Elo et classement par jeu, mode et niveau.",
+        "Amis, guildes, invitations et lobbys publics.",
+        "Techniques de calcul à apprendre, entraînement et conseils en fin de partie.",
+        "Saisie vocale, thème clair ou sombre, en français et en anglais."
+      ]
     }
   },
   "admin": {

@@ -10,6 +10,9 @@ export const WEB_URL = `http://localhost:${WEB_PORT}`;
 export const GAME_HTTP_URL = `http://localhost:${GAME_PORT}`;
 export const DATABASE_URL = process.env.E2E_DATABASE_URL ?? "postgresql://calculus:calculus@127.0.0.1:5433/calculus_e2e";
 
+/** Heure de mise en production vue par le site de test (voir `tests/changelog`). */
+export const RELEASED_AT = "2026-01-01T00:00:00.000Z";
+
 export const serverEnv: Record<string, string> = {
   DATABASE_URL,
   DIRECT_URL: DATABASE_URL,
@@ -24,6 +27,8 @@ export const serverEnv: Record<string, string> = {
   RESEND_API_KEY: "",
   // Tous les tests s'inscrivent depuis la même IP : le rate limit de Better Auth les bloquerait (build de production).
   AUTH_RATE_LIMIT_DISABLED: "1",
+  // Mise en production fixe et ancienne : pas de bandeau « nouvelle version » sauf quand un test avance l'horloge.
+  CALCULUS_RELEASED_AT: RELEASED_AT,
   NEXT_DIST_DIR: ".next-e2e",
   NEXT_TELEMETRY_DISABLED: "1",
 };

@@ -39,6 +39,19 @@ test("la page Jeux présente les quatre jeux, l'ancienne page Modes y mène", as
   await expect(page).toHaveURL(/\/fr\/games$/);
 });
 
+test("la page Jeux lance un jeu en solo, déjà choisi et prêt à démarrer", async ({ page }) => {
+  await page.goto("/fr/games");
+  await page.getByRole("link", { name: t("gamesPage.playSoloGame", { game: t("games.missing.name") }) }).click();
+  // L'adresse redevient /solo, le jeu est présélectionné et « Lancer la partie » a le focus.
+  await expect(page).toHaveURL(/\/fr\/solo$/);
+  await expect(page.getByRole("button", { name: new RegExp(t("games.missing.name")) })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: t("solo.start") })).toBeFocused();
+  // La bombe ne se joue qu'en ligne.
+  await page.goto("/fr/games");
+  await expect(page.getByRole("link", { name: t("gamesPage.playSoloGame", { game: t("games.bomb.name") }) })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: t("gamesPage.playOnlineGame", { game: t("games.bomb.name") }) })).toBeVisible();
+});
+
 test("les anciennes adresses du classement mènent au calcul mental", async ({ page }) => {
   await page.goto("/fr/leaderboard/speed-race?difficulty=3");
   await expect(page).toHaveURL(/\/fr\/leaderboard\/standard\/speed-race\?difficulty=3$/);

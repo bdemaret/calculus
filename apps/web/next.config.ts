@@ -55,6 +55,9 @@ const config: NextConfig = {
   transpilePackages: ["@calculus/game-core", "@calculus/db"],
   serverExternalPackages: ["@prisma/client"],
   poweredByHeader: false,
+  // Heure de la mise en production (le build Scalingo précède le démarrage) : la notification de nouvelle
+  // version s'affiche 48 h à partir de là. `CALCULUS_RELEASED_AT` la fixe (tests e2e), vide = jamais.
+  env: { NEXT_PUBLIC_RELEASED_AT: process.env.CALCULUS_RELEASED_AT ?? new Date().toISOString() },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

@@ -7,6 +7,7 @@ import { routing } from "@/i18n/routing";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { OnlineCount } from "@/components/OnlineCount";
+import { ThemeSync } from "@/components/ThemeSync";
 import { themeInitScript } from "@/lib/theme";
 import "../globals.css";
 
@@ -40,6 +41,7 @@ export default async function LocaleLayout({ children, params }: { children: Rea
       </head>
       <body>
         <NextIntlClientProvider>
+          <ThemeSync />
           <div className="sheet">
             <aside className="margin">
               <div id="margin-notes" aria-live="polite" />
