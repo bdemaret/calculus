@@ -341,7 +341,7 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
   // par-dessus, dans body comme lui, au lieu de passer dessous. Le pavé ne sert à rien pendant la correction.
   const review =
     phase === "review" && closed ? (
-      <div className={`solo-review${touch ? " sheet" : ""}`}>
+      <div className={`solo-review${touch ? " docked" : ""}`}>
         {given ? (
           <p>
             {t("solo.yourAnswer")} <s className="ko">{given}</s>

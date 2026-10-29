@@ -324,8 +324,8 @@ p { margin: 0; }
 .solo-review p { margin: 0; }
 .solo-review .ko { color: var(--ko); font-family: var(--font-hand); font-size: 26px; }
 .solo-review-calc { font-family: var(--font-hand); font-size: 26px; color: var(--ink); overflow-wrap: anywhere; }
-.solo-review.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 31; max-height: 75dvh; overflow-y: auto; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); background: var(--paper); border-top: 1.5px solid var(--line-strong); box-shadow: 0 -6px 16px color-mix(in srgb, var(--ink) 8%, transparent); }
-.solo-review.sheet .btn { width: 100%; }
+.solo-review.docked { position: fixed; left: 0; right: 0; bottom: 0; z-index: 31; max-height: 75dvh; overflow-y: auto; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); background: var(--paper); border-top: 1.5px solid var(--line-strong); box-shadow: 0 -6px 16px color-mix(in srgb, var(--ink) 8%, transparent); }
+.solo-review.docked .btn { width: 100%; }
 .voice-status { font-size: 14px; font-weight: 600; color: var(--muted); }
 .voice-status.listening::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--margin-red); vertical-align: middle; animation: voice-pulse 1.2s ease-in-out infinite; }
 .voice-status.denied, .voice-status.unsupported { color: var(--ko); }
