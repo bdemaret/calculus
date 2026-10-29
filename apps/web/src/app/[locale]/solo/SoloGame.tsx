@@ -76,6 +76,9 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
   const startedAt = useRef(0);
   const startButton = useRef<HTMLButtonElement>(null);
   const [showStart, setShowStart] = useState(false);
+  // « Suivant » a-t-il été appuyé lui-même ? Sur téléphone, OK répond dès que le doigt se pose et la
+  // correction s'ouvre sous ce doigt : le clic émis quand il se relève tomberait sur « Suivant ».
+  const nextPressed = useRef(false);
 
   const activity = useRef<SoloActivity | null>(null);
 
@@ -361,7 +364,19 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
           </div>
         ) : null}
         <div className="actions">
-          <button className="btn" type="button" onClick={advance} autoFocus>
+          <button
+            className="btn"
+            type="button"
+            autoFocus
+            onPointerDown={() => (nextPressed.current = true)}
+            onClick={(ev) => {
+              const pressed = nextPressed.current;
+              nextPressed.current = false;
+              // detail vaut 0 pour un clic au clavier (Entrée, Espace) : il n'a pas d'appui à vérifier.
+              if (ev.detail !== 0 && !pressed) return;
+              advance();
+            }}
+          >
             {e?.isOver ? t("solo.seeReport") : t("solo.next")}
           </button>
         </div>
