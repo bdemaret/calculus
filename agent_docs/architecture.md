@@ -43,8 +43,8 @@ game-core  ←  db  ←  web
 
 ### Partie solo
 
-1. Tourne entièrement dans le navigateur (`apps/web/src/app/[locale]/solo/SoloGame.tsx`) avec une graine.
-2. Joueur connecté : envoie graine + paramètres + réponses à `POST /api/solo-results`. La route **rejoue** la partie avec `GameEngine` pour recalculer calculs et justesse, puis `saveGame`. Rien n'est cru sur parole.
+1. Tourne entièrement dans le navigateur (`apps/web/src/app/[locale]/solo/SoloGame.tsx`) avec une graine. Bonne réponse : calcul suivant aussitôt. Erreur ou temps écoulé : phase `review`, le calcul reste avec la réponse donnée, la correction et la technique (`detectTechnique`, calcul mental, si les conseils sont affichés), jusqu'à « Suivant » ou Entrée (sur téléphone, dans un panneau posé sur le pavé ancré). La manche suivante ne démarre (`startRound(Date.now())`) qu'à ce moment : la pause ne compte ni dans le temps de réponse ni dans celui de la manche suivante.
+2. Joueur connecté : envoie graine + paramètres + réponses (`SoloAnswer` : réponse et temps de chaque manche) à `POST /api/solo-results`. La route **rejoue** la partie avec `replaySolo` (game-core) pour recalculer calculs et justesse, puis `saveGame`. Rien n'est cru sur parole. Le rejeu enchaîne les manches sur une horloge fictive : les pauses entre manches n'y existent pas ; seuls `startedAt` / `endedAt` de la partie (dates affichées, aucune statistique) les incluent.
 3. Invité : rien n'est enregistré.
 
 ## Variables d'environnement

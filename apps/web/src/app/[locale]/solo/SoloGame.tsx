@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocale, useTranslations } from "next-intl";
 import {
   GAMES,
@@ -8,27 +9,38 @@ import {
   answerOfRecord,
   buildReport,
   defaultSettings,
+  detectTechnique,
   randomSeed,
   sanitizeSettings,
   type GameReport,
   type GameSettings,
   type PlayerAnswer,
   type RoundRecord,
+  type SoloAnswer,
 } from "@calculus/game-core";
 import { Link } from "@/i18n/navigation";
 import { CalcLine } from "@/components/CalcLine";
 import { Check } from "@/components/Check";
 import { ExpressionBuilder } from "@/components/ExpressionBuilder";
 import { GameReportView } from "@/components/GameReportView";
+import { MathText } from "@/components/MathText";
 import { Margin, MarginNote } from "@/components/Margin";
 import { SettingsForm } from "@/components/SettingsForm";
+import { TechniqueSteps } from "@/components/TechniqueSteps";
 import { TimerBar } from "@/components/TimerBar";
-import { answerFromInput } from "@/lib/answer";
+import { answerFromInput, revealSeparator, shownAnswer } from "@/lib/answer";
 import { formatSeconds } from "@/lib/format";
 import { celebrate, sfx } from "@/lib/sound";
 import { local } from "@/lib/storage";
+import { useShowTips } from "@/lib/tips";
+import { useTouch } from "@/lib/useTouch";
 
-type Phase = "setup" | "countdown" | "question" | "result" | "finished";
+/**
+ * `result` : bonne réponse, on enchaîne tout seul. `review` : erreur ou temps écoulé, la correction
+ * reste affichée jusqu'à ce que le joueur passe à la suite (bouton ou Entrée). Le chrono ne tourne
+ * que pendant `question` : la manche suivante ne commence qu'à ce moment-là.
+ */
+type Phase = "setup" | "countdown" | "question" | "result" | "review" | "finished";
 const ME = "me";
 
 interface Props {
@@ -50,10 +62,12 @@ export function SoloGame({ loggedIn, playerName }: Props) {
   const [report, setReport] = useState<GameReport | null>(null);
   const [save, setSave] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [, force] = useState(0);
+  const tips = useShowTips();
+  const touch = useTouch();
 
   const engine = useRef<GameEngine | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const log = useRef<{ answer: PlayerAnswer | null; timeMs: number }[]>([]);
+  const log = useRef<SoloAnswer[]>([]);
   const startedAt = useRef(0);
 
   useEffect(() => {
@@ -138,10 +152,35 @@ export function SoloGame({ loggedIn, playerName }: Props) {
     log.current.push({ answer: mine ? answerOfRecord(mine, e.game.answerKind(rec.question)) : null, timeMs: mine?.timeMs ?? rec.timeLimitMs });
     if (!mine || mine.value === null) sfx.ko();
     setClosed(rec);
-    setPhase("result");
     force((x) => x + 1);
-    later(() => (e.isOver ? finish() : nextRound()), mine?.correct ? 700 : 1500);
+    if (!mine?.correct) {
+      setPhase("review");
+      return;
+    }
+    setPhase("result");
+    later(advance, 700);
   }
+
+  function advance() {
+    const e = engine.current;
+    if (!e) return;
+    if (e.isOver) finish();
+    else nextRound();
+  }
+
+  // Entrée passe à la suite pendant la correction. Sur le bouton, Entrée le clique déjà ;
+  // une touche maintenue depuis la réponse ne doit pas sauter la correction.
+  useEffect(() => {
+    if (phase !== "review") return;
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key !== "Enter" || ev.repeat || ev.defaultPrevented) return;
+      if (ev.target instanceof HTMLElement && ev.target.closest("button, a, summary")) return;
+      ev.preventDefault();
+      advance();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [phase]);
 
   function finish() {
     const e = engine.current;
@@ -230,6 +269,39 @@ export function SoloGame({ loggedIn, playerName }: Props) {
 
   const shown = round ?? closed;
   const myClosed = closed?.answers.find((a) => a.playerId === ME);
+  // Correction d'une erreur : la réponse donnée, et la technique au calcul mental (si les conseils sont affichés).
+  const given = phase === "review" && myClosed ? shownAnswer(myClosed) : "";
+  const hint = phase === "review" && closed && tips.show && closed.question.puzzle.game === "standard" ? detectTechnique(closed.question.text) : null;
+  // Sur téléphone, le pavé est ancré en bas de l'écran (PadDock) : la correction et « Suivant » se posent
+  // par-dessus, dans body comme lui, au lieu de passer dessous. Le pavé ne sert à rien pendant la correction.
+  const review =
+    phase === "review" && closed ? (
+      <div className={`solo-review${touch ? " sheet" : ""}`}>
+        {given ? (
+          <p>
+            {t("solo.yourAnswer")} <s className="ko">{given}</s>
+          </p>
+        ) : null}
+        <p>
+          {t("solo.correction")}{" "}
+          <span className="solo-review-calc">
+            <MathText text={closed.question.text} /> <span className="eq">{revealSeparator(closed.question.puzzle.game)}</span>{" "}
+            <b>{closed.question.solution}</b>
+          </span>
+        </p>
+        {hint ? (
+          <div className="practice-explain">
+            <h3>{t(`techniques.${hint.technique}.name`)}</h3>
+            <TechniqueSteps hint={hint} />
+          </div>
+        ) : null}
+        <div className="actions">
+          <button className="btn" type="button" onClick={advance} autoFocus>
+            {e?.isOver ? t("solo.seeReport") : t("solo.next")}
+          </button>
+        </div>
+      </div>
+    ) : null;
   const totalLabel = settings.mode === "speed-race" && e ? `/${e.totalRounds}` : "";
 
   return (
@@ -274,7 +346,7 @@ export function SoloGame({ loggedIn, playerName }: Props) {
         />
       ) : null}
       <p className="result-line" aria-live="polite">
-        {phase === "result" && closed ? (
+        {(phase === "result" || phase === "review") && closed ? (
           myClosed?.correct ? (
             <span className="ok">
               <Check /> {formatSeconds(myClosed.timeMs, locale)}
@@ -286,6 +358,7 @@ export function SoloGame({ loggedIn, playerName }: Props) {
           )
         ) : null}
       </p>
+      {review ? (touch ? createPortal(review, document.body) : review) : null}
       <div className="actions">
         <button
           className="link-btn"

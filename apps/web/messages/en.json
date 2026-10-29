@@ -137,7 +137,11 @@
     "marginSolo": "solo",
     "loginToSave": "Log in to keep your stats.",
     "saved": "Game saved to your dashboard.",
-    "saveError": "The game couldn’t be saved. Check your connection."
+    "saveError": "The game couldn’t be saved. Check your connection.",
+    "yourAnswer": "Your answer:",
+    "correction": "Right answer:",
+    "next": "Next",
+    "seeReport": "See the results"
   },
   "online": {
     "title": "Play online",

@@ -31,13 +31,27 @@ export class SoloPage {
     await this.startButton.click();
   }
 
-  play(move: Move) {
+  /** Après une erreur, la correction reste affichée jusqu'à « Suivant » (ou « Voir le bilan » à la fin). */
+  get nextButton() {
+    return this.page.getByRole("button", { name: new RegExp(`^(${t("solo.next")}|${t("solo.seeReport")})$`) });
+  }
+
+  /** Passe la correction d'une erreur, s'il y en a une à l'écran. */
+  async skipReview() {
+    // La correction s'affiche dans le même rendu que la case verrouillée : pas d'attente à faire.
+    if (await this.nextButton.isVisible()) await this.nextButton.click();
+  }
+
+  async play(move: Move) {
+    await this.skipReview();
     return answerRound(this.page, move, this.touch);
   }
 
+  /** Joue ces manches, puis passe la dernière correction pour aller au bilan. */
   async playAll(moves: Move[]) {
     const played = [];
     for (const m of moves) played.push(await this.play(m));
+    await this.skipReview();
     return played;
   }
 }

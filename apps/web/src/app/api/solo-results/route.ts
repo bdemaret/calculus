@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { BASIC_OPERATIONS, GAMES, GameEngine, MAX_EXPRESSION_LENGTH, sanitizeSettings, type BasicOperation } from "@calculus/game-core";
+import { BASIC_OPERATIONS, GAMES, MAX_EXPRESSION_LENGTH, replaySolo, sanitizeSettings, type BasicOperation } from "@calculus/game-core";
 import { saveGame } from "@calculus/db";
 import { getSession } from "@/lib/auth";
 import { rateLimited } from "@/lib/rateLimit";
@@ -49,16 +49,8 @@ export async function POST(req: Request) {
   const settings = sanitizeSettings(parsed.data.settings);
   if (!GAMES[settings.game].solo) return NextResponse.json({ error: "bad-request" }, { status: 400 });
   const playerId = session.user.id;
-  const engine = new GameEngine(settings, [{ id: playerId, name: session.user.name }], seed);
-
-  let t = 0;
-  for (const a of answers) {
-    const round = engine.startRound(t);
-    if (!round) break;
-    if (a.answer !== null) engine.submit(playerId, a.answer, t + Math.min(a.timeMs, round.timeLimitMs));
-    engine.closeRound();
-    t += round.timeLimitMs + 1;
-  }
+  // Le temps passé sur la correction après une erreur n'entre pas dans le rejeu : seuls comptent les temps de réponse.
+  const engine = replaySolo(settings, { id: playerId, name: session.user.name }, seed, answers);
 
   const { id } = await saveGame({
     code: null,

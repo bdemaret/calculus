@@ -36,6 +36,41 @@ test.describe("solo en invité", () => {
     await expect(page.getByText(t("report.goodAnswers"), { exact: true })).toBeVisible();
   });
 
+  test("après une erreur, le calcul et sa correction restent jusqu'à « Suivant », sans chrono", async ({ page }) => {
+    await presetSolo(page, { rounds: 5, timePerQuestion: 3 });
+    const solo = new SoloPage(page);
+    await solo.goto();
+    await solo.start();
+    const missed = await solo.play("wrong");
+    const review = page.locator(".solo-review");
+    await expect(page.getByTestId("calc-text")).toHaveAttribute("data-calc", missed.text);
+    await expect(solo.answer).toHaveValue(missed.wrong);
+    await expect(review).toContainText(`${t("solo.yourAnswer")} ${missed.wrong}`);
+    await expect(review).toContainText(`${t("solo.correction")} ${missed.text} = ${missed.answer}`);
+    // On attend plus que le temps d'une manche : rien ne bouge tant que le joueur ne passe pas à la suite.
+    await page.waitForTimeout(3_500);
+    await expect(solo.answer).toBeDisabled();
+    await expect(page.getByTestId("calc-text")).toHaveAttribute("data-calc", missed.text);
+
+    // Le bouton…
+    await page.getByRole("button", { name: t("solo.next") }).click();
+    await expect(solo.answer).toBeEnabled();
+    await expect(review).toHaveCount(0);
+    // … ou la touche Entrée, même quand le bouton n'a pas le focus.
+    await solo.play("timeout");
+    await expect(page.locator(".result-line")).toContainText(t("game.timeUp"));
+    await page.locator("body").click({ position: { x: 5, y: 5 } });
+    await page.keyboard.press("Enter");
+    await expect(solo.answer).toBeEnabled();
+    await expect(solo.answer).toHaveValue("");
+
+    // Une bonne réponse enchaîne toute seule ; la dernière erreur mène au bilan par « Voir le bilan ».
+    await solo.playAll(["right", "right"]);
+    await solo.play("wrong");
+    await page.getByRole("button", { name: t("solo.seeReport") }).click();
+    await expect(solo.verdict).toHaveText("2/5");
+  });
+
   test("laisser filer le temps compte comme une erreur", async ({ page }) => {
     await presetSolo(page, { rounds: 5, timePerQuestion: 3 });
     const solo = new SoloPage(page);

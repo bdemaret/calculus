@@ -137,7 +137,11 @@
     "marginSolo": "solo",
     "loginToSave": "Connecte-toi pour garder tes statistiques.",
     "saved": "Partie enregistrée dans ton tableau de bord.",
-    "saveError": "La partie n’a pas pu être enregistrée. Vérifie ta connexion."
+    "saveError": "La partie n’a pas pu être enregistrée. Vérifie ta connexion.",
+    "yourAnswer": "Ta réponse :",
+    "correction": "Correction :",
+    "next": "Suivant",
+    "seeReport": "Voir le bilan"
   },
   "online": {
     "title": "Jouer en ligne",

@@ -14,3 +14,4 @@ export * from "./elo";
 export * from "./protocol";
 export * from "./publicLobbies";
 export * from "./techniques";
+export * from "./solo";
