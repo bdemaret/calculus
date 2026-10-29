@@ -5,6 +5,7 @@ import { Link, usePathname } from "@/i18n/navigation";
 const TABS = [
   { href: "/admin", key: "overview" },
   { href: "/admin/games", key: "games" },
+  { href: "/admin/solo", key: "solo" },
   { href: "/admin/feedback", key: "feedback" },
   { href: "/admin/users", key: "users" },
 ] as const;

@@ -886,9 +886,10 @@
     "tabs": {
       "label": "Sections du panel",
       "overview": "Vue d’ensemble",
-      "games": "Parties en cours",
+      "games": "Parties en ligne",
       "feedback": "Retours",
-      "users": "Comptes"
+      "users": "Comptes",
+      "solo": "Parties solo"
     },
     "overview": {
       "users": "inscrits",
@@ -901,7 +902,21 @@
       "onlineGames": "parties en ligne",
       "gamesLast24Hours": "parties ces dernières 24 h",
       "signupsTitle": "Inscriptions des 30 derniers jours",
-      "signupsLabel": "{count, plural, =0 {Aucune inscription} one {# inscription} other {# inscriptions}} sur 30 jours"
+      "signupsLabel": "{count, plural, =0 {Aucune inscription} one {# inscription} other {# inscriptions}} sur 30 jours",
+      "gamesTitle": "Parties jouées",
+      "rangeLabel": "Période",
+      "range": {
+        "30": "30 jours",
+        "90": "90 jours",
+        "365": "12 mois"
+      },
+      "perDay": "par jour",
+      "perWeek": "par semaine",
+      "weekOf": "semaine du {date}",
+      "gamesOnline": "{count, plural, =0 {aucune en ligne} one {# en ligne} other {# en ligne}}",
+      "gamesSolo": "{count, plural, =0 {aucune en solo} one {# en solo} other {# en solo}}",
+      "gamesTooltip": "{online} en ligne, {solo} en solo",
+      "gamesLabel": "{online} parties en ligne et {solo} parties solo enregistrées sur la période"
     },
     "games": {
       "unreachable": "Le serveur de jeu ne répond pas. Vérifie qu’il tourne et que GAME_TOKEN_SECRET est le même des deux côtés.",
@@ -964,6 +979,35 @@
       "previous": "Précédents",
       "next": "Suivants",
       "page": "page {page} sur {pages}"
+    },
+    "solo": {
+      "live": "en cours",
+      "started24": "lancées ces 24 h",
+      "finished24": "terminées ces 24 h",
+      "players24": "{players, plural, one {joueur inscrit} other {joueurs inscrits}} ces 24 h · {guests, plural, =0 {aucune partie d’invité} one {# partie d’invité} other {# parties d’invités}}",
+      "note": "Signalé par le navigateur, invités compris ; les manches et bonnes réponses sont indicatives.",
+      "error": "Impossible de rafraîchir la liste.",
+      "liveTitle": "En cours",
+      "liveEmpty": "Personne ne joue en solo pour l’instant.",
+      "recentTitle": "Dernières parties",
+      "recentEmpty": "Aucune partie solo pour l’instant.",
+      "startedAt": "lancée {since}",
+      "progress": "{correct} / {rounds}",
+      "duration": "{minutes} min {seconds} s",
+      "guest": "invité",
+      "when": "Début",
+      "player": "Joueur",
+      "game": "Partie",
+      "length": "Durée",
+      "answers": "Justes",
+      "state": "État",
+      "report": "rapport",
+      "status": {
+        "live": "En jeu",
+        "finished": "Terminée",
+        "quit": "Quittée",
+        "abandoned": "Sans nouvelles"
+      }
     }
   },
   "guild": {

@@ -10,6 +10,7 @@ import {
   describeRatingChange,
   type AnswerRecord,
   type GameId,
+  type GameModeId,
   type GameReport,
   type GameSettings,
   type OpTag,
@@ -1377,6 +1378,175 @@ export async function getAdminOverview(now: Date): Promise<AdminOverview> {
     gamesLast24Hours,
     openFeedback,
     signups: [...byDay].map(([d, count]) => ({ day: d, count })),
+  };
+}
+
+/** Périodes de l'historique des parties, en jours (au-delà de 90 jours, une barre par semaine). */
+export const GAMES_HISTORY_RANGES = [30, 90, 365] as const;
+export type GamesHistoryRange = (typeof GAMES_HISTORY_RANGES)[number];
+
+export interface GamesHistory {
+  bucket: "day" | "week";
+  /** Une entrée par jour ou par semaine (lundi), du plus ancien au plus récent, date ISO AAAA-MM-JJ en UTC. */
+  points: { start: string; solo: number; online: number }[];
+  solo: number;
+  online: number;
+}
+
+/** Parties enregistrées (terminées) par jour ou par semaine, solo et en ligne séparés. */
+export async function getGamesHistory(now: Date, days: GamesHistoryRange): Promise<GamesHistory> {
+  const day = 24 * 60 * 60 * 1000;
+  const bucket = days > 90 ? "week" : "day";
+  const step = bucket === "week" ? 7 * day : day;
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  // date_trunc('week') commence le lundi (getUTCDay : 0 = dimanche).
+  const last = bucket === "week" ? today - ((new Date(today).getUTCDay() + 6) % 7) * day : today;
+  const count = bucket === "week" ? Math.ceil(days / 7) : days;
+  const byStart = new Map<string, { solo: number; online: number }>();
+  for (let i = count - 1; i >= 0; i--) byStart.set(new Date(last - i * step).toISOString().slice(0, 10), { solo: 0, online: 0 });
+  const since = new Date(last - (count - 1) * step);
+  const rows = await prisma.$queryRaw<{ start: string; solo: boolean; count: bigint }[]>`
+    SELECT to_char(date_trunc(${bucket}::text, "endedAt"), 'YYYY-MM-DD') AS "start", "solo", count(*) AS "count"
+    FROM "game"
+    WHERE "endedAt" >= ${since}
+    GROUP BY 1, 2`;
+  let solo = 0;
+  let online = 0;
+  for (const r of rows) {
+    const point = byStart.get(r.start);
+    if (!point) continue;
+    const n = Number(r.count);
+    if (r.solo) {
+      point.solo += n;
+      solo += n;
+    } else {
+      point.online += n;
+      online += n;
+    }
+  }
+  return { bucket, points: [...byStart].map(([start, p]) => ({ start, ...p })), solo, online };
+}
+
+/* ------------------------------------------------------------------ */
+/* Activité solo (signalée par le navigateur)                           */
+/* ------------------------------------------------------------------ */
+
+/** Sans signal depuis ce délai, une partie solo non close est considérée abandonnée (battement toutes les 30 s). */
+export const SOLO_PLAY_LIVE_MS = 75_000;
+/** Durée de conservation des lignes `solo_play`. */
+export const SOLO_PLAY_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+/** Au-delà, une partie ne reçoit plus de signal (même borne que `/api/solo-results`). */
+const SOLO_PLAY_MAX_AGE_MS = 3 * 60 * 60 * 1000;
+
+export type SoloPlayEvent = "ping" | "end" | "quit";
+
+/** Note le début d'une partie solo (et purge les lignes trop anciennes). Renvoie son id. */
+export async function startSoloPlay(
+  input: { userId: string | null; game: GameId; mode: string; difficulty: number },
+  now: Date,
+): Promise<string> {
+  await prisma.soloPlay.deleteMany({ where: { startedAt: { lt: new Date(now.getTime() - SOLO_PLAY_RETENTION_MS) } } });
+  const row = await prisma.soloPlay.create({
+    data: { ...input, startedAt: now, lastSeenAt: now },
+    select: { id: true },
+  });
+  return row.id;
+}
+
+/** Battement ou fin d'une partie solo encore ouverte ; sans effet sur une partie close ou trop ancienne. */
+export async function touchSoloPlay(
+  id: string,
+  event: SoloPlayEvent,
+  progress: { rounds: number; correct: number },
+  now: Date,
+): Promise<void> {
+  await prisma.soloPlay.updateMany({
+    where: { id, endedAt: null, startedAt: { gte: new Date(now.getTime() - SOLO_PLAY_MAX_AGE_MS) } },
+    data: {
+      lastSeenAt: now,
+      rounds: progress.rounds,
+      correct: Math.min(progress.correct, progress.rounds),
+      ...(event === "ping" ? {} : { endedAt: now, outcome: event === "end" ? "finished" : "quit" }),
+    },
+  });
+}
+
+/** Rattache la partie enregistrée par `/api/solo-results` à son suivi, s'il appartient bien au joueur. */
+export async function linkSoloPlayGame(id: string, userId: string, gameId: string): Promise<void> {
+  await prisma.soloPlay.updateMany({ where: { id, userId, gameId: null }, data: { gameId } });
+}
+
+export interface AdminSoloPlay {
+  id: string;
+  user: { id: string; name: string } | null;
+  game: GameId;
+  mode: GameModeId;
+  difficulty: number;
+  startedAt: string;
+  lastSeenAt: string;
+  endedAt: string | null;
+  status: "live" | "finished" | "quit" | "abandoned";
+  rounds: number;
+  correct: number;
+  gameId: string | null;
+}
+
+export interface AdminSoloActivity {
+  live: AdminSoloPlay[];
+  recent: AdminSoloPlay[];
+  /** Sur les dernières 24 h */
+  last24Hours: { started: number; finished: number; guests: number; players: number };
+}
+
+/** Parties solo en cours et dernières parties closes ou abandonnées. */
+export async function getAdminSoloActivity(now: Date): Promise<AdminSoloActivity> {
+  const liveSince = new Date(now.getTime() - SOLO_PLAY_LIVE_MS);
+  const since24 = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const select = {
+    id: true,
+    user: { select: { id: true, name: true } },
+    game: true,
+    mode: true,
+    difficulty: true,
+    startedAt: true,
+    lastSeenAt: true,
+    endedAt: true,
+    outcome: true,
+    rounds: true,
+    correct: true,
+    gameId: true,
+  } satisfies Prisma.SoloPlaySelect;
+  const [live, recent, started, finished, guests, players] = await Promise.all([
+    prisma.soloPlay.findMany({ where: { endedAt: null, lastSeenAt: { gte: liveSince } }, orderBy: { startedAt: "desc" }, take: 200, select }),
+    prisma.soloPlay.findMany({
+      where: { OR: [{ endedAt: { not: null } }, { lastSeenAt: { lt: liveSince } }] },
+      orderBy: { startedAt: "desc" },
+      take: ADMIN_PAGE_SIZE,
+      select,
+    }),
+    prisma.soloPlay.count({ where: { startedAt: { gte: since24 } } }),
+    prisma.soloPlay.count({ where: { startedAt: { gte: since24 }, outcome: "finished" } }),
+    prisma.soloPlay.count({ where: { startedAt: { gte: since24 }, userId: null } }),
+    prisma.soloPlay.findMany({ where: { startedAt: { gte: since24 }, userId: { not: null } }, distinct: ["userId"], select: { userId: true } }),
+  ]);
+  const describe = (p: (typeof live)[number]): AdminSoloPlay => ({
+    id: p.id,
+    user: p.user,
+    game: p.game as GameId,
+    mode: p.mode as GameModeId,
+    difficulty: p.difficulty,
+    startedAt: p.startedAt.toISOString(),
+    lastSeenAt: p.lastSeenAt.toISOString(),
+    endedAt: p.endedAt?.toISOString() ?? null,
+    status: p.outcome === "finished" ? "finished" : p.outcome === "quit" ? "quit" : p.endedAt || p.lastSeenAt < liveSince ? "abandoned" : "live",
+    rounds: p.rounds,
+    correct: p.correct,
+    gameId: p.gameId,
+  });
+  return {
+    live: live.map(describe),
+    recent: recent.map(describe),
+    last24Hours: { started, finished, guests, players: players.length },
   };
 }
 

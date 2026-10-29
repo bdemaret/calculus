@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { BASIC_OPERATIONS, GAMES, MAX_EXPRESSION_LENGTH, replaySolo, sanitizeSettings, type BasicOperation } from "@calculus/game-core";
-import { saveGame } from "@calculus/db";
+import { linkSoloPlayGame, saveGame } from "@calculus/db";
 import { getSession } from "@/lib/auth";
 import { rateLimited } from "@/lib/rateLimit";
 
@@ -16,6 +16,8 @@ const body = z.object({
   seed: z.string().min(4).max(64),
   settings: z.unknown(),
   startedAt: z.number(),
+  /** Id du suivi d'activité (`/api/solo-activity`), pour relier la partie enregistrée au panel admin */
+  activityId: z.string().min(1).max(40).optional(),
   answers: z
     .array(z.object({ answer: answer.nullable(), timeMs: z.number().min(0).max(120_000) }))
     .max(200),
@@ -64,5 +66,6 @@ export async function POST(req: Request) {
     history: engine.history,
     userIds: { [playerId]: playerId },
   });
+  if (parsed.data.activityId) await linkSoloPlayGame(parsed.data.activityId, playerId, id);
   return NextResponse.json({ id });
 }
