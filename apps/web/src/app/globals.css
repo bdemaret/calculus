@@ -599,6 +599,20 @@ img.avatar { object-fit: cover; padding: 0; background: var(--line); }
 .stat-link:hover .k { color: var(--ink); text-decoration: underline; }
 .spark { display: flex; align-items: flex-end; gap: 3px; height: 120px; padding: 12px; border: 1.5px solid var(--line-strong); border-radius: 14px; background: var(--surface); }
 .spark-bar { flex: 1; min-height: 2px; background: var(--ink); border-radius: 3px 3px 0 0; }
+.spark-stack { flex: 1; min-height: 2px; display: flex; flex-direction: column; border-radius: 3px 3px 0 0; overflow: hidden; background: var(--line); }
+.spark-seg { flex-basis: 0; min-height: 1px; }
+.spark-seg.online, .admin-swatch.online { background: var(--ink); }
+.spark-seg.solo, .admin-swatch.solo { background: var(--hl-green); }
+.admin-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin: 0 2px 0 8px; }
+.admin-swatch:first-child { margin-left: 0; }
+.admin-legend { font-size: 14px; }
+.admin-chart-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+.admin-ranges { display: flex; gap: 14px; font-size: 14px; font-weight: 650; }
+.admin-ranges a { color: var(--muted); text-decoration: none; }
+.admin-ranges a:hover { color: var(--ink); }
+.admin-ranges a[aria-current="page"] { color: var(--text); text-decoration: underline; text-underline-offset: 4px; }
+.admin-phase.finished { border-color: var(--ok); color: var(--ok); }
+.admin-phase.quit, .admin-phase.abandoned { color: var(--muted); }
 .admin-rooms, .feedback-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
 .admin-room, .feedback-item { gap: 12px; padding: 16px 18px; }
 .admin-room-head, .feedback-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }

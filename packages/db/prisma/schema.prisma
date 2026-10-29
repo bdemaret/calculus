@@ -43,6 +43,7 @@ model User {
   invitesSent     GameInvite[] @relation("InviteFrom")
   invitesReceived GameInvite[] @relation("InviteTo")
   feedbacks       Feedback[]
+  soloPlays       SoloPlay[]
   avatar          Avatar?
   guildMember     GuildMember?
   guildInvitesReceived GuildInvite[] @relation("GuildInviteTo")
@@ -140,6 +141,7 @@ model Game {
   endedAt     DateTime
   players     GamePlayer[]
   questions   Question[]
+  soloPlay    SoloPlay?
 
   @@index([endedAt])
   @@index([game, mode, difficulty])
@@ -398,4 +400,33 @@ model Feedback {
   @@index([resolved, createdAt])
   @@index([userId, createdAt])
   @@map("feedback")
+}
+
+/// Partie solo commencée (invités compris), signalée par le navigateur : suivi d'activité du panel administrateur.
+/// Indicatif seulement (manches et bonnes réponses viennent du client), jamais utilisé pour un classement.
+/// Lignes de plus de `SOLO_PLAY_RETENTION_MS` supprimées à chaque nouvelle partie.
+model SoloPlay {
+  id         String    @id @default(cuid())
+  /// Null pour un invité, ou si le compte a été supprimé
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  game       String
+  mode       String
+  difficulty Int
+  startedAt  DateTime  @default(now())
+  /// Dernier signal du navigateur (début, battement régulier ou fin)
+  lastSeenAt DateTime  @default(now())
+  /// Null tant que la partie n'est pas close ; sans signal récent, elle est considérée abandonnée
+  endedAt    DateTime?
+  /// `finished` (allée au bout) ou `quit` (page quittée en cours de partie)
+  outcome    String?
+  rounds     Int       @default(0)
+  correct    Int       @default(0)
+  /// Partie enregistrée par `/api/solo-results` (joueur connecté seulement)
+  gameId     String?   @unique
+  savedGame  Game?     @relation(fields: [gameId], references: [id], onDelete: SetNull)
+
+  @@index([startedAt])
+  @@index([endedAt, lastSeenAt])
+  @@map("solo_play")
 }

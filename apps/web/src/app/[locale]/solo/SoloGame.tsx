@@ -31,6 +31,7 @@ import { TimerBar } from "@/components/TimerBar";
 import { answerFromInput, revealSeparator, shownAnswer } from "@/lib/answer";
 import { formatSeconds } from "@/lib/format";
 import { celebrate, sfx } from "@/lib/sound";
+import { SOLO_ACTIVITY_PING_MS, SoloActivity } from "@/lib/soloActivity";
 import { local } from "@/lib/storage";
 import { useShowTips } from "@/lib/tips";
 import { useTouch } from "@/lib/useTouch";
@@ -69,6 +70,31 @@ export function SoloGame({ loggedIn, playerName }: Props) {
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const log = useRef<SoloAnswer[]>([]);
   const startedAt = useRef(0);
+  const activity = useRef<SoloActivity | null>(null);
+
+  /** Manches jouées et bonnes réponses, pour le suivi d'activité. */
+  const progress = () => ({
+    rounds: log.current.length,
+    correct: engine.current?.history.filter((r) => r.answers.some((a) => a.playerId === ME && a.correct)).length ?? 0,
+  });
+  const quitActivity = () => activity.current?.close("quit", progress());
+
+  useEffect(() => {
+    // Page quittée ou onglet fermé en pleine partie : abandon.
+    window.addEventListener("pagehide", quitActivity);
+    return () => {
+      window.removeEventListener("pagehide", quitActivity);
+      quitActivity();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Battement régulier tant que la partie dure (compte à rebours, calculs, résultats de manche).
+  const playing = phase !== "setup" && phase !== "finished";
+  useEffect(() => {
+    if (!playing) return;
+    const id = setInterval(() => activity.current?.ping(progress()), SOLO_ACTIVITY_PING_MS);
+    return () => clearInterval(id);
+  }, [playing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const saved = sanitizeSettings(local.get("solo", defaultSettings(2, "speed-race")));
@@ -92,6 +118,8 @@ export function SoloGame({ loggedIn, playerName }: Props) {
 
   function start() {
     clearTimers();
+    quitActivity();
+    activity.current = new SoloActivity(settings);
     engine.current = new GameEngine(settings, [{ id: ME, name: playerName ?? t("game.you") }], randomSeed());
     log.current = [];
     startedAt.current = Date.now();
@@ -188,6 +216,7 @@ export function SoloGame({ loggedIn, playerName }: Props) {
     const rep = buildReport(e.standings(), e.history);
     setReport(rep);
     setPhase("finished");
+    activity.current?.close("end", progress());
     const mine = rep.players[0];
     if (mine && mine.correct > 0 && (settings.mode === "battle-royale" || mine.correct === rep.rounds)) void celebrate();
     if (loggedIn && e.history.length > 0) {
@@ -195,7 +224,13 @@ export function SoloGame({ loggedIn, playerName }: Props) {
       fetch("/api/solo-results", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ seed: e.seed, settings: e.settings, startedAt: startedAt.current, answers: log.current }),
+        body: JSON.stringify({
+          seed: e.seed,
+          settings: e.settings,
+          startedAt: startedAt.current,
+          answers: log.current,
+          activityId: activity.current?.id ?? undefined,
+        }),
       })
         .then((r) => setSave(r.ok ? "saved" : "error"))
         .catch(() => setSave("error"));
@@ -365,6 +400,7 @@ export function SoloGame({ loggedIn, playerName }: Props) {
           type="button"
           onClick={() => {
             clearTimers();
+            quitActivity();
             setPhase("setup");
           }}
         >
