@@ -862,11 +862,12 @@
     "noticeDismiss": "Fermer",
     "notes": {
       "v1_1_0": [
+        "Solo : après une erreur, la bonne réponse reste affichée jusqu’à ce que tu passes au calcul suivant.",
         "Sur mobile, le pavé numérique reste ancré en bas de l’écran et chaque touche réagit dès l’appui.",
-        "Course de vitesse en ligne : une pause de 4 secondes entre les manches pour voir le résultat.",
+        "Course de vitesse en ligne : une pause de 4 secondes entre les manches pour voir qui a pris le point et la bonne réponse.",
         "Page Jeux : un bouton « Jouer solo » par jeu, qui reprend tes derniers réglages.",
         "Accueil : l’échauffement a son titre, et sur mobile les deux grands choix passent en premier.",
-        "Le thème clair ou sombre choisi reste en place quand tu changes de langue.",
+        "Les textes s’alignent mieux sur le quadrillage, et le thème clair ou sombre reste en place quand tu changes de langue.",
         "Cette page de nouveautés : le numéro de version s’affiche en bas de page, et un bandeau annonce chaque nouvelle version pendant 48 heures."
       ],
       "v1_0_0": [

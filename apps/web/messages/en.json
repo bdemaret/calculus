@@ -865,11 +865,12 @@
     "noticeDismiss": "Dismiss",
     "notes": {
       "v1_1_0": [
+        "Solo: after a mistake, the right answer stays on screen until you move on to the next one.",
         "On mobile, the keypad stays docked at the bottom of the screen and each key reacts as soon as you press it.",
-        "Online speed race: a 4-second pause between rounds to see the result.",
+        "Online speed race: a 4-second pause between rounds to see who scored and the right answer.",
         "Games page: a “Play solo” button for each game, which picks up your last settings.",
         "Home page: the warm-up has its own title, and on mobile the two main choices come first.",
-        "Your light or dark theme now stays in place when you switch languages.",
+        "Text lines up better with the grid paper, and your light or dark theme now stays in place when you switch languages.",
         "This what’s new page: the version number shows at the bottom of the page, and a banner announces each new version for 48 hours."
       ],
       "v1_0_0": [
