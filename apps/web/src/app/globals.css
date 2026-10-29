@@ -309,16 +309,32 @@ p { margin: 0; }
 @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
 
 .keypad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; max-width: 360px; }
-.keypad button { height: 60px; border-radius: 12px; border: 2px solid var(--line-strong); background: var(--surface); font-size: 26px; font-weight: 750; cursor: pointer; touch-action: manipulation; box-shadow: 0 3px 0 var(--line-strong); transition: transform .06s, box-shadow .06s; }
+.keypad button { height: 60px; border-radius: 12px; border: 2px solid var(--line-strong); background: var(--surface); font-size: 26px; font-weight: 750; cursor: pointer; box-shadow: 0 3px 0 var(--line-strong); transition: transform .06s, box-shadow .06s; }
+/* Touches de pavé (PadButton, saisie à l'appui) : pas de défilement, de zoom, de sélection ni de menu au doigt. */
+.keypad button, .tile { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 .keypad button:active { transform: translateY(3px); box-shadow: 0 0 0 transparent; }
 .keypad .ok-key { background: var(--ink); color: var(--on-ink); border-color: var(--ink-deep); box-shadow: 0 3px 0 var(--ink-deep); }
+/* Opérateurs : même hauteur que le pavé numérique, ⌫ et OK aux mêmes places (grille de 6 colonnes = 3 touches de 2). */
+.ops-pad { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.ops-pad button { grid-column: span 3; height: 94px; }
+.ops-pad .del-key, .ops-pad .ok-key { grid-column: span 2; height: 60px; }
+.ops-pad .ok-key { grid-column: 5 / span 2; }
+/* Pavé ancré en bas de l'écran pendant une partie sur téléphone (PadDock), avec une cale de même hauteur dans la page. */
+.pad-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; justify-items: center; gap: 10px; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--paper); border-top: 1.5px solid var(--line-strong); box-shadow: 0 -6px 16px color-mix(in srgb, var(--ink) 8%, transparent); }
+.pad-dock .keypad { width: 100%; }
+/* Les plaques gardent deux rangées réservées : une étape qui en consomme ne fait pas remonter le pavé. */
+.pad-dock .tiles { width: 100%; max-width: 480px; min-height: calc(2 * 52px + 10px); align-content: flex-start; justify-content: center; }
+.pad-dock .tile, .pad-dock .expr-pad button { height: 52px; }
+/* Bon compte et bombe : la saisie et son total restent au-dessus du pavé ; le pavé grandit vers le haut, ses touches ne bougent pas. */
+.pad-dock .game-row, .pad-dock .hint { width: 100%; max-width: 480px; margin: 0; }
+.pad-dock .hint { font-size: 20px; line-height: 1.1; }
 
 /* Le bon compte : la cible, les plaques, la saisie et son total */
 .count-board { display: grid; gap: 18px; }
 .count-target { display: flex; align-items: baseline; gap: 16px; margin: 0; }
 .count-label { font-family: var(--font-hand); font-size: clamp(24px, 3vw, 32px); color: var(--margin-red); }
 .tiles { display: flex; flex-wrap: wrap; gap: 10px; }
-.tile { min-width: 64px; height: 56px; padding: 0 14px; border-radius: 12px; border: 2px solid var(--line-strong); background: var(--surface); color: var(--ink); font-size: 26px; font-weight: 750; font-variant-numeric: tabular-nums; cursor: pointer; box-shadow: 0 3px 0 var(--line-strong); touch-action: manipulation; }
+.tile { min-width: 64px; height: 56px; padding: 0 14px; border-radius: 12px; border: 2px solid var(--line-strong); background: var(--surface); color: var(--ink); font-size: 26px; font-weight: 750; font-variant-numeric: tabular-nums; cursor: pointer; box-shadow: 0 3px 0 var(--line-strong); }
 .tile[aria-pressed="true"] { opacity: .35; text-decoration: line-through; box-shadow: none; }
 .tile:disabled { cursor: default; }
 .tile:not(:disabled):active { transform: translateY(3px); box-shadow: none; }

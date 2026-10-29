@@ -1,5 +1,6 @@
 "use client";
 import { useTranslations } from "next-intl";
+import { PadButton } from "./PadButton";
 
 interface Props {
   onDigit: (d: string) => void;
@@ -15,19 +16,19 @@ export function Keypad({ onDigit, onDelete, onSubmit, disabled }: Props) {
   return (
     <div className="keypad">
       {digits.map((d) => (
-        <button key={d} type="button" disabled={disabled} onClick={() => onDigit(d)}>
+        <PadButton key={d} disabled={disabled} onPress={() => onDigit(d)}>
           {d}
-        </button>
+        </PadButton>
       ))}
-      <button type="button" disabled={disabled} onClick={onDelete} aria-label={t("delete")}>
+      <PadButton disabled={disabled} onPress={onDelete} aria-label={t("delete")}>
         ⌫
-      </button>
-      <button type="button" disabled={disabled} onClick={() => onDigit("0")}>
+      </PadButton>
+      <PadButton disabled={disabled} onPress={() => onDigit("0")}>
         0
-      </button>
-      <button type="button" className="ok-key" disabled={disabled} onClick={onSubmit} aria-label={t("submit")}>
+      </PadButton>
+      <PadButton className="ok-key" disabled={disabled} onPress={onSubmit} aria-label={t("submit")}>
         OK
-      </button>
+      </PadButton>
     </div>
   );
 }

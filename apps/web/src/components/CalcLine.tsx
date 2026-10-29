@@ -9,6 +9,7 @@ import { useVoiceInput } from "@/lib/useVoiceInput";
 import { Keypad } from "./Keypad";
 import { FractionExpr, MathText, fractionTree, useFractions } from "./MathText";
 import { OperatorPad } from "./OperatorPad";
+import { PadDock } from "./PadDock";
 
 interface Props {
   text: string;
@@ -23,12 +24,14 @@ interface Props {
   /** Ce qui s'affiche à droite du calcul (coche, temps…). */
   mark?: ReactNode;
   autoFocus?: boolean;
+  /** Pavé ancré en bas de l'écran (partie) ; faux pour une démonstration dans la page. */
+  docked?: boolean;
 }
 
 const MAX_DIGITS = 6;
 
 /** Une ligne de cahier : le calcul, le signe égal et la réponse écrite à l'encre bleue. */
-export function CalcLine({ text, puzzle, value, onChange, onSubmit, disabled, status, shake, mark, autoFocus = true }: Props) {
+export function CalcLine({ text, puzzle, value, onChange, onSubmit, disabled, status, shake, mark, autoFocus = true, docked = true }: Props) {
   const t = useTranslations("game");
   const locale = useLocale();
   const touch = useTouch();
@@ -111,10 +114,14 @@ export function CalcLine({ text, puzzle, value, onChange, onSubmit, disabled, st
           {t(voice === "listening" && touch ? "voice.listeningTouch" : `voice.${voice}`)}
         </p>
       ) : null}
-      {touch && kind === "op" ? (
-        <OperatorPad disabled={disabled} onOperator={(op) => set(OPERATION_SYMBOL[op])} onDelete={() => set("")} onSubmit={submit} />
-      ) : touch ? (
-        <Keypad disabled={disabled} onDigit={(d) => set(value + d)} onDelete={() => set(value.slice(0, -1))} onSubmit={submit} />
+      {touch ? (
+        <PadDock docked={docked}>
+          {kind === "op" ? (
+            <OperatorPad disabled={disabled} onOperator={(op) => set(OPERATION_SYMBOL[op])} onDelete={() => set("")} onSubmit={submit} />
+          ) : (
+            <Keypad disabled={disabled} onDigit={(d) => set(value + d)} onDelete={() => set(value.slice(0, -1))} onSubmit={submit} />
+          )}
+        </PadDock>
       ) : null}
     </>
   );

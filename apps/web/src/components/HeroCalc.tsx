@@ -52,6 +52,7 @@ export function HeroCalc() {
       ) : null}
       {q ? (
         <CalcLine
+          docked={false}
           text={q.text}
           value={value}
           onChange={setValue}

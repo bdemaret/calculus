@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl";
 import { OPERATION_SYMBOL, commitStep, encodeSteps, parseExpression, readSteps, undoStep, type BasicOperation, type Puzzle } from "@calculus/game-core";
 import { cleanInput } from "@/lib/answer";
 import { useTouch } from "@/lib/useTouch";
+import { PadButton } from "./PadButton";
+import { PadDock } from "./PadDock";
 
 type RightCount = Extract<Puzzle, { game: "right-count" }>;
 
@@ -75,25 +77,11 @@ export function TileExpression(props: TileExpressionProps) {
   const open = (value.match(/\(/g) ?? []).length - (value.match(/\)/g) ?? []).length;
   const used = usedTiles(tiles, value);
 
-  return (
-    <div className={`count-board${shake ? " shake" : ""}`}>
-      {header}
-      <div className="tiles" role="group" aria-label={t("tiles")}>
-        {tiles.map((tile, i) => (
-          <button
-            key={i}
-            type="button"
-            className="tile"
-            disabled={disabled || used[i] || afterOperand}
-            aria-pressed={used[i]}
-            onClick={() => set(append(value, String(tile)))}
-          >
-            {tile}
-          </button>
-        ))}
-      </div>
+  // La saisie et son total, puis l'indication : dans le pavé sur téléphone, pour rester visibles au-dessus de lui.
+  const entry = (
+    <>
       <form
-        className="game-row"
+        className={`game-row${touch && shake ? " shake" : ""}`}
         autoComplete="off"
         onSubmit={(e) => {
           e.preventDefault();
@@ -116,29 +104,62 @@ export function TileExpression(props: TileExpressionProps) {
         </span>
       </form>
       {hint && !disabled ? <p className="hint">{hint}</p> : null}
-      <div className="keypad expr-pad">
-        {operations.map((op) => (
-          <button key={op} type="button" disabled={disabled || !afterOperand} onClick={() => set(append(value, OPERATION_SYMBOL[op]))} aria-label={t(`operator.${op}`)}>
-            {OPERATION_SYMBOL[op]}
-          </button>
-        ))}
-        {parentheses ? (
+    </>
+  );
+
+  // Sur téléphone, les plaques suivent le pavé en bas de l'écran : rien ne bouge pendant la saisie.
+  const tilesEl = (
+    <div className="tiles" role="group" aria-label={t("tiles")}>
+      {tiles.map((tile, i) => (
+        <PadButton
+          key={i}
+          className="tile"
+          disabled={disabled || used[i] || afterOperand}
+          aria-pressed={used[i]}
+          onPress={() => set(append(value, String(tile)))}
+        >
+          {tile}
+        </PadButton>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className={`count-board${shake ? " shake" : ""}`}>
+      {header}
+      {touch ? null : tilesEl}
+      {touch ? null : entry}
+      <PadDock docked={touch}>
+        {touch ? (
           <>
-            <button type="button" disabled={disabled || afterOperand} onClick={() => set(append(value, "("))} aria-label={t("openParen")}>
-              (
-            </button>
-            <button type="button" disabled={disabled || !afterOperand || open <= 0} onClick={() => set(append(value, ")"))} aria-label={t("closeParen")}>
-              )
-            </button>
+            {entry}
+            {tilesEl}
           </>
         ) : null}
-        <button type="button" disabled={disabled || value === ""} onClick={() => set(dropLast(value))} aria-label={t("delete")}>
-          ⌫
-        </button>
-        <button type="button" className="ok-key" disabled={disabled || !ready} onClick={submit} aria-label={t("submit")}>
-          OK
-        </button>
-      </div>
+        <div className="keypad expr-pad">
+          {operations.map((op) => (
+            <PadButton key={op} disabled={disabled || !afterOperand} onPress={() => set(append(value, OPERATION_SYMBOL[op]))} aria-label={t(`operator.${op}`)}>
+              {OPERATION_SYMBOL[op]}
+            </PadButton>
+          ))}
+          {parentheses ? (
+            <>
+              <PadButton disabled={disabled || afterOperand} onPress={() => set(append(value, "("))} aria-label={t("openParen")}>
+                (
+              </PadButton>
+              <PadButton disabled={disabled || !afterOperand || open <= 0} onPress={() => set(append(value, ")"))} aria-label={t("closeParen")}>
+                )
+              </PadButton>
+            </>
+          ) : null}
+          <PadButton disabled={disabled || value === ""} onPress={() => set(dropLast(value))} aria-label={t("delete")}>
+            ⌫
+          </PadButton>
+          <PadButton className="ok-key" disabled={disabled || !ready} onPress={submit} aria-label={t("submit")}>
+            OK
+          </PadButton>
+        </div>
+      </PadDock>
     </div>
   );
 }
@@ -202,39 +223,11 @@ export function ExpressionBuilder({ text, puzzle, value, onChange, onSubmit, all
   else if (tree?.kind === "op" && lineValue === null) hint = t("invalidStep");
   else if (steps.length === 0 && line.trim() === "") hint = t("stepHint");
 
-  return (
-    <div className={`count-board${shake ? " shake" : ""}`}>
-      <p className="count-target">
-        <span className="count-label">{t("target")}</span>
-        <span className="calc" data-testid="calc-text" data-calc={text} data-ops={puzzle.operations.join(" ")}>
-          {target}
-        </span>
-      </p>
-      {steps.length > 0 ? (
-        <ol className="count-steps" aria-label={t("steps")}>
-          {steps.map((s, i) => (
-            <li key={i}>
-              {s.text} <span className="eq">=</span> <b>{s.value}</b>
-            </li>
-          ))}
-        </ol>
-      ) : null}
-      <div className="tiles" role="group" aria-label={t("tiles")}>
-        {tiles.map((tile, i) => (
-          <button
-            key={`${i}:${tile.value}:${tile.step ?? "t"}`}
-            type="button"
-            className={`tile${tile.step !== null ? " made" : ""}`}
-            disabled={disabled || tile.used || afterOperand}
-            aria-pressed={tile.used}
-            onClick={() => setLine(append(line, String(tile.value)))}
-          >
-            {tile.value}
-          </button>
-        ))}
-      </div>
+  // La saisie et son total, puis l'indication : dans le pavé sur téléphone, pour rester visibles au-dessus de lui.
+  const entry = (
+    <>
       <form
-        className="game-row"
+        className={`game-row${touch && shake ? " shake" : ""}`}
         autoComplete="off"
         onSubmit={(e) => {
           e.preventDefault();
@@ -269,28 +262,75 @@ export function ExpressionBuilder({ text, puzzle, value, onChange, onSubmit, all
         </span>
       </form>
       {hint && !disabled ? <p className="hint">{hint}</p> : null}
-      <div className="keypad expr-pad">
-        {puzzle.operations.map((op) => (
-          <button key={op} type="button" disabled={disabled || !afterOperand} onClick={() => setLine(append(line, OPERATION_SYMBOL[op]))} aria-label={t(`operator.${op}`)}>
-            {OPERATION_SYMBOL[op]}
-          </button>
-        ))}
-        <button type="button" disabled={disabled || afterOperand} onClick={() => setLine(append(line, "("))} aria-label={t("openParen")}>
-          (
-        </button>
-        <button type="button" disabled={disabled || !afterOperand || open <= 0} onClick={() => setLine(append(line, ")"))} aria-label={t("closeParen")}>
-          )
-        </button>
-        <button type="button" disabled={disabled || value === ""} onClick={undo} aria-label={t("delete")}>
-          ⌫
-        </button>
-        <button type="button" disabled={disabled || !canCommit} onClick={commit} aria-label={t("commitStep")}>
-          =
-        </button>
-        <button type="button" className="ok-key" disabled={disabled || !ready} onClick={submit} aria-label={t("submit")}>
-          OK
-        </button>
-      </div>
+    </>
+  );
+
+  // Sur téléphone, les plaques suivent le pavé en bas de l'écran : rien ne bouge pendant la saisie.
+  const tilesEl = (
+    <div className="tiles" role="group" aria-label={t("tiles")}>
+      {tiles.map((tile, i) => (
+        <PadButton
+          key={`${i}:${tile.value}:${tile.step ?? "t"}`}
+          className={`tile${tile.step !== null ? " made" : ""}`}
+          disabled={disabled || tile.used || afterOperand}
+          aria-pressed={tile.used}
+          onPress={() => setLine(append(line, String(tile.value)))}
+        >
+          {tile.value}
+        </PadButton>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className={`count-board${shake ? " shake" : ""}`}>
+      <p className="count-target">
+        <span className="count-label">{t("target")}</span>
+        <span className="calc" data-testid="calc-text" data-calc={text} data-ops={puzzle.operations.join(" ")}>
+          {target}
+        </span>
+      </p>
+      {steps.length > 0 ? (
+        <ol className="count-steps" aria-label={t("steps")}>
+          {steps.map((s, i) => (
+            <li key={i}>
+              {s.text} <span className="eq">=</span> <b>{s.value}</b>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      {touch ? null : tilesEl}
+      {touch ? null : entry}
+      <PadDock docked={touch}>
+        {touch ? (
+          <>
+            {entry}
+            {tilesEl}
+          </>
+        ) : null}
+        <div className="keypad expr-pad">
+          {puzzle.operations.map((op) => (
+            <PadButton key={op} disabled={disabled || !afterOperand} onPress={() => setLine(append(line, OPERATION_SYMBOL[op]))} aria-label={t(`operator.${op}`)}>
+              {OPERATION_SYMBOL[op]}
+            </PadButton>
+          ))}
+          <PadButton disabled={disabled || afterOperand} onPress={() => setLine(append(line, "("))} aria-label={t("openParen")}>
+            (
+          </PadButton>
+          <PadButton disabled={disabled || !afterOperand || open <= 0} onPress={() => setLine(append(line, ")"))} aria-label={t("closeParen")}>
+            )
+          </PadButton>
+          <PadButton disabled={disabled || value === ""} onPress={undo} aria-label={t("delete")}>
+            ⌫
+          </PadButton>
+          <PadButton disabled={disabled || !canCommit} onPress={commit} aria-label={t("commitStep")}>
+            =
+          </PadButton>
+          <PadButton className="ok-key" disabled={disabled || !ready} onPress={submit} aria-label={t("submit")}>
+            OK
+          </PadButton>
+        </div>
+      </PadDock>
     </div>
   );
 }
