@@ -221,7 +221,7 @@ function WaitingRoom({
           </div>
         </div>
 
-        <div className="stack" style={{ gap: 10 }}>
+        <div className="stack" style={{ gap: 8 }}>
           <h3>{t("lobby.players", { count: snap.players.length, max: MAX_PLAYERS })}</h3>
           <div className="slots" data-testid="lobby-slots">
             {Array.from({ length: MAX_PLAYERS }, (_, i) => {

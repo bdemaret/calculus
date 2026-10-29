@@ -31,7 +31,7 @@ export function InviteFriends({ code, presentIds }: { code: string; presentIds: 
   };
 
   return (
-    <div className="stack" style={{ gap: 10 }}>
+    <div className="stack" style={{ gap: 8 }}>
       <h3>{t("lobbyTitle")}</h3>
       {invitable.length ? (
         <ul className="friend-list compact">

@@ -75,7 +75,7 @@ function NoGuild({ invites }: { invites: ReceivedGuildInvite[] }) {
       <p className="muted">{t("intro", { max: GUILD_MAX_MEMBERS })}</p>
 
       {invites.length ? (
-        <div className="stack" style={{ gap: 10 }}>
+        <div className="stack" style={{ gap: 8 }}>
           <h3>{t("invitesTitle")}</h3>
           <ul className="friend-list">
             {invites.map((i) => (
@@ -167,12 +167,12 @@ function MyGuild({ guild, meId }: { guild: GuildView; meId: string }) {
       <GuildHead guild={guild} leader={leader} />
       <GuildLobby alone={guild.members.length < 2} />
 
-      <div className="stack" style={{ gap: 10 }}>
+      <div className="stack" style={{ gap: 8 }}>
         <h3>{t("onlineTitle", { count: online.length })}</h3>
         <MemberList members={online} meId={meId} leader={leader} />
       </div>
       {offline.length ? (
-        <div className="stack" style={{ gap: 10 }}>
+        <div className="stack" style={{ gap: 8 }}>
           <h3>{t("offlineTitle", { count: offline.length })}</h3>
           <MemberList members={offline} meId={meId} leader={leader} />
         </div>
@@ -231,7 +231,7 @@ function GuildHead({ guild, leader }: { guild: GuildView; leader: boolean }) {
   }
 
   return (
-    <div className="stack" style={{ gap: 12 }}>
+    <div className="stack" style={{ gap: 16 }}>
       <div className="profile-head">
         <GuildCrest className="lg" name={guild.name} crest={guild.crest} />
         <div>
@@ -466,7 +466,7 @@ function InviteMembers({ guild }: { guild: GuildView }) {
       </form>
 
       {guild.invitableFriends.length && !full ? (
-        <div className="stack" style={{ gap: 10 }}>
+        <div className="stack" style={{ gap: 8 }}>
           <h4>{t("friendsTitle")}</h4>
           <ul className="friend-list compact">
             {guild.invitableFriends.map((f) => (
@@ -485,7 +485,7 @@ function InviteMembers({ guild }: { guild: GuildView }) {
       ) : null}
 
       {guild.invites.length ? (
-        <div className="stack" style={{ gap: 10 }}>
+        <div className="stack" style={{ gap: 8 }}>
           <h4>{t("pendingTitle")}</h4>
           <ul className="friend-list compact">
             {guild.invites.map((i) => (

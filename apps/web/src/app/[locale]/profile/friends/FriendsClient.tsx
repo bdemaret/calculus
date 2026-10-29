@@ -64,7 +64,7 @@ export function FriendsClient({ data }: { data: FriendsData }) {
   }
 
   return (
-    <div className="stack" style={{ gap: 28 }}>
+    <div className="stack" style={{ gap: 32 }}>
       <Margin>
         <MarginNote value={t("friends.margin")} />
       </Margin>
@@ -95,7 +95,7 @@ export function FriendsClient({ data }: { data: FriendsData }) {
       </form>
 
       {data.incoming.length ? (
-        <div className="stack" style={{ gap: 10 }}>
+        <div className="stack" style={{ gap: 8 }}>
           <h3>{t("friends.incomingTitle")}</h3>
           <ul className="friend-list">
             {data.incoming.map((u) => (
@@ -116,7 +116,7 @@ export function FriendsClient({ data }: { data: FriendsData }) {
         </div>
       ) : null}
 
-      <div className="stack" style={{ gap: 10 }}>
+      <div className="stack" style={{ gap: 8 }}>
         <h3>{t("friends.listTitle", { count: data.friends.length })}</h3>
         {data.friends.length ? (
           <ul className="friend-list">
@@ -155,7 +155,7 @@ export function FriendsClient({ data }: { data: FriendsData }) {
       </div>
 
       {data.outgoing.length ? (
-        <div className="stack" style={{ gap: 10 }}>
+        <div className="stack" style={{ gap: 8 }}>
           <h3>{t("friends.outgoingTitle")}</h3>
           <ul className="friend-list">
             {data.outgoing.map((u) => (

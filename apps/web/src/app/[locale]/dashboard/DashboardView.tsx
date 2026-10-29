@@ -73,7 +73,8 @@ export function DashboardView({ data, name }: { data: DashboardData; name: strin
       <div className="two">
         <div className="stack">
           <h3>{t("dashboard.progressTitle")}</h3>
-          <div style={{ width: "100%", height: 220 }}>
+          {/* Hauteur multiple de la petite ligne (8 px), pour garder le pas du quadrillage. */}
+          <div style={{ width: "100%", height: 224 }}>
             <ResponsiveContainer>
               <LineChart data={progress} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
                 <CartesianGrid vertical={false} strokeDasharray="0" />
