@@ -35,6 +35,7 @@ import { celebrate, sfx } from "@/lib/sound";
 import { SOLO_ACTIVITY_PING_MS, SoloActivity } from "@/lib/soloActivity";
 import { local } from "@/lib/storage";
 import { useShowTips } from "@/lib/tips";
+import { useGameOnScreen } from "@/lib/useGameOnScreen";
 import { useTouch } from "@/lib/useTouch";
 
 /**
@@ -69,6 +70,7 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
   const [, force] = useState(0);
   const tips = useShowTips();
   const touch = useTouch();
+  const gameSection = useGameOnScreen(phase === "countdown");
 
   const engine = useRef<GameEngine | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -385,7 +387,7 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
   const totalLabel = settings.mode === "speed-race" && e ? `/${e.totalRounds}` : "";
 
   return (
-    <section className="game">
+    <section ref={gameSection} className="game">
       <Margin>
         <MarginNote value={`${(shown?.index ?? 0) + 1}${totalLabel}`} label={t("game.round")} />
         <MarginNote value={<span className="grade">{me?.score ?? 0}</span>} label={settings.mode === "speed-race" ? t("game.points") : t("game.correct")} />
