@@ -90,7 +90,7 @@ button, input { font: inherit; color: inherit; }
   main :is(h1, h2, h3, h4, p, li, .lede, .hint, .note, .tag, .calc),
   .site-footer a, .margin-note, .brand-name
 ):not(:is(.choice, .technique-card, .lobby-card, .panel, .mode-card, .stats, .ranking, .review-list, .rv,
-  .games, .profile-card, .invite-notice, .lobby-banner, .friend-list, .danger-zone, .keypad, .btn, .seg, .chip, .achievement,
+  .games, .profile-card, .invite-notice, .lobby-banner, .friend-list, .daily-save, .daily-done, .danger-zone, .keypad, .btn, .seg, .chip, .achievement,
   h1, h2, h3, h4, p, li) *) {
   --lh-box: var(--lh, round(up, calc(var(--leading, 1.4) * 1em), var(--sub)));
   line-height: var(--lh-box);
@@ -527,6 +527,7 @@ a { color: var(--ink); }
 .form-ok { color: var(--ok); font-size: 15px; }
 .nav-link { color: var(--muted); text-decoration: none; font-size: 15px; padding: 0 10px; height: calc(var(--sub) * 5); display: inline-flex; align-items: center; border-radius: 999px; border: 1.5px solid var(--line-strong); }
 .nav-link:hover { color: var(--ink); border-color: var(--ink); }
+.nav-link.nav-daily { background: var(--hl); color: var(--on-hl); border-color: var(--ink-deep); font-weight: 700; }
 /* Lignes de 40 px : traits en box-shadow intérieur, qui ne comptent pas dans la hauteur. */
 .games { width: 100%; border-collapse: collapse; background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--line-strong); border-radius: 14px; overflow: hidden; font-size: 15px; }
 .games th, .games td { text-align: left; padding: 8px 14px; box-shadow: inset 0 -1px 0 var(--line); font-variant-numeric: tabular-nums; }

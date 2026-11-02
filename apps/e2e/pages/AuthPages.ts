@@ -8,6 +8,11 @@ export class AuthPages {
 
   async signup(user: TestUser) {
     await this.page.goto("/fr/signup");
+    await this.fillSignup(user);
+  }
+
+  /** Remplit et envoie le formulaire d'inscription déjà à l'écran. */
+  async fillSignup(user: TestUser) {
     await this.page.getByLabel(t("auth.name")).fill(user.name);
     await this.page.getByLabel(t("auth.email")).fill(user.email);
     await this.page.getByLabel(t("auth.password")).fill(user.password);

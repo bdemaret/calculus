@@ -53,6 +53,7 @@ model User {
   achievements    UserAchievement[]
   titles          UserTitle[]
   counters        UserCounter[]
+  dailyRuns       DailyRun[]
 
   @@map("user")
 }
@@ -481,4 +482,49 @@ model SoloPlay {
   @@index([startedAt])
   @@index([endedAt, lastSeenAt])
   @@map("solo_play")
+}
+
+/* ---------- Calcul du jour ---------- */
+
+/// Graine d'un jour, tirée côté serveur à la première demande : le même calcul pour tous, imprévisible avant le jour J.
+model DailyChallenge {
+  /// Jour à Paris, « 2026-11-01 »
+  date      String     @id
+  seed      String
+  /// Renseigné quand le gagnant du jour a été désigné : plus aucun score ne peut entrer au classement
+  settledAt DateTime?
+  runs      DailyRun[]
+
+  @@index([settledAt])
+  @@map("daily_challenge")
+}
+
+/// Essai d'un joueur (un seul par jour pour un compte). Le serveur tient le chrono : aucun temps ne vient du navigateur.
+model DailyRun {
+  id          String         @id @default(cuid())
+  date        String
+  challenge   DailyChallenge @relation(fields: [date], references: [date], onDelete: Cascade)
+  /// Secret gardé par le navigateur : c'est lui qui désigne l'essai d'un invité, et permet de le rattacher à un compte
+  token       String         @unique
+  /// Null pour un invité (hors classement tant qu'il n'a pas de compte)
+  userId      String?
+  user        User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Calcul en cours, ou prochain calcul à poser
+  index       Int            @default(0)
+  /// Heure serveur à laquelle le calcul en cours a été envoyé ; null entre deux calculs
+  questionAt  DateTime?
+  correct     Int            @default(0)
+  /// Temps total de calcul, en ms : les corrections et pauses entre deux calculs n'y entrent pas
+  totalTimeMs Int            @default(0)
+  /// Réponses données : tableau de `{ value, correct, timeMs }`, value null si le temps s'est écoulé
+  answers     Json           @default("[]")
+  startedAt   DateTime
+  finishedAt  DateTime?
+  /// Meilleur score du jour, posé à la clôture : compteur du succès `daily-champion`
+  won         Boolean        @default(false)
+
+  @@unique([date, userId])
+  @@index([date, finishedAt, correct, totalTimeMs])
+  @@index([userId, won])
+  @@map("daily_run")
 }

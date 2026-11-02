@@ -16,3 +16,4 @@ export * from "./publicLobbies";
 export * from "./techniques";
 export * from "./solo";
 export * from "./achievements";
+export * from "./daily";

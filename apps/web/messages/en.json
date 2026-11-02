@@ -26,7 +26,8 @@
     "profileRequests": "{name}, {count, plural, one {# pending friend request} other {# pending friend requests}}",
     "guild": "Guild",
     "guildInvites": "Guild, {count, plural, one {# pending invitation} other {# pending invitations}}",
-    "learn": "Techniques"
+    "learn": "Techniques",
+    "daily": "Daily calc"
   },
   "home": {
     "title": "Who’s the <hl>fastest</hl> at mental math?",
@@ -632,7 +633,7 @@
               "Your feedback: the message sent from “Send feedback”, its type, the page it came from and, if you are not signed in, the email you choose to leave.",
               "Technical data: the IP address and browser linked to each sign-in, and your IP address to limit repeated attempts (abuse protection)."
             ],
-            "Without an account, you play as a guest: nothing is saved in solo games. Online, your guest name is saved with the game if other players have an account.",
+            "Without an account, you play as a guest: nothing is saved in solo games, except the daily calc, whose attempt (answers and times, no name) is kept for two days at most so you can save it to an account. Online, your guest name is saved with the game if other players have an account.",
             "Theme, sound and some settings are kept in your browser (local storage) and are never sent to us."
           ]
         },
@@ -651,7 +652,7 @@
           "title": "What other players can see",
           "body": [
             [
-              "Your username, Elo, leaderboard position, number of games, win rate, achievements and title are public. Achievements unlocked by an online game are shown to the players of that game.",
+              "Your username, Elo, leaderboard position, number of games, win rate, achievements, title and daily calc score are public. Achievements unlocked by an online game are shown to the players of that game.",
               "Your profile photo is only visible to you, your friends and your guild members, who can also see whether you are online. A guild’s crest is visible to the signed-in players it invites.",
               "Results of an online game (usernames, scores, answers) are visible to anyone with the link to its report, which is shared with the game’s players.",
               "Your email address is never displayed. A player who already knows it can use it to send you a friend request."
@@ -1289,6 +1290,10 @@
       "name": "Every floor",
       "desc": "Win a ranked game at every level"
     },
+    "daily-champion": {
+      "name": "Daily champion",
+      "desc": "Get the best score of a daily calc"
+    },
     "br-wins-10": {
       "name": "Survivor",
       "desc": "Win 10 ranked battle royales"
@@ -1492,5 +1497,49 @@
     "titlesEmpty": "Some achievements grant a title, shown under your username.",
     "titlesLabel": "Choose my title",
     "titlesError": "Your title could not be saved."
+  },
+  "daily": {
+    "title": "Daily calc",
+    "margin": "today",
+    "loading": "Loading…",
+    "cardKicker": "new every day at midnight",
+    "cardSub": "{rounds} calculations from Easy to Legend, the same for everyone. One attempt.",
+    "cardGo": "Take the challenge →",
+    "doneTitle": "Daily calc done:",
+    "doneScore": "{correct}/{total}",
+    "doneRank": "#{rank} today",
+    "seeBoard": "See the leaderboard",
+    "saveScore": "Save my score",
+    "lede": "{rounds} calculations, from Easy to Legend, the same for every player today. You only get one attempt. Correct answers count first, then total time.",
+    "rule": "Only answering time counts, not corrections.",
+    "start": "Start",
+    "resume": "Resume at calculation {round}/{total}",
+    "guestNote": "No account needed to play: you can log in or sign up at the end to save your score.",
+    "error": "The server isn’t responding. Your attempt isn’t lost: reload the page to resume it.",
+    "retry": "Reload",
+    "resultTitle": "Your daily calc",
+    "totalTime": "Total time: {time}",
+    "rankOf": "Today’s rank: {rank} of {total}",
+    "wouldRank": "With an account, you’d be #{rank} today.",
+    "saved": "Score saved.",
+    "saveTitle": "Your score isn’t saved yet",
+    "saveText": "Log in or sign up now to enter today’s leaderboard.",
+    "signup": "Create an account",
+    "login": "Log in",
+    "detail": "Calculation details",
+    "calculation": "Calculation",
+    "yourAnswer": "Your answer",
+    "correct": "Correct",
+    "time": "Time",
+    "boardToday": "Today’s leaderboard",
+    "boardOf": "Leaderboard for {day}",
+    "boardLabel": "Leaderboard for {day}",
+    "boardMe": "Your rank",
+    "boardRule": "The best score at midnight wins the “Daily champion” achievement.",
+    "boardEmpty": "Nobody is ranked for this day yet.",
+    "daysLabel": "Other days",
+    "previousDay": "← Previous day",
+    "nextDay": "Next day →",
+    "backToToday": "Back to the daily calc"
   }
 }

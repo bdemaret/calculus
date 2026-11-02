@@ -7,12 +7,24 @@
 .warmup-try { justify-self: start; max-width: 100%; padding: 10px 18px; border-radius: var(--radius-card); border: 2px dashed var(--line-strong); background: var(--surface); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
 .warmup-try:active { transform: translateY(2px); }
 .warmup-calc { font-size: 40px; font-weight: 760; line-height: 1; letter-spacing: -0.03em; font-variation-settings: "opsz" 96, "wdth" 82; font-variant-numeric: tabular-nums; }
+/* Le calcul du jour : le plus visible de l'accueil tant qu'il n'est pas fait. */
+.daily-home { max-width: 760px; padding-bottom: 32px; }
+a.daily-card { background: var(--hl); color: var(--on-hl); min-height: 0; }
+.daily-card .choice-sub { max-width: 44ch; }
+.daily-card:hover .choice-title, .daily-card:focus-visible .choice-title { background-image: linear-gradient(var(--surface), var(--surface)); color: var(--text); }
+.daily-card .choice-kicker { color: var(--on-hl); }
+.daily-card-go { position: relative; font-weight: 750; }
+.daily-done { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sub) 16px; margin: 0; padding: 10px 16px; border-radius: var(--radius-card); background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--line-strong), inset 6px 0 0 var(--hl); }
 @media (max-width: 1040px) {
   /* Une seule colonne (globals.css range hero, choix et lobbys avec order) : l'échauffement suit le titre. */
-  .home .warmup { order: 1; }
+  .home .daily-home, .home .warmup { order: 1; }
 }
 @media (max-width: 640px) {
   /* Sur téléphone, les deux façons de jouer passent avant l'échauffement. */
   .home .hero { padding-bottom: 24px; }
+  /* Le calcul du jour reste en tête sans repousser les deux façons de jouer hors du premier écran. */
+  .home .daily-home { padding-bottom: 16px; }
+  .daily-card { padding: 14px 16px; }
+  .daily-card .choice-sub { display: none; }
   .home .warmup { order: 3; padding: 40px 0 0; }
 }

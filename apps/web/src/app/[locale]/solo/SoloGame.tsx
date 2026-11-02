@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useLocale, useTranslations } from "next-intl";
 import {
   GAMES,
@@ -25,10 +24,9 @@ import { CalcLine } from "@/components/CalcLine";
 import { Check } from "@/components/Check";
 import { ExpressionBuilder } from "@/components/ExpressionBuilder";
 import { GameReportView } from "@/components/GameReportView";
-import { MathText } from "@/components/MathText";
 import { Margin, MarginNote } from "@/components/Margin";
+import { RoundCorrection } from "@/components/RoundCorrection";
 import { SettingsForm } from "@/components/SettingsForm";
-import { TechniqueSteps } from "@/components/TechniqueSteps";
 import { TimerBar } from "@/components/TimerBar";
 import { answerFromInput, revealSeparator, shownAnswer } from "@/lib/answer";
 import { formatSeconds } from "@/lib/format";
@@ -80,9 +78,6 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
   const startedAt = useRef(0);
   const startButton = useRef<HTMLButtonElement>(null);
   const [showStart, setShowStart] = useState(false);
-  // « Suivant » a-t-il été appuyé lui-même ? Sur téléphone, OK répond dès que le doigt se pose et la
-  // correction s'ouvre sous ce doigt : le clic émis quand il se relève tomberait sur « Suivant ».
-  const nextPressed = useRef(false);
 
   const activity = useRef<SoloActivity | null>(null);
 
@@ -349,48 +344,6 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
   // Correction d'une erreur : la réponse donnée, et la technique au calcul mental (si les conseils sont affichés).
   const given = phase === "review" && myClosed ? shownAnswer(myClosed) : "";
   const hint = phase === "review" && closed && tips.show && closed.question.puzzle.game === "standard" ? detectTechnique(closed.question.text) : null;
-  // Sur téléphone, le pavé est ancré en bas de l'écran (PadDock) : la correction et « Suivant » se posent
-  // par-dessus, dans body comme lui, au lieu de passer dessous. Le pavé ne sert à rien pendant la correction.
-  const review =
-    phase === "review" && closed ? (
-      <div className={`solo-review${touch ? " docked" : ""}`}>
-        {given ? (
-          <p>
-            {t("solo.yourAnswer")} <s className="ko">{given}</s>
-          </p>
-        ) : null}
-        <p>
-          {t("solo.correction")}{" "}
-          <span className="solo-review-calc">
-            <MathText text={closed.question.text} /> <span className="eq">{revealSeparator(closed.question.puzzle.game)}</span>{" "}
-            <b>{closed.question.solution}</b>
-          </span>
-        </p>
-        {hint ? (
-          <div className="practice-explain">
-            <h3>{t(`techniques.${hint.technique}.name`)}</h3>
-            <TechniqueSteps hint={hint} />
-          </div>
-        ) : null}
-        <div className="actions">
-          <button
-            className="btn"
-            type="button"
-            autoFocus
-            onPointerDown={() => (nextPressed.current = true)}
-            onClick={(ev) => {
-              const pressed = nextPressed.current;
-              nextPressed.current = false;
-              // detail vaut 0 pour un clic au clavier (Entrée, Espace) : il n'a pas d'appui à vérifier.
-              if (ev.detail !== 0 && !pressed) return;
-              advance();
-            }}
-          >
-            {e?.isOver ? t("solo.seeReport") : t("solo.next")}
-          </button>
-        </div>
-      </div>
-    ) : null;
   const totalLabel = settings.mode === "speed-race" && e ? `/${e.totalRounds}` : "";
 
   return (
@@ -447,7 +400,18 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
           )
         ) : null}
       </p>
-      {review ? (touch ? createPortal(review, document.body) : review) : null}
+      {phase === "review" && closed ? (
+        <RoundCorrection
+          given={given}
+          text={closed.question.text}
+          separator={revealSeparator(closed.question.puzzle.game)}
+          solution={closed.question.solution}
+          hint={hint}
+          nextLabel={e?.isOver ? t("solo.seeReport") : t("solo.next")}
+          onNext={advance}
+          touch={touch}
+        />
+      ) : null}
       <div className="actions">
         <button
           className="link-btn"

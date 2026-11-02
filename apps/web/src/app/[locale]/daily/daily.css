@@ -1,0 +1,8 @@
+/* Page du calcul du jour. */
+.daily-intro { display: grid; gap: 16px; }
+.daily-score { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; }
+.daily-score .grade { width: 96px; height: 96px; font-size: 32px; }
+.daily-save { display: grid; gap: 16px; padding: 22.5px; background: var(--surface); border: 2px solid var(--ink-deep); border-radius: var(--radius-card); box-shadow: var(--sticker); }
+.daily-save p { margin: 0; }
+.daily-days { display: flex; justify-content: space-between; gap: 16px; }
+.daily-level { font-family: var(--font-hand); font-size: 24px; font-weight: 700; color: var(--margin-red); }

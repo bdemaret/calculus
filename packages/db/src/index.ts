@@ -1,6 +1,9 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import {
   ACHIEVEMENTS,
+  DAILY_GRACE_MS,
+  DAILY_LATE_MS,
+  DAILY_ROUNDS,
   GAMES,
   GAME_IDS,
   INITIAL_RATING,
@@ -9,6 +12,9 @@ import {
   closestAnswers,
   computeRatingChanges,
   countersDelta,
+  dailyDate,
+  dailyQuestion,
+  dailyTimeLimitMs,
   describeRatingChange,
   evaluateAchievements,
   factsOf,
@@ -33,7 +39,7 @@ import {
   type Standing,
   type Unlock,
 } from "@calculus/game-core";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { FEEDBACK_GUESTS_PER_HOUR, FEEDBACK_PER_USER_PER_HOUR, type FeedbackKindName } from "./feedback";
 import { GUILD_MAX_MEMBERS, GUILD_MAX_PENDING_INVITES, GUILD_NAME_MIN, GUILD_ONLINE_MS, cleanGuildName } from "./guild";
 
@@ -308,13 +314,20 @@ export async function saveGame(input: SaveGameInput): Promise<SavedGame> {
   return { id: gameId, ratings, unlocks };
 }
 
-/** Compteurs des succès sociaux, relus à la source plutôt que stockés. */
-async function socialCounters(db: Prisma.TransactionClient, userId: string): Promise<Counters> {
-  const [friends, member] = await Promise.all([
+/** Compteurs des succès hors parties (amis, guilde, calcul du jour), relus à la source plutôt que stockés. */
+async function sourceCounters(db: Prisma.TransactionClient, userId: string): Promise<Counters> {
+  const [friends, member, dailyWins] = await Promise.all([
     db.friendship.count({ where: { status: "accepted", OR: [{ requesterId: userId }, { addresseeId: userId }] } }),
     db.guildMember.findUnique({ where: { userId }, select: { role: true } }),
+    db.dailyRun.count({ where: { userId, won: true } }),
   ]);
-  return { friends, "guild-member": member ? 1 : 0, "guild-leader": member?.role === "leader" ? 1 : 0 };
+  return { friends, "guild-member": member ? 1 : 0, "guild-leader": member?.role === "leader" ? 1 : 0, "daily-wins": dailyWins };
+}
+
+/** Succès hors parties que les compteurs de ce compte viennent d'atteindre. */
+async function sourceUnlocks(db: Prisma.TransactionClient, userId: string): Promise<Unlock[]> {
+  const [counters, owned] = await Promise.all([sourceCounters(db, userId), db.userAchievement.findMany({ where: { userId }, select: { achievementId: true } })]);
+  return evaluateAchievements(null, counters, new Set(owned.map((o) => o.achievementId)));
 }
 
 /**
@@ -324,8 +337,7 @@ async function socialCounters(db: Prisma.TransactionClient, userId: string): Pro
 export async function grantSocialAchievements(userIds: string[]): Promise<void> {
   try {
     for (const userId of userIds) {
-      const [counters, owned] = await Promise.all([socialCounters(prisma, userId), prisma.userAchievement.findMany({ where: { userId }, select: { achievementId: true } })]);
-      const earned = evaluateAchievements(null, counters, new Set(owned.map((o) => o.achievementId)));
+      const earned = await sourceUnlocks(prisma, userId);
       await prisma.$transaction((tx) => grantUnlocks(tx, earned.map((unlock) => ({ userId, unlock, gameId: null }))));
     }
   } catch (err) {
@@ -354,7 +366,7 @@ export async function getAchievements(userId: string): Promise<AchievementStatus
   const [owned, rows, social] = await Promise.all([
     prisma.userAchievement.findMany({ where: { userId } }),
     prisma.userCounter.findMany({ where: { userId } }),
-    socialCounters(prisma, userId),
+    sourceCounters(prisma, userId),
   ]);
   const byId = new Map(owned.map((a) => [a.achievementId, a]));
   const counters = { ...Object.fromEntries(rows.map((r) => [r.key, r.value])), ...social };
@@ -449,7 +461,7 @@ export async function backfillAchievements(userId: string, { dryRun = false } = 
         }
       }
       // Amitiés et guildes d'avant les succès : aucun événement ne les débloquerait.
-      earn(evaluateAchievements(null, { ...counters, ...(await socialCounters(tx, userId)) }, owned), null, now);
+      earn(evaluateAchievements(null, { ...counters, ...(await sourceCounters(tx, userId)) }, owned), null, now);
 
       if (!dryRun) {
         await tx.userCounter.deleteMany({ where: { userId } });
@@ -1541,6 +1553,313 @@ export async function eraseUserGames(userId: string): Promise<void> {
     prisma.game.deleteMany({ where: { solo: true, players: { some: { userId } } } }),
     prisma.gamePlayer.updateMany({ where: { userId }, data: { displayName: "" } }),
   ]);
+}
+
+/* ------------------------------------------------------------------ */
+/* Calcul du jour                                                       */
+/* ------------------------------------------------------------------ */
+
+/** Taille du classement affiché pour un jour. */
+export const DAILY_BOARD_SIZE = 100;
+
+/** Une réponse enregistrée dans `DailyRun.answers`. */
+interface DailyAnswerRow {
+  value: number | null;
+  correct: boolean;
+  timeMs: number;
+}
+
+/** Calcul en cours, sans la réponse. */
+export interface DailyQuestionView {
+  index: number;
+  difficulty: Difficulty;
+  text: string;
+  timeLimitMs: number;
+  /** Temps restant au moment de la réponse du serveur, en ms */
+  remainingMs: number;
+}
+
+/** Calcul déjà joué : seul moment où sa réponse quitte le serveur. */
+export interface DailyAnswerView {
+  index: number;
+  difficulty: Difficulty;
+  text: string;
+  solution: string;
+  value: number | null;
+  correct: boolean;
+  timeMs: number;
+}
+
+/** Ce que le navigateur reçoit d'un essai. */
+export interface DailyRunView {
+  token: string;
+  date: string;
+  /** Rattaché à un compte : le score est enregistré */
+  saved: boolean;
+  correct: number;
+  totalTimeMs: number;
+  /** Calculs déjà joués */
+  index: number;
+  question: DailyQuestionView | null;
+  answers: DailyAnswerView[];
+  finished: boolean;
+  /** Essai fini : place parmi les comptes (celle qu'aurait un invité une fois inscrit) */
+  rank: number | null;
+  /** Essai fini : comptes classés ce jour-là */
+  players: number;
+}
+
+export interface DailyBoardEntry {
+  userId: string;
+  name: string;
+  rank: number;
+  correct: number;
+  totalTimeMs: number;
+}
+
+export interface DailyBoard {
+  date: string;
+  /** Gagnant désigné : le classement de ce jour ne bouge plus */
+  settled: boolean;
+  top: DailyBoardEntry[];
+  players: number;
+  /** Ligne du joueur connecté, même hors du top */
+  me: DailyBoardEntry | null;
+}
+
+type DailyRunRow = Prisma.DailyRunGetPayload<{ include: { challenge: true } }>;
+
+const rankedRuns = (date: string) => ({ date, userId: { not: null }, finishedAt: { not: null } });
+
+/** Un essai reste jouable le jour même, puis `DAILY_LATE_MS` après minuit. */
+const runIsOpen = (date: string, now: Date) => date >= dailyDate(now.getTime() - DAILY_LATE_MS);
+
+/** Place d'un score parmi les comptes : ex æquo à la même place. */
+function dailyRank(date: string, score: { correct: number; totalTimeMs: number }): Promise<number> {
+  return prisma.dailyRun
+    .count({
+      where: {
+        ...rankedRuns(date),
+        OR: [{ correct: { gt: score.correct } }, { correct: score.correct, totalTimeMs: { lt: score.totalTimeMs } }],
+      },
+    })
+    .then((ahead) => ahead + 1);
+}
+
+async function dailyRunView(run: DailyRunRow, now: Date): Promise<DailyRunView> {
+  const seed = run.challenge.seed;
+  const rows = run.answers as unknown as DailyAnswerRow[];
+  const answers = rows.map((a, index) => {
+    const q = dailyQuestion(seed, index);
+    return { index, difficulty: q.difficulty, text: q.text, solution: q.solution, ...a };
+  });
+  let question: DailyQuestionView | null = null;
+  if (run.questionAt) {
+    const q = dailyQuestion(seed, run.index);
+    const timeLimitMs = dailyTimeLimitMs(run.index);
+    question = {
+      index: run.index,
+      difficulty: q.difficulty,
+      text: q.text,
+      timeLimitMs,
+      remainingMs: Math.max(0, timeLimitMs - (now.getTime() - run.questionAt.getTime())),
+    };
+  }
+  const finished = run.finishedAt !== null;
+  return {
+    token: run.token,
+    date: run.date,
+    saved: run.userId !== null,
+    correct: run.correct,
+    totalTimeMs: run.totalTimeMs,
+    index: run.index,
+    question,
+    answers,
+    finished,
+    rank: finished ? await dailyRank(run.date, run) : null,
+    players: finished ? await prisma.dailyRun.count({ where: rankedRuns(run.date) }) : 0,
+  };
+}
+
+/**
+ * Clôt le calcul en cours avec `value` (null : temps écoulé). Le temps est mesuré ici, à l'heure du serveur.
+ * Une seule clôture passe si deux demandes se croisent : l'essai relu dit alors où on en est.
+ */
+async function closeDailyQuestion(run: DailyRunRow, value: number | null, now: Date): Promise<DailyRunRow> {
+  if (!run.questionAt) return run;
+  const limit = dailyTimeLimitMs(run.index);
+  const elapsed = now.getTime() - run.questionAt.getTime();
+  const inTime = elapsed <= limit + DAILY_GRACE_MS;
+  const given = inTime ? value : null;
+  const correct = given !== null && given === dailyQuestion(run.challenge.seed, run.index).answer;
+  const timeMs = given === null ? limit : Math.min(elapsed, limit);
+  const rows = run.answers as unknown as DailyAnswerRow[];
+  const index = run.index + 1;
+  const row: DailyAnswerRow = { value: given, correct, timeMs };
+  await prisma.dailyRun.updateMany({
+    where: { id: run.id, index: run.index, questionAt: { not: null } },
+    data: {
+      index,
+      questionAt: null,
+      correct: run.correct + (correct ? 1 : 0),
+      totalTimeMs: run.totalTimeMs + timeMs,
+      answers: [...rows, row] as unknown as Prisma.InputJsonValue,
+      finishedAt: index >= DAILY_ROUNDS ? now : null,
+    },
+  });
+  return prisma.dailyRun.findUniqueOrThrow({ where: { id: run.id }, include: { challenge: true } });
+}
+
+/** Un calcul laissé sans réponse (page fermée) compte comme temps écoulé dès que son temps est passé. */
+async function closeExpiredQuestion(run: DailyRunRow, now: Date): Promise<DailyRunRow> {
+  if (!run.questionAt || now.getTime() - run.questionAt.getTime() <= dailyTimeLimitMs(run.index) + DAILY_GRACE_MS) return run;
+  return closeDailyQuestion(run, null, now);
+}
+
+/** Essai d'un joueur : par son compte s'il est connecté, sinon par son jeton (celui d'un compte reste à ce compte). */
+function findDailyRun(date: string, userId: string | null, token: string | null): Promise<DailyRunRow | null> {
+  if (userId) return prisma.dailyRun.findUnique({ where: { date_userId: { date, userId } }, include: { challenge: true } });
+  if (!token) return Promise.resolve(null);
+  return prisma.dailyRun.findFirst({ where: { date, token, userId: null }, include: { challenge: true } });
+}
+
+/** Rattache l'essai d'un invité au compte qui vient de se connecter, sauf si ce compte a déjà joué ce jour-là ou si le jour est clos. */
+async function claimDailyRun(userId: string, token: string): Promise<void> {
+  const run = await prisma.dailyRun.findUnique({ where: { token }, include: { challenge: true } });
+  if (!run || run.userId !== null || run.challenge.settledAt) return;
+  await prisma.dailyRun.update({ where: { id: run.id }, data: { userId } }).catch((e: unknown) => {
+    // Le compte a déjà un essai ce jour-là : c'est celui-là qui compte.
+    if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")) throw e;
+  });
+}
+
+/**
+ * Essai en cours ou fini du joueur pour le jour de `now`, null s'il n'a pas commencé.
+ * Un compte qui arrive avec le jeton d'un essai d'invité le récupère : c'est l'inscription de fin de partie.
+ */
+export async function getDailyRun(userId: string | null, token: string | null, now: Date): Promise<DailyRunView | null> {
+  if (userId && token) await claimDailyRun(userId, token);
+  const date = dailyDate(now.getTime());
+  let run = await findDailyRun(date, userId, token);
+  // Essai commencé avant minuit et encore jouable : on le reprend avant d'en ouvrir un nouveau.
+  const yesterday = dailyDate(now.getTime() - DAILY_LATE_MS);
+  if (!run && yesterday !== date) {
+    const late = await findDailyRun(yesterday, userId, token);
+    if (late && !late.finishedAt) run = late;
+  }
+  if (!run) return null;
+  return dailyRunView(await closeExpiredQuestion(run, now), now);
+}
+
+/** Commence l'essai du jour, ou rend celui qui existe déjà : un compte n'a qu'un essai. */
+export async function startDailyRun(userId: string | null, token: string | null, now: Date): Promise<DailyRunView> {
+  const existing = await getDailyRun(userId, token, now);
+  if (existing) return existing;
+  const date = dailyDate(now.getTime());
+  await prisma.dailyChallenge.createMany({ data: { date, seed: randomBytes(16).toString("hex") }, skipDuplicates: true });
+  const newToken = randomUUID();
+  // Deux demandes simultanées d'un même compte : une seule ligne, retrouvée par le compte.
+  await prisma.dailyRun.createMany({ data: { date, userId, token: newToken, startedAt: now }, skipDuplicates: true });
+  const run = await findDailyRun(date, userId, newToken);
+  if (!run) throw new Error("Essai du jour introuvable après sa création");
+  return dailyRunView(run, now);
+}
+
+/** Essai visé par une demande en cours de partie, encore jouable. */
+async function openDailyRun(userId: string | null, token: string | null, now: Date): Promise<DailyRunRow | null> {
+  if (!token) return null;
+  const run = await prisma.dailyRun.findUnique({ where: { token }, include: { challenge: true } });
+  if (!run || (run.userId !== null && run.userId !== userId)) return null;
+  return runIsOpen(run.date, now) ? run : null;
+}
+
+/** Pose le calcul suivant et lance son chrono ; rend le même calcul s'il est déjà en cours (page rechargée). Null si l'essai n'existe plus. */
+export async function nextDailyQuestion(userId: string | null, token: string | null, now: Date): Promise<DailyRunView | null> {
+  const found = await openDailyRun(userId, token, now);
+  if (!found) return null;
+  const run = await closeExpiredQuestion(found, now);
+  if (run.questionAt || run.finishedAt) return dailyRunView(run, now);
+  await prisma.dailyRun.updateMany({ where: { id: run.id, index: run.index, questionAt: null }, data: { questionAt: now } });
+  return dailyRunView(await prisma.dailyRun.findUniqueOrThrow({ where: { id: run.id }, include: { challenge: true } }), now);
+}
+
+/** Répond au calcul en cours (`value` null : temps écoulé). Une réponse en double ne change rien. Null si l'essai n'existe plus. */
+export async function answerDailyQuestion(userId: string | null, token: string | null, value: number | null, now: Date): Promise<DailyRunView | null> {
+  const run = await openDailyRun(userId, token, now);
+  if (!run) return null;
+  return dailyRunView(await closeDailyQuestion(run, value, now), now);
+}
+
+/** Résultat du jour d'un compte, pour l'accueil. Null s'il n'a pas fini son essai. */
+export async function getDailyResult(userId: string, now: Date): Promise<{ correct: number; totalTimeMs: number; rank: number } | null> {
+  const date = dailyDate(now.getTime());
+  const run = await prisma.dailyRun.findUnique({ where: { date_userId: { date, userId } }, select: { correct: true, totalTimeMs: true, finishedAt: true } });
+  if (!run?.finishedAt) return null;
+  return { correct: run.correct, totalTimeMs: run.totalTimeMs, rank: await dailyRank(date, run) };
+}
+
+/** Classement d'un jour : le plus de bons calculs, puis le temps total ; places ex æquo « 1, 2, 2, 4 ». */
+export async function getDailyBoard(date: string, viewerId?: string): Promise<DailyBoard> {
+  const [challenge, rows, players, mine] = await Promise.all([
+    prisma.dailyChallenge.findUnique({ where: { date }, select: { settledAt: true } }),
+    prisma.dailyRun.findMany({
+      where: rankedRuns(date),
+      orderBy: [{ correct: "desc" }, { totalTimeMs: "asc" }, { finishedAt: "asc" }],
+      take: DAILY_BOARD_SIZE,
+      select: { userId: true, correct: true, totalTimeMs: true, user: { select: { name: true } } },
+    }),
+    prisma.dailyRun.count({ where: rankedRuns(date) }),
+    viewerId
+      ? prisma.dailyRun.findFirst({
+          where: { ...rankedRuns(date), userId: viewerId },
+          select: { userId: true, correct: true, totalTimeMs: true, user: { select: { name: true } } },
+        })
+      : null,
+  ]);
+  const toEntry = (r: (typeof rows)[number], rank: number): DailyBoardEntry => ({
+    userId: r.userId!,
+    name: r.user?.name ?? "",
+    rank,
+    correct: r.correct,
+    totalTimeMs: r.totalTimeMs,
+  });
+  const top: DailyBoardEntry[] = [];
+  rows.forEach((r, i) => {
+    const prev = rows[i - 1];
+    const tied = prev && prev.correct === r.correct && prev.totalTimeMs === r.totalTimeMs;
+    top.push(toEntry(r, tied ? top[i - 1]!.rank : i + 1));
+  });
+  return { date, settled: !!challenge?.settledAt, top, players, me: mine ? toEntry(mine, await dailyRank(date, mine)) : null };
+}
+
+/**
+ * Désigne les gagnants des jours terminés : le meilleur score du jour (avec au moins un bon calcul) gagne `DailyRun.won`, qui débloque le succès,
+ * à égalité parfaite tous ceux qui l'ont fait. Sans tâche planifiée sur le site, n'importe quelle visite s'en charge ;
+ * `settledAt`, posé dans la transaction, évite de le faire deux fois. Les essais d'invités, devenus inutiles, sont effacés.
+ */
+export async function settleDailyChallenges(now: Date): Promise<void> {
+  const closedBefore = dailyDate(now.getTime() - DAILY_LATE_MS);
+  const due = await prisma.dailyChallenge.findMany({ where: { settledAt: null, date: { lt: closedBefore } }, select: { date: true } });
+  for (const { date } of due) {
+    await prisma.$transaction(async (tx) => {
+      const { count } = await tx.dailyChallenge.updateMany({ where: { date, settledAt: null }, data: { settledAt: now } });
+      if (count === 0) return;
+      const best = await tx.dailyRun.findFirst({
+        where: { ...rankedRuns(date), correct: { gt: 0 } },
+        orderBy: [{ correct: "desc" }, { totalTimeMs: "asc" }],
+        select: { correct: true, totalTimeMs: true },
+      });
+      if (best) {
+        const winners = await tx.dailyRun.findMany({ where: { ...rankedRuns(date), ...best }, select: { userId: true } });
+        await tx.dailyRun.updateMany({ where: { ...rankedRuns(date), ...best }, data: { won: true } });
+        for (const { userId } of winners) {
+          const earned = await sourceUnlocks(tx, userId!);
+          await grantUnlocks(tx, earned.map((unlock) => ({ userId: userId!, unlock, gameId: null })));
+        }
+      }
+      await tx.dailyRun.deleteMany({ where: { date, userId: null } });
+    });
+  }
 }
 
 /* ------------------------------------------------------------------ */

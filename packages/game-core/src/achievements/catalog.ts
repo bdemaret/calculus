@@ -108,6 +108,8 @@ export const ACHIEVEMENTS: readonly AchievementDefinition[] = [
   { id: "all-games", category: "journey", tier: "silver", target: { every: GAME_IDS.map((g) => `games:${g}`) }, title: "all-rounder" },
   { id: "all-games-win", category: "journey", tier: "gold", online: true, target: { every: GAME_IDS.map((g) => `wins:${g}`) }, title: "polymath" },
   { id: "all-levels", category: "journey", tier: "gold", online: true, target: { every: DIFFICULTIES.map((d) => `wins:level:${d}`) } },
+  // Chronométré par le serveur, comme une partie en ligne. Le compteur vient de `DailyRun.won`.
+  { id: "daily-champion", category: "journey", tier: "gold", target: { counter: "daily-wins", value: 1 } },
 
   /* ---------- Modes ---------- */
   ...ladder(

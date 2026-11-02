@@ -26,7 +26,8 @@
     "profileRequests": "{name}, {count, plural, one {# demande d’ami en attente} other {# demandes d’ami en attente}}",
     "guild": "Guilde",
     "guildInvites": "Guilde, {count, plural, one {# invitation en attente} other {# invitations en attente}}",
-    "learn": "Techniques"
+    "learn": "Techniques",
+    "daily": "Calcul du jour"
   },
   "home": {
     "title": "Qui calcule le plus <hl>vite</hl> ?",
@@ -631,7 +632,7 @@
               "Tes retours : le message envoyé depuis « Faire un retour », son type, la page d’où il vient et, si tu n’es pas connecté, l’e-mail que tu choisis de laisser.",
               "Données techniques : l’adresse IP et le navigateur associés à chaque connexion, et ton adresse IP pour limiter les tentatives répétées (protection contre les abus)."
             ],
-            "Sans compte, tu joues en invité : rien n’est enregistré en solo. En ligne, ton pseudo d’invité est enregistré avec la partie si d’autres joueurs ont un compte.",
+            "Sans compte, tu joues en invité : rien n’est enregistré en solo, sauf le calcul du jour, dont l’essai (réponses et temps, sans pseudo) est gardé au plus deux jours pour que tu puisses l’enregistrer sur un compte. En ligne, ton pseudo d’invité est enregistré avec la partie si d’autres joueurs ont un compte.",
             "Le thème, le son et certains réglages sont gardés dans ton navigateur (stockage local) et ne nous sont jamais envoyés."
           ]
         },
@@ -650,7 +651,7 @@
           "title": "Ce qui est visible par les autres joueurs",
           "body": [
             [
-              "Ton pseudo, ton Elo, ta place au classement, ton nombre de parties, ton pourcentage de victoires, tes succès et ton titre sont publics. Les succès débloqués par une partie en ligne sont montrés aux joueurs de cette partie.",
+              "Ton pseudo, ton Elo, ta place au classement, ton nombre de parties, ton pourcentage de victoires, tes succès, ton titre et ton score au calcul du jour sont publics. Les succès débloqués par une partie en ligne sont montrés aux joueurs de cette partie.",
               "Ta photo de profil n’est visible que par toi, tes amis et les membres de ta guilde, qui voient aussi si tu es en ligne. Le blason d’une guilde est visible par les joueurs connectés qu’elle invite.",
               "Les résultats d’une partie en ligne (pseudos, scores, réponses) sont visibles par toute personne qui a le lien de son rapport, partagé avec les joueurs de la partie.",
               "Ton adresse e-mail n’est jamais affichée. Un joueur qui la connaît déjà peut s’en servir pour t’envoyer une demande d’ami."
@@ -1286,6 +1287,10 @@
       "name": "Tous les étages",
       "desc": "Gagner une partie classée à chaque niveau"
     },
+    "daily-champion": {
+      "name": "Champion du jour",
+      "desc": "Faire le meilleur score d’un calcul du jour"
+    },
     "br-wins-10": {
       "name": "Survie",
       "desc": "Gagner 10 battles royales classées"
@@ -1489,5 +1494,49 @@
     "titlesEmpty": "Certains succès offrent un titre, qui s’affiche sous ton pseudo.",
     "titlesLabel": "Choisir mon titre",
     "titlesError": "Le titre n’a pas pu être enregistré."
+  },
+  "daily": {
+    "title": "Calcul du jour",
+    "margin": "du jour",
+    "loading": "Chargement…",
+    "cardKicker": "nouveau chaque jour à minuit",
+    "cardSub": "{rounds} calculs de Facile à Légende, les mêmes pour tout le monde. Un seul essai.",
+    "cardGo": "Relever le défi →",
+    "doneTitle": "Calcul du jour fait :",
+    "doneScore": "{correct}/{total}",
+    "doneRank": "{rank, plural, =1 {1er} other {#ᵉ}} du jour",
+    "seeBoard": "Voir le classement",
+    "saveScore": "Enregistrer mon score",
+    "lede": "{rounds} calculs, de Facile à Légende, les mêmes pour tous les joueurs aujourd’hui. Tu n’as qu’un essai. On compte d’abord les bons calculs, puis le temps total.",
+    "rule": "Seul le temps de réponse compte, pas les corrections.",
+    "start": "Commencer",
+    "resume": "Reprendre au calcul {round}/{total}",
+    "guestNote": "Pas besoin de compte pour jouer : tu pourras te connecter ou t’inscrire à la fin pour enregistrer ton score.",
+    "error": "Le serveur ne répond pas. Ton essai n’est pas perdu : recharge la page pour le reprendre.",
+    "retry": "Recharger",
+    "resultTitle": "Ton calcul du jour",
+    "totalTime": "Temps total : {time}",
+    "rankOf": "Place du jour : {rank} sur {total}",
+    "wouldRank": "Avec un compte, tu serais {rank, plural, =1 {1er} other {#ᵉ}} du jour.",
+    "saved": "Score enregistré.",
+    "saveTitle": "Ton score n’est pas encore enregistré",
+    "saveText": "Connecte-toi ou inscris-toi maintenant pour entrer au classement du jour.",
+    "signup": "Créer un compte",
+    "login": "Se connecter",
+    "detail": "Détail des calculs",
+    "calculation": "Calcul",
+    "yourAnswer": "Ta réponse",
+    "correct": "Bons calculs",
+    "time": "Temps",
+    "boardToday": "Classement du jour",
+    "boardOf": "Classement du {day}",
+    "boardLabel": "Classement du {day}",
+    "boardMe": "Ta place",
+    "boardRule": "Le meilleur score à minuit remporte le succès « Champion du jour ».",
+    "boardEmpty": "Personne n’est encore classé ce jour-là.",
+    "daysLabel": "Autres jours",
+    "previousDay": "← Jour précédent",
+    "nextDay": "Jour suivant →",
+    "backToToday": "Retour au calcul du jour"
   }
 }

@@ -32,9 +32,15 @@ function useErrorText() {
   };
 }
 
+/** Page d'arrivée après connexion : `?next=/daily` ramène au calcul du jour pour y enregistrer son score. Aucune autre valeur n'est suivie. */
+function useAfterAuth() {
+  return useSearchParams().get("next") === "/daily" ? ("/daily" as const) : null;
+}
+
 export function LoginForm() {
   const t = useTranslations("auth");
   const router = useRouter();
+  const afterAuth = useAfterAuth();
   const errorText = useErrorText();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +57,7 @@ export function LoginForm() {
           const { error } = await authClient.signIn.email({ email: String(f.get("email")), password: String(f.get("password")) });
           setBusy(false);
           if (error) return setError(errorText(error.code, error.message ?? `${error.status ?? ""} ${error.statusText ?? ""}`.trim(), error.status));
-          router.push("/dashboard");
+          router.push(afterAuth ?? "/dashboard");
           router.refresh();
         }}
       >
@@ -72,7 +78,7 @@ export function LoginForm() {
         <Link href="/forgot-password">{t("forgot")}</Link>
       </p>
       <p className="muted">
-        {t("noAccount")} <Link href="/signup">{t("signupLink")}</Link>
+        {t("noAccount")} <Link href={afterAuth ? { pathname: "/signup", query: { next: afterAuth } } : "/signup"}>{t("signupLink")}</Link>
       </p>
       <p className="note">{t("guestHint")}</p>
     </section>
@@ -82,6 +88,7 @@ export function LoginForm() {
 export function SignupForm() {
   const t = useTranslations("auth");
   const router = useRouter();
+  const afterAuth = useAfterAuth();
   const errorText = useErrorText();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +108,7 @@ export function SignupForm() {
           const { error } = await authClient.signUp.email({ name, email: String(f.get("email")), password: String(f.get("password")) });
           setBusy(false);
           if (error) return setError(errorText(error.code, error.message ?? `${error.status ?? ""} ${error.statusText ?? ""}`.trim(), error.status));
-          router.push("/dashboard");
+          router.push(afterAuth ?? "/dashboard");
           router.refresh();
         }}
       >
@@ -135,7 +142,7 @@ export function SignupForm() {
         {error ? <p className="form-error">{error}</p> : null}
       </form>
       <p className="muted">
-        {t("haveAccount")} <Link href="/login">{t("loginLink")}</Link>
+        {t("haveAccount")} <Link href={afterAuth ? { pathname: "/login", query: { next: afterAuth } } : "/login"}>{t("loginLink")}</Link>
       </p>
     </section>
   );
