@@ -870,6 +870,14 @@
     "noticeOpen": "Voir les nouveautés",
     "noticeDismiss": "Fermer",
     "notes": {
+      "v1_2_0": [
+        "Calcul du jour : cinq calculs de Facile à Légende, les mêmes pour tout le monde, un seul essai par jour et un classement quotidien.",
+        "Succès et titres : débloque des succès en jouant et choisis le titre affiché sous ton pseudo depuis ton profil.",
+        "En ligne : si ta connexion saute, le site te reconnecte tout seul et tu reprends ta place dans la partie.",
+        "Lobby : les boutons pour lancer ou quitter restent en bas de l’écran pendant que tu règles la partie.",
+        "Sur mobile, une partie démarre en haut de l’écran, sans en-tête ni pied de page.",
+        "Corrections : en solo sur téléphone, la correction reprend toute la largeur et « Suivant » ne se déclenche plus tout seul après l’appui sur OK."
+      ],
       "v1_1_0": [
         "Solo : après une erreur, la bonne réponse reste affichée jusqu’à ce que tu passes au calcul suivant.",
         "Sur mobile, le pavé numérique reste ancré en bas de l’écran et chaque touche réagit dès l’appui.",

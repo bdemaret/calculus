@@ -9,9 +9,9 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return { title: t("signupTitle") };
 }
 
-export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
+export default async function Page({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ next?: string | string[] }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   if (await getSession().catch(() => null)) redirect({ href: "/dashboard", locale });
-  return <SignupForm />;
+  return <SignupForm next={(await searchParams).next} />;
 }

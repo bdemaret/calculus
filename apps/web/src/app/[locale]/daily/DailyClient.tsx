@@ -204,8 +204,9 @@ export function DailyClient({ loggedIn, children }: Props) {
   const reviewing = phase === "result" || phase === "review";
   const closed = reviewing ? last : undefined;
   // En attendant le calcul suivant, on garde celui qu'on vient de jouer plutôt qu'une ligne vide.
-  const text = phase === "question" || phase === "waiting" ? (run?.question?.text ?? "") : (closed?.text ?? "");
-  const difficulty = run?.question?.difficulty ?? closed?.difficulty;
+  const shown = run?.question ?? closed ?? (phase === "waiting" ? last : undefined);
+  const text = shown?.text ?? "";
+  const difficulty = shown?.difficulty;
   const hint = phase === "review" && closed && tips.show ? detectTechnique(closed.text) : null;
   const round = closed ? closed.index + 1 : Math.min((run?.index ?? 0) + 1, DAILY_ROUNDS);
 

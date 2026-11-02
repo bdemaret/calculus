@@ -23,6 +23,7 @@ Gestionnaire de paquets : **pnpm 10** uniquement (`corepack enable`). Node ≥ 2
 3. `pnpm e2e` si un parcours joueur a changé (ajouter ou adapter le test e2e correspondant).
 4. Changement d'UI : vérifier dans le navigateur (`.claude/launch.json` → `web`), en `fr` **et** `en`, et sur largeur mobile.
 5. Changement de schéma : migration créée et committée.
+6. Avant de pousser sur `main` (qui déploie) : `pnpm build`. Les e2e tournent en `next dev` et ne voient pas les erreurs de prérendu, comme un `useSearchParams` sans `Suspense`.
 
 ## Style de code
 
@@ -38,6 +39,5 @@ Gestionnaire de paquets : **pnpm 10** uniquement (`corepack enable`). Node ≥ 2
 
 ## Feuille de route (pas encore fait)
 
-- Gamification : succès et titres (voir `plans/gamification.md`)
 - Mode entraînement ciblé sur les points faibles
 - Bombe en solo contre l'ordinateur (écartée du premier jet des nouveaux jeux, voir `plans/nouveaux-jeux.md`)

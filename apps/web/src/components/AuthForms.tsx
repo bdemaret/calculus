@@ -32,15 +32,16 @@ function useErrorText() {
   };
 }
 
-/** Page d'arrivée après connexion : `?next=/daily` ramène au calcul du jour pour y enregistrer son score. Aucune autre valeur n'est suivie. */
-function useAfterAuth() {
-  return useSearchParams().get("next") === "/daily" ? ("/daily" as const) : null;
-}
+/** `?next=` de la page, lu côté serveur : `useSearchParams` ici ferait échouer le prérendu de `next build`. */
+type AuthFormProps = { next?: string | string[] };
 
-export function LoginForm() {
+/** Page d'arrivée après connexion : `?next=/daily` ramène au calcul du jour pour y enregistrer son score. Aucune autre valeur n'est suivie. */
+const afterAuthPath = (next: AuthFormProps["next"]) => (next === "/daily" ? ("/daily" as const) : null);
+
+export function LoginForm({ next }: AuthFormProps) {
   const t = useTranslations("auth");
   const router = useRouter();
-  const afterAuth = useAfterAuth();
+  const afterAuth = afterAuthPath(next);
   const errorText = useErrorText();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,10 +86,10 @@ export function LoginForm() {
   );
 }
 
-export function SignupForm() {
+export function SignupForm({ next }: AuthFormProps) {
   const t = useTranslations("auth");
   const router = useRouter();
-  const afterAuth = useAfterAuth();
+  const afterAuth = afterAuthPath(next);
   const errorText = useErrorText();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

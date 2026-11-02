@@ -873,6 +873,14 @@
     "noticeOpen": "See what’s new",
     "noticeDismiss": "Dismiss",
     "notes": {
+      "v1_2_0": [
+        "Daily calc: five calculations from Easy to Legend, the same for everyone, one attempt a day and a daily leaderboard.",
+        "Achievements and titles: unlock achievements as you play and pick the title shown under your username from your profile.",
+        "Online: if your connection drops, the site reconnects you automatically and you get your place back in the game.",
+        "Lobby: the buttons to start or leave stay at the bottom of the screen while you set up the game.",
+        "On mobile, a game now starts at the top of the screen, with no header or footer.",
+        "Fixes: in solo on a phone, the correction is full width again, and “Next” no longer triggers by itself after tapping OK."
+      ],
       "v1_1_0": [
         "Solo: after a mistake, the right answer stays on screen until you move on to the next one.",
         "On mobile, the keypad stays docked at the bottom of the screen and each key reacts as soon as you press it.",

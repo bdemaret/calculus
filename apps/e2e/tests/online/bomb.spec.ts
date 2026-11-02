@@ -119,6 +119,12 @@ test.describe("la bombe", () => {
       const alice = await host("Alice", { ...BOMB, operations: [...BOMB.operations], buildTime: 45 });
       const page = alice.page;
       const socketsOf = await controlSockets(page);
+      // Sur un build de production, la reprise peut être si rapide que le message passe entre deux lectures de Playwright.
+      await page.addInitScript((text) => {
+        new MutationObserver(() => {
+          if (document.querySelector(".status")?.textContent?.includes(text)) (window as { reconnectSeen?: boolean }).reconnectSeen = true;
+        }).observe(document, { subtree: true, childList: true, characterData: true });
+      }, t("lobby.reconnecting"));
       const code = await alice.create();
       const [bot] = await bots(code, ["Bot"]);
       bot!.buildBombs(() => "idle");
@@ -135,7 +141,7 @@ test.describe("la bombe", () => {
         if (failure === "coupée") await socket.route.close({ code: 3000 });
         else socket.muted = true;
       }
-      await expect(page.getByText(t("lobby.reconnecting"))).toBeVisible({ timeout: 15_000 });
+      await expect.poll(() => page.evaluate(() => (window as { reconnectSeen?: boolean }).reconnectSeen ?? false), { timeout: 20_000 }).toBe(true);
       await expect(page.getByText(t("lobby.reconnecting"))).toBeHidden({ timeout: 25_000 });
 
       await expect(page.getByText(t("lobby.disconnectedTitle"))).toBeHidden();

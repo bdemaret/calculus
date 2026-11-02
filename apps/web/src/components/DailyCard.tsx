@@ -21,7 +21,8 @@ export function DailyCard({ today, loggedIn, result }: Props) {
   const [guest, setGuest] = useState<{ correct: number; totalTimeMs: number } | null>(null);
   useEffect(() => {
     const stored = readDaily();
-    if (!loggedIn && stored?.date === today && stored.finished) setGuest(stored);
+    // `saved` : l'essai d'un compte déconnecté depuis, que le visiteur ne peut pas reprendre comme invité.
+    if (!loggedIn && stored?.date === today && stored.finished && !stored.saved) setGuest(stored);
   }, [loggedIn, today]);
 
   const done = result ?? guest;
