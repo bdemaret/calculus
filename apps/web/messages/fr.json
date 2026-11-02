@@ -181,6 +181,7 @@
     "cannotJoin": "Impossible d’entrer dans le lobby {code}",
     "backToOnline": "Retour à « Jouer en ligne »",
     "connecting": "Connexion au lobby…",
+    "reconnecting": "Connexion perdue, reconnexion…",
     "disconnectedTitle": "Tu n’es plus dans le lobby",
     "disconnectedText": "La connexion a été coupée, ou l’hôte t’a retiré de la partie.",
     "code": "Code du lobby",
