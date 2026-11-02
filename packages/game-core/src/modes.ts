@@ -58,6 +58,8 @@ export const battleRoyale: GameModeRules = {
     for (const p of concerned) if (wins(answerOf(round, p.id))) p.score += 1;
 
     const multiplayer = engine.players.length > 1;
+    // Le dernier adversaire vient de partir en pleine manche : le survivant gagne, même sans avoir répondu.
+    if (multiplayer && engine.players.filter((p) => p.alive).length === 1) return;
     const everyoneFailed = failed.length === concerned.length && failed.length > 1;
     if (multiplayer && engine.settings.turnStyle === "simultaneous" && everyoneFailed) {
       // Tous les survivants se trompent : personne n'est éliminé, sinon il n'y aurait pas de gagnant.

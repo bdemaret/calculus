@@ -10,6 +10,17 @@ let client: Client | null = null;
 let current: Room | null = null;
 
 const RECONNECT_KEY = "calculus:reconnect";
+/** Code de fermeture d'un départ voulu (quitter, exclusion) : rien à reconnecter. */
+const CONSENTED_CLOSE = 4000;
+/** Le serveur garde la place 30 s (`RECONNECT_SECONDS`) : on retente jusque-là. */
+const RECONNECT_WINDOW_MS = 28_000;
+const RECONNECT_RETRY_MS = 1000;
+/**
+ * Un réseau de téléphone qui décroche ne ferme pas le WebSocket côté navigateur : ce qu'on envoie se perd
+ * sans erreur. On demande donc l'état au serveur à intervalle régulier, et un silence vaut coupure.
+ */
+const HEARTBEAT_MS = 4000;
+const SILENCE_MS = 10_000;
 
 /**
  * Adresse du serveur de jeu. Si elle vise `localhost` alors que la page est ouverte depuis une autre
@@ -96,14 +107,17 @@ export interface LobbyState {
   typing: { playerId: string; value: string } | null;
   /** La bombe : réponse du serveur à la dernière bombe envoyée. */
   bombAck: ServerMessages["bomb-ack"] | null;
+  /** Connexion perdue : la reconnexion est en cours, la partie reste à l'écran. */
+  reconnecting: boolean;
   left: boolean;
 }
 
 const stores = new WeakMap<Room, { state: LobbyState; listeners: Set<() => void> }>();
 
-function attach(room: Room) {
+/** `previous` : l'état de la connexion perdue, gardé pour que la partie reste à l'écran (et la saisie en cours avec elle). */
+function attach(room: Room, previous?: LobbyState) {
   const store = {
-    state: { playerId: null, snapshot: null, clockOffset: 0, lastAck: null, typing: null, bombAck: null, left: false } as LobbyState,
+    state: { playerId: null, snapshot: null, clockOffset: 0, lastAck: null, typing: null, bombAck: null, reconnecting: false, left: false, ...previous } as LobbyState,
     listeners: new Set<() => void>(),
   };
   const update = (patch: Partial<LobbyState>) => {
@@ -111,7 +125,28 @@ function attach(room: Room) {
     store.listeners.forEach((l) => l());
   };
   room.onMessage("welcome", (m: { playerId: string }) => update({ playerId: m.playerId }));
+  let lastHeard = Date.now();
+  let dropped = false;
+  /** Connexion perdue sans que le joueur l'ait voulu : on reprend sa place. */
+  const drop = () => {
+    if (dropped) return;
+    dropped = true;
+    clearInterval(heartbeat);
+    update({ reconnecting: true });
+    void room.leave(false);
+    void recover(room, () => store.state, () => update({ reconnecting: false, left: true }));
+  };
+  let lastBeat = lastHeard;
+  const heartbeat = setInterval(() => {
+    const now = Date.now();
+    // Onglet en arrière-plan ou téléphone en veille : le minuteur a pris du retard, ce silence ne prouve rien.
+    if (now - lastBeat > 2 * HEARTBEAT_MS) lastHeard = now;
+    lastBeat = now;
+    if (now - lastHeard > SILENCE_MS) drop();
+    else room.send("hello", {});
+  }, HEARTBEAT_MS);
   room.onMessage("snapshot", (snap: RoomSnapshot) => {
+    lastHeard = Date.now();
     const patch: Partial<LobbyState> = { snapshot: snap, clockOffset: snap.serverNow - Date.now() };
     if (snap.phase !== "question") patch.typing = null;
     // Nouvelle partie : les accusés de la précédente ne valent plus (sinon leur son rejoue au remontage de l'écran de jeu).
@@ -126,7 +161,16 @@ function attach(room: Room) {
   room.onMessage("bomb-ack", (ack: ServerMessages["bomb-ack"]) => update({ bombAck: ack }));
   room.onMessage("typing", (t: { playerId: string; value: string }) => update({ typing: t }));
   room.onMessage("error", () => {});
-  room.onLeave(() => update({ left: true }));
+  room.onLeave((code) => {
+    if (dropped) return;
+    if (code !== CONSENTED_CLOSE) {
+      drop();
+      return;
+    }
+    clearInterval(heartbeat);
+    update({ left: true });
+    if (current === room) setCurrent(null);
+  });
   stores.set(room, store);
   // Redemande l'état complet, au cas où des messages seraient arrivés avant l'écoute.
   room.send("hello", {});
@@ -161,17 +205,40 @@ export function readCurrentLobby(): Room | null {
   return current;
 }
 
-function remember(room: Room) {
-  attach(room);
+function remember(room: Room, previous?: LobbyState) {
+  attach(room, previous);
   // On n'est jamais dans deux lobbys à la fois : l'ancien est quitté.
   if (current && current !== room) void current.leave(true);
   setCurrent(room);
   try {
     sessionStorage.setItem(RECONNECT_KEY, JSON.stringify({ roomId: room.roomId, token: room.reconnectionToken }));
   } catch {}
-  room.onLeave(() => {
-    if (current === room) setCurrent(null);
-  });
+}
+
+/**
+ * Reprend la place du joueur après une coupure. Tant que le serveur n'a pas vu la coupure, il refuse :
+ * on retente. S'arrête si le joueur a quitté entre-temps ou si le serveur ne garde plus sa place.
+ */
+async function recover(room: Room, lastState: () => LobbyState, giveUp: () => void) {
+  const token = room.reconnectionToken;
+  const deadline = Date.now() + RECONNECT_WINDOW_MS;
+  while (current === room && Date.now() < deadline) {
+    try {
+      const back = await getClient().reconnect(token);
+      if (current !== room) {
+        void back.leave(true);
+        return;
+      }
+      // Pas `setCurrent(null)` : `remember` quitterait la salle courante, et personne n'a à voir ce passage.
+      current = null;
+      remember(back, { ...lastState(), reconnecting: false });
+      return;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, RECONNECT_RETRY_MS));
+    }
+  }
+  giveUp();
+  if (current === room) setCurrent(null);
 }
 
 export async function createLobby(name: string, settings: GameSettings): Promise<Room> {

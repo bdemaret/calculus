@@ -42,7 +42,7 @@ export function DailyClient({ loggedIn, children }: Props) {
   const [deadline, setDeadline] = useState<number | null>(null);
   const tips = useShowTips();
   const touch = useTouch();
-  const gameSection = useGameOnScreen(phase === "countdown");
+  useGameOnScreen(phase === "countdown" || phase === "waiting" || phase === "question" || phase === "result" || phase === "review");
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const later = (fn: () => void, ms: number) => {
     timers.current.push(setTimeout(fn, ms));
@@ -210,7 +210,7 @@ export function DailyClient({ loggedIn, children }: Props) {
   const round = closed ? closed.index + 1 : Math.min((run?.index ?? 0) + 1, DAILY_ROUNDS);
 
   return (
-    <section ref={gameSection} className="game">
+    <section className="game">
       <Margin>
         <MarginNote value={`${round}/${DAILY_ROUNDS}`} label={t("game.round")} />
         <MarginNote value={<span className="grade">{run?.correct ?? 0}</span>} label={t("game.correct")} />

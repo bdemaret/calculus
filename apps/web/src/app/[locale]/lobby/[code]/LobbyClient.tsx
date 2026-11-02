@@ -16,7 +16,7 @@ import { Avatar, PlayerChips, type ChipPlayer } from "@/components/PlayerChips";
 import { PlayerTitle } from "@/components/PlayerTitle";
 import { SettingsForm } from "@/components/SettingsForm";
 import { TimerBar } from "@/components/TimerBar";
-import { JoinError, joinLobby, leaveLobby, readRoom, subscribeRoom, type LobbyState } from "@/lib/colyseus";
+import { JoinError, joinLobby, leaveLobby, readCurrentLobby, readRoom, subscribeCurrentLobby, subscribeRoom, type LobbyState } from "@/lib/colyseus";
 import { answerFromInput, answerKindOfPuzzle, revealSeparator, shownAnswer } from "@/lib/answer";
 import { formatSeconds } from "@/lib/format";
 import { cleanName } from "@/lib/names";
@@ -45,6 +45,16 @@ export function LobbyClient({ code, accountName }: Props) {
         .then(setRoom)
         .catch((err) => setError(err instanceof JoinError ? err.code : "generic"));
     },
+    [code],
+  );
+
+  // Après une coupure, la reconnexion remplace la salle : la page la suit.
+  useEffect(
+    () =>
+      subscribeCurrentLobby(() => {
+        const current = readCurrentLobby();
+        if (current?.roomId === code) setRoom(current);
+      }),
     [code],
   );
 
@@ -315,7 +325,7 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
   const [now, setNow] = useState(() => Date.now());
   const lastPhase = useRef<string>("");
   const lastAckIndex = useRef<number | null>(null);
-  const gameSection = useGameOnScreen(snap.phase === "countdown");
+  useGameOnScreen(true);
 
   const meP = snap.players.find((p) => p.id === me);
   const question = snap.question;
@@ -331,6 +341,11 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
   useEffect(() => {
     setValue("");
   }, [question?.index]);
+
+  // Reconnecté : une réponse envoyée pendant la coupure s'est perdue, le joueur peut la renvoyer.
+  useEffect(() => {
+    setSentFor(null);
+  }, [room]);
 
   // Compte à rebours affiché (avant la partie, et pendant la pause entre deux manches).
   useEffect(() => {
@@ -437,7 +452,7 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
   const countLeft = localDeadline ? Math.max(1, Math.ceil((localDeadline - now) / 1000)) : 3;
 
   return (
-    <section ref={gameSection} className="game">
+    <section className="game">
       <Margin>
         <MarginNote value={`${(last?.index ?? snap.roundIndex) + 1}${snap.totalRounds ? `/${snap.totalRounds}` : ""}`} label={t("game.round")} />
         <MarginNote value={<span className="grade">{meP?.score ?? 0}</span>} label={snap.settings.mode === "speed-race" ? t("game.points") : t("game.correct")} />
@@ -446,7 +461,7 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
         deadline={snap.phase === "question" || snap.phase === "build" ? localDeadline : null}
         totalMs={snap.timeLimitMs ?? 1}
       />
-      <p className="status">{status}</p>
+      <p className="status">{state.reconnecting ? t("lobby.reconnecting") : status}</p>
       {snap.phase === "countdown" ? (
         <div className="game-row">
           <span className="count" key={countLeft}>

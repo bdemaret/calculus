@@ -182,6 +182,7 @@
     "cannotJoin": "Can’t enter lobby {code}",
     "backToOnline": "Back to “Play online”",
     "connecting": "Connecting to the lobby…",
+    "reconnecting": "Connection lost, reconnecting…",
     "disconnectedTitle": "You’re no longer in the lobby",
     "disconnectedText": "The connection dropped, or the host removed you from the game.",
     "code": "Lobby code",

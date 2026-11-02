@@ -70,7 +70,7 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
   const [, force] = useState(0);
   const tips = useShowTips();
   const touch = useTouch();
-  const gameSection = useGameOnScreen(phase === "countdown");
+  useGameOnScreen(phase !== "setup" && phase !== "finished");
 
   const engine = useRef<GameEngine | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -347,7 +347,7 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
   const totalLabel = settings.mode === "speed-race" && e ? `/${e.totalRounds}` : "";
 
   return (
-    <section ref={gameSection} className="game">
+    <section className="game">
       <Margin>
         <MarginNote value={`${(shown?.index ?? 0) + 1}${totalLabel}`} label={t("game.round")} />
         <MarginNote value={<span className="grade">{me?.score ?? 0}</span>} label={settings.mode === "speed-race" ? t("game.points") : t("game.correct")} />

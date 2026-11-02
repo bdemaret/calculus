@@ -15,11 +15,18 @@ export function PadDock({ docked, children }: { docked: boolean; children: React
   useLayoutEffect(() => {
     const el = dock.current;
     if (!docked || !el) return;
-    const measure = () => setHeight(el.offsetHeight);
+    const root = document.documentElement;
+    const measure = () => {
+      setHeight(el.offsetHeight);
+      root.style.setProperty("--pad-dock-height", `${el.offsetHeight}px`);
+    };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--pad-dock-height");
+    };
   }, [docked]);
 
   if (!docked) return <>{children}</>;
