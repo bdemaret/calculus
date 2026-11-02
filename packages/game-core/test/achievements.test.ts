@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   ACHIEVEMENT_IDS,
   ACHIEVEMENTS,
+  DEFAULT_TITLE_ID,
   GameEngine,
+  NO_TITLE,
   TITLES,
   TITLE_IDS,
   countersDelta,
@@ -12,6 +14,7 @@ import {
   factsOf,
   progressOf,
   replaySolo,
+  wornTitle,
   type FactsInput,
   type GameFacts,
   type GameSettings,
@@ -78,7 +81,15 @@ describe("catalogue", () => {
   it("relie chaque titre à un succès, et réciproquement", () => {
     const offered = ACHIEVEMENTS.flatMap((a) => (a.title ? [a.title] : []));
     expect(new Set(offered).size).toBe(offered.length);
-    expect([...offered].sort()).toEqual([...TITLE_IDS].sort());
+    expect([...offered].sort()).toEqual(TITLE_IDS.filter((id) => id !== DEFAULT_TITLE_ID).sort());
+  });
+
+  it("donne le titre par défaut à un compte qui n'en a pas choisi", () => {
+    expect(TITLE_IDS).toContain(DEFAULT_TITLE_ID);
+    expect(wornTitle(null)).toBe(DEFAULT_TITLE_ID);
+    expect(wornTitle("regular")).toBe("regular");
+    expect(wornTitle(NO_TITLE)).toBeNull();
+    expect(TITLE_IDS).not.toContain(NO_TITLE);
   });
 
   it("ne donne un titre de prestige qu'en ligne", () => {

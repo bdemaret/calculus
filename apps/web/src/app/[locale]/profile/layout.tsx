@@ -4,8 +4,8 @@ import { countUnseenAchievements, getTitles, prisma } from "@calculus/db";
 import { redirect } from "@/i18n/navigation";
 import { getSession } from "@/lib/auth";
 import { Avatar } from "@/components/PlayerChips";
-import { PlayerTitle } from "@/components/PlayerTitle";
 import { ProfileTabs } from "./ProfileTabs";
+import { TitlePicker } from "./TitlePicker";
 
 /** Espace du compte : en-tête (photo, pseudo, date d'inscription) et onglets profil, succès, amis, préférences. Chaque page revérifie la session. */
 export default async function ProfileLayout({ children, params }: { children: ReactNode; params: Promise<{ locale: string }> }) {
@@ -24,9 +24,9 @@ export default async function ProfileLayout({ children, params }: { children: Re
     <section className="profile">
       <div className="profile-head">
         <Avatar className="lg" name={session.user.name} image={session.user.image} />
-        <div>
+        <div className="profile-id">
           <h2>{session.user.name}</h2>
-          <PlayerTitle title={titles.current} />
+          <TitlePicker {...titles} />
           <p className="muted">{t("memberSince", { date: format.dateTime(new Date(session.user.createdAt), { dateStyle: "long" }) })}</p>
         </div>
       </div>

@@ -101,6 +101,16 @@ test.describe("la bombe", () => {
       });
       sockets.push(socket);
     });
+    // colyseus.js essaie d'abord `new WebSocket(url, { headers, protocols })` : un navigateur refuse aussitôt et il
+    // se rabat sur la forme normale, mais la WebSocket de `routeWebSocket` accepte puis plante, sans repli possible.
+    await page.addInitScript(() => {
+      const Routed = globalThis.WebSocket;
+      globalThis.WebSocket = class extends Routed {
+        constructor(url: string | URL, protocols?: string | string[] | { protocols?: string | string[] }) {
+          super(url, typeof protocols === "object" && !Array.isArray(protocols) ? protocols.protocols : protocols);
+        }
+      };
+    });
     return (code: string) => sockets.filter((s) => s.route.url().includes(code));
   }
 

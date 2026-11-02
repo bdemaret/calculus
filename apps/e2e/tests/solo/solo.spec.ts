@@ -184,6 +184,7 @@ test.describe("solo connecté", () => {
     await prisma.userTitle.create({ data: { userId, titleId: "night-owl", source: "achievement" } });
     await page.goto("/fr/profile/achievements");
     const title = t("titles.night-owl");
+    await page.getByRole("button", { name: t("achievementsPage.titlesLabel") }).click();
     await page.getByRole("group", { name: t("achievementsPage.titlesLabel") }).getByRole("button", { name: title }).click();
     await expect(page.locator(".profile-head").getByText(title)).toBeVisible();
     await page.goto(`/fr/player/${userId}`);

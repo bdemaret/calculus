@@ -56,3 +56,9 @@ export async function seedGamesFor(email: string): Promise<{ soloId: string; onl
 export async function gameWithPlayers(id: string) {
   return prisma.game.findUnique({ where: { id }, include: { players: { orderBy: { rank: "asc" } } } });
 }
+
+/** Donne à ce compte des titres, comme s'il les avait débloqués. */
+export async function grantTitles(email: string, titleIds: string[]): Promise<void> {
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  await prisma.userTitle.createMany({ data: titleIds.map((titleId) => ({ userId: user.id, titleId, source: "achievement" })) });
+}

@@ -1464,6 +1464,7 @@
     }
   },
   "titles": {
+    "newcomer": "Nouvel inscrit",
     "regular": "Fidèle du tableau",
     "pillar": "Pilier de la classe",
     "top-of-class": "Tête de classe",
@@ -1504,7 +1505,6 @@
     "offersTitle": "Offre le titre « {title} »",
     "fresh": "nouveau",
     "unlockedOn": "Obtenu le {date}",
-    "titlesHeading": "Mon titre",
     "titlesNone": "Aucun",
     "titlesEmpty": "Certains succès offrent un titre, qui s’affiche sous ton pseudo.",
     "titlesLabel": "Choisir mon titre",

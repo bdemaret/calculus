@@ -274,8 +274,18 @@ export const ACHIEVEMENTS: readonly AchievementDefinition[] = [
 
 export const ACHIEVEMENT_IDS: readonly string[] = ACHIEVEMENTS.map((a) => a.id);
 
+/** Titre de tout compte, sans succès à obtenir : il n'a pas de ligne `UserTitle`, et `User.titleId` null le désigne. */
+export const DEFAULT_TITLE_ID = "newcomer";
+
+/** Valeur de `User.titleId` d'un joueur qui a choisi de n'afficher aucun titre. Hors de `TITLES`. */
+export const NO_TITLE = "none";
+
+/** Titre affiché d'un compte à partir de son `User.titleId`, null s'il n'en veut aucun. */
+export const wornTitle = (titleId: string | null): string | null => (titleId === NO_TITLE ? null : (titleId ?? DEFAULT_TITLE_ID));
+
 /** Tous les titres. Formulations épicènes : le site ne connaît pas le genre des joueurs. Textes : `titles.<id>`. */
 export const TITLES: readonly TitleDefinition[] = [
+  { id: DEFAULT_TITLE_ID, rarity: "common" },
   { id: "regular", rarity: "common" },
   { id: "pillar", rarity: "rare" },
   { id: "top-of-class", rarity: "rare" },

@@ -1467,6 +1467,7 @@
     }
   },
   "titles": {
+    "newcomer": "Newcomer",
     "regular": "Blackboard regular",
     "pillar": "Pillar of the class",
     "top-of-class": "Top of the class",
@@ -1507,7 +1508,6 @@
     "offersTitle": "Grants the title “{title}”",
     "fresh": "new",
     "unlockedOn": "Earned on {date}",
-    "titlesHeading": "My title",
     "titlesNone": "None",
     "titlesEmpty": "Some achievements grant a title, shown under your username.",
     "titlesLabel": "Choose my title",

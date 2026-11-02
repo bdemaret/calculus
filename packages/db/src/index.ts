@@ -4,9 +4,11 @@ import {
   DAILY_GRACE_MS,
   DAILY_LATE_MS,
   DAILY_ROUNDS,
+  DEFAULT_TITLE_ID,
   GAMES,
   GAME_IDS,
   INITIAL_RATING,
+  NO_TITLE,
   PLACEMENT_GAMES,
   buildReport,
   closestAnswers,
@@ -20,6 +22,7 @@ import {
   factsOf,
   fallbackBomb,
   progressOf,
+  wornTitle,
   type AchievementCategory,
   type AchievementTier,
   type AnswerRecord,
@@ -385,19 +388,19 @@ export async function getAchievements(userId: string): Promise<AchievementStatus
   });
 }
 
-/** Titres possédés et titre porté. */
+/** Titres possédés, celui par défaut en tête, et titre porté (null : aucun). */
 export async function getTitles(userId: string): Promise<{ owned: string[]; current: string | null }> {
   const [owned, user] = await Promise.all([
     prisma.userTitle.findMany({ where: { userId }, orderBy: { unlockedAt: "asc" }, select: { titleId: true } }),
     prisma.user.findUnique({ where: { id: userId }, select: { titleId: true } }),
   ]);
-  return { owned: owned.map((t) => t.titleId), current: user?.titleId ?? null };
+  return { owned: [DEFAULT_TITLE_ID, ...owned.map((t) => t.titleId)], current: wornTitle(user?.titleId ?? null) };
 }
 
 /** Porte un titre (null : aucun). Faux si le joueur ne le possède pas. */
 export async function setUserTitle(userId: string, titleId: string | null): Promise<boolean> {
-  if (titleId && !(await prisma.userTitle.findUnique({ where: { userId_titleId: { userId, titleId } } }))) return false;
-  await prisma.user.update({ where: { id: userId }, data: { titleId } });
+  if (titleId && titleId !== DEFAULT_TITLE_ID && !(await prisma.userTitle.findUnique({ where: { userId_titleId: { userId, titleId } } }))) return false;
+  await prisma.user.update({ where: { id: userId }, data: { titleId: titleId ?? NO_TITLE } });
   return true;
 }
 
@@ -792,7 +795,7 @@ const toEntry = (r: LeaderboardRow, rank: number, wins: Map<string, number>): Le
   rank,
   userId: r.userId,
   name: r.user.name,
-  title: r.user.titleId,
+  title: wornTitle(r.user.titleId),
   rating: r.rating,
   games: r.games,
   wins: wins.get(r.userId) ?? 0,
@@ -897,7 +900,7 @@ export async function getPlayerProfile(userId: string, viewerId?: string): Promi
     ),
     viewerId ? friendshipState(viewerId, userId) : null,
   ]);
-  return { id: user.id, name: user.name, title: user.titleId, rankings, achievements: { count: owned.size, best }, friendship };
+  return { id: user.id, name: user.name, title: wornTitle(user.titleId), rankings, achievements: { count: owned.size, best }, friendship };
 }
 
 /* ------------------------------------------------------------------ */

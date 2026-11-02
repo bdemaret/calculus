@@ -675,9 +675,27 @@ img.avatar { object-fit: cover; padding: 0; background: var(--line); }
 .player-title[data-rarity="legendary"] { color: var(--ok); }
 .slot-name { display: grid; min-width: 0; }
 .slot .player-title { line-height: 16px; }
-.title-picker { display: grid; gap: var(--sub); }
-.title-picker h3 { margin: 0; }
+/* Choix du titre : la liste se pose par-dessus la page et défile au-delà de six titres. */
+.profile-id { min-width: 0; }
+.title-picker { position: relative; display: grid; justify-items: start; min-width: 0; }
 .title-picker p { margin: 0; }
+.title-picker-toggle { display: flex; align-items: center; gap: var(--sub); max-width: 100%; min-height: 24px; padding: 0; border: 0; background: none; color: inherit; cursor: pointer; }
+.title-picker-toggle::after { content: "▾"; flex: none; color: var(--muted); font-size: 14px; line-height: 24px; }
+.title-picker-toggle[aria-expanded="true"]::after { content: "▴"; }
+.title-picker-list { position: absolute; top: 100%; left: 0; z-index: 20; display: grid; width: 288px; max-width: calc(100vw - 104px); max-height: 272px; overflow-y: auto; overscroll-behavior: contain; padding: 6.5px; border: 1.5px solid var(--line-strong); border-radius: 10px; background: var(--surface); box-shadow: 0 6px 16px color-mix(in srgb, var(--ink) 8%, transparent); }
+.title-picker-list button { display: flex; align-items: center; justify-content: space-between; gap: var(--sub); min-width: 0; min-height: 40px; padding: 0 var(--sub); border: 0; border-radius: 6px; background: none; color: inherit; cursor: pointer; text-align: left; }
+.title-picker-list button:hover { background: var(--paper); }
+.title-picker-list button[aria-pressed="true"]::after { content: "✓"; flex: none; font-weight: 700; }
+.title-picker-list p { padding: var(--sub); font-size: 14px; line-height: 24px; }
+/* L'écriture penchée dépasse de sa boîte : sans marge, la dernière lettre serait coupée. */
+.title-picker .player-title { padding-right: 4px; }
+/* Sur téléphone, la liste prend la largeur de l'en-tête : décalée par la photo, elle sortirait de l'écran. */
+@media (max-width: 640px) {
+  .profile-head { position: relative; }
+  .title-picker { position: static; display: block; }
+  .title-picker-toggle { width: fit-content; }
+  .title-picker-list { top: auto; right: 0; width: auto; max-width: none; }
+}
 /* Suppression de compte */
 .danger-zone { border: 1.5px solid var(--ko); border-radius: 14px; padding: 22.5px; }
 .btn.danger { background: var(--ko); border-color: var(--ko); color: var(--paper); box-shadow: none; }
