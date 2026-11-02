@@ -116,6 +116,12 @@ button, input { font: inherit; color: inherit; }
   flex-direction: column;
 }
 .content { padding-left: var(--pad); padding-block: 0 64px; min-width: 0; max-width: 1080px; }
+/* Partie sur téléphone (useGameOnScreen) : seul le jeu reste, le calcul tient au-dessus du pavé sur les petits écrans.
+   La place du pavé passe en bas de page : le résultat et « Quitter » restent sous le calcul, pas derrière le pavé. */
+@media (pointer: coarse), (max-width: 720px) {
+  html[data-playing] .content > :not(main), html[data-playing] .status:empty, html[data-playing] .pad-dock-space { display: none; }
+  html[data-playing] main { padding-bottom: var(--pad-dock-height, 0px); }
+}
 
 /* En-tête */
 .top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sub) 16px; min-height: calc(var(--grid) * 3); padding-block: 16px; }

@@ -325,7 +325,7 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
   const [now, setNow] = useState(() => Date.now());
   const lastPhase = useRef<string>("");
   const lastAckIndex = useRef<number | null>(null);
-  const gameSection = useGameOnScreen(snap.phase === "countdown");
+  useGameOnScreen(true);
 
   const meP = snap.players.find((p) => p.id === me);
   const question = snap.question;
@@ -452,7 +452,7 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
   const countLeft = localDeadline ? Math.max(1, Math.ceil((localDeadline - now) / 1000)) : 3;
 
   return (
-    <section ref={gameSection} className="game">
+    <section className="game">
       <Margin>
         <MarginNote value={`${(last?.index ?? snap.roundIndex) + 1}${snap.totalRounds ? `/${snap.totalRounds}` : ""}`} label={t("game.round")} />
         <MarginNote value={<span className="grade">{meP?.score ?? 0}</span>} label={snap.settings.mode === "speed-race" ? t("game.points") : t("game.correct")} />
