@@ -263,6 +263,16 @@ function WaitingRoom({
           </div>
         </div>
 
+        {signedIn && snap.players.length < MAX_PLAYERS ? <InviteFriends code={snap.code} presentIds={snap.players.map((p) => p.id)} /> : null}
+      </div>
+
+      <div className="stack">
+        <h3>{t("lobby.rules")}</h3>
+        <SettingsForm id="lobby-settings" settings={snap.settings} onChange={updateSettings} online readOnly={!isHost} />
+      </div>
+
+      {/* Ancré en bas de l'écran : on règle la partie sans avoir à remonter pour la lancer. */}
+      <div className="lobby-dock">
         {snap.isPublic ? (
           <>
             <div className="actions">
@@ -302,12 +312,6 @@ function WaitingRoom({
             </p>
           </>
         )}
-        {signedIn && snap.players.length < MAX_PLAYERS ? <InviteFriends code={snap.code} presentIds={snap.players.map((p) => p.id)} /> : null}
-      </div>
-
-      <div className="stack">
-        <h3>{t("lobby.rules")}</h3>
-        <SettingsForm id="lobby-settings" settings={snap.settings} onChange={updateSettings} online readOnly={!isHost} />
       </div>
     </section>
   );

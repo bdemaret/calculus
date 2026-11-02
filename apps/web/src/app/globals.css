@@ -90,7 +90,7 @@ button, input { font: inherit; color: inherit; }
   main :is(h1, h2, h3, h4, p, li, .lede, .hint, .note, .tag, .calc),
   .site-footer a, .margin-note, .brand-name
 ):not(:is(.choice, .technique-card, .lobby-card, .panel, .mode-card, .stats, .ranking, .review-list, .rv,
-  .games, .profile-card, .invite-notice, .lobby-banner, .friend-list, .daily-save, .daily-done, .danger-zone, .keypad, .btn, .seg, .chip, .achievement,
+  .games, .profile-card, .invite-notice, .lobby-banner, .friend-list, .daily-save, .daily-done, .danger-zone, .lobby-dock, .keypad, .btn, .seg, .chip, .achievement,
   h1, h2, h3, h4, p, li) *) {
   --lh-box: var(--lh, round(up, calc(var(--leading, 1.4) * 1em), var(--sub)));
   line-height: var(--lh-box);
@@ -300,6 +300,16 @@ p { margin: 0; }
 
 /* Lobby */
 .lobby { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+/* Les actions restent à l'écran tant qu'on règle la partie, jusqu'au trait rouge de la marge. */
+.lobby-dock { grid-column: 1 / -1; position: sticky; bottom: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sub) 24px; margin-left: calc(var(--pad) * -1); padding: 12px 0 calc(12px + env(safe-area-inset-bottom)) var(--pad); background: var(--paper); border-top: 1.5px solid var(--line-strong); box-shadow: 0 -6px 16px color-mix(in srgb, var(--ink) 8%, transparent); }
+.lobby-dock .note { margin: 0; }
+/* Sur téléphone, la barre reste basse : les deux boutons sur une ligne, pour laisser voir les réglages. */
+@media (max-width: 720px) {
+  .lobby-dock { gap: 4px; margin-right: -16px; padding: 8px 16px calc(8px + env(safe-area-inset-bottom)) var(--pad); }
+  .lobby-dock .actions { flex-wrap: nowrap; width: 100%; }
+  .lobby-dock .btn { flex: 1; min-width: 0; padding-inline: 8px; font-size: 15px; white-space: nowrap; }
+  .lobby-dock .note { font-size: 17px; }
+}
 .code-boxes { display: flex; gap: 0; }
 .code-boxes span { width: var(--grid); height: calc(var(--grid) * 1.5); display: grid; place-items: center; border: 1.5px solid var(--ink); margin-left: -1.5px; font-size: 28px; font-weight: 800; color: var(--ink); background: var(--surface); font-variant-numeric: tabular-nums; }
 .code-boxes span:first-child { border-radius: 8px 0 0 8px; margin-left: 0; }
