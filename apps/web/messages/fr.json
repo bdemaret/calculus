@@ -945,7 +945,21 @@
       "round": "calcul {round} / {total}",
       "host": "hôte",
       "guest": "invité",
-      "disconnected": "déconnecté"
+      "disconnected": "déconnecté",
+      "history": {
+        "title": "Historique",
+        "count": "{count, plural, =0 {Aucune partie enregistrée} one {# partie enregistrée} other {# parties enregistrées}}",
+        "note": "les parties interrompues avant la fin n’y figurent pas ; joueurs du premier au dernier.",
+        "empty": "Aucune partie en ligne pour l’instant.",
+        "code": "Code",
+        "lobby": "Lobby",
+        "report": "Rapport",
+        "players": "Joueurs",
+        "deleted": "compte supprimé",
+        "previous": "Précédentes",
+        "next": "Suivantes",
+        "page": "page {page} sur {pages}"
+      }
     },
     "feedback": {
       "filter": "Filtrer les retours",

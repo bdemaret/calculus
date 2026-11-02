@@ -2156,6 +2156,55 @@ export async function getAdminSoloActivity(now: Date): Promise<AdminSoloActivity
   };
 }
 
+export interface AdminOnlineGame {
+  id: string;
+  code: string | null;
+  game: GameId;
+  mode: GameModeId;
+  difficulty: number;
+  startedAt: string;
+  endedAt: string;
+  /** Tous les joueurs présents au lancement, partis en cours de partie compris, du premier au dernier */
+  players: { userId: string | null; name: string; rank: number }[];
+}
+
+/** Parties en ligne enregistrées, de la plus récente à la plus ancienne. */
+export async function listOnlineGames(page: number): Promise<{ games: AdminOnlineGame[]; total: number }> {
+  const where: Prisma.GameWhereInput = { solo: false };
+  const [rows, total] = await Promise.all([
+    prisma.game.findMany({
+      where,
+      orderBy: { endedAt: "desc" },
+      skip: page * ADMIN_PAGE_SIZE,
+      take: ADMIN_PAGE_SIZE,
+      select: {
+        id: true,
+        code: true,
+        game: true,
+        mode: true,
+        difficulty: true,
+        startedAt: true,
+        endedAt: true,
+        players: { orderBy: { rank: "asc" }, select: { userId: true, displayName: true, rank: true } },
+      },
+    }),
+    prisma.game.count({ where }),
+  ]);
+  return {
+    total,
+    games: rows.map((g) => ({
+      id: g.id,
+      code: g.code,
+      game: g.game as GameId,
+      mode: g.mode as GameModeId,
+      difficulty: g.difficulty,
+      startedAt: g.startedAt.toISOString(),
+      endedAt: g.endedAt.toISOString(),
+      players: g.players.map((p) => ({ userId: p.userId, name: p.displayName, rank: p.rank })),
+    })),
+  };
+}
+
 export interface AdminUserRow {
   id: string;
   name: string;

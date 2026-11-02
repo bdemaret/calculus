@@ -948,7 +948,21 @@
       "round": "question {round} / {total}",
       "host": "host",
       "guest": "guest",
-      "disconnected": "disconnected"
+      "disconnected": "disconnected",
+      "history": {
+        "title": "History",
+        "count": "{count, plural, =0 {No saved games} one {# saved game} other {# saved games}}",
+        "note": "games cut short before the end aren’t listed; players from first to last.",
+        "empty": "No online games yet.",
+        "code": "Code",
+        "lobby": "Lobby",
+        "report": "Report",
+        "players": "Players",
+        "deleted": "deleted account",
+        "previous": "Newer",
+        "next": "Older",
+        "page": "page {page} of {pages}"
+      }
     },
     "feedback": {
       "filter": "Filter feedback",

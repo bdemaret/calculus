@@ -47,6 +47,7 @@ Prisma 6 + PostgreSQL. Schéma : `packages/db/prisma/schema.prisma`. Client et r
 | `getGamesHistory(now, days)` | Panel admin : parties enregistrées (terminées) solo et en ligne par jour (30 ou 90 jours) ou par semaine (365 jours, `GAMES_HISTORY_RANGES`) |
 | `startSoloPlay` / `touchSoloPlay` / `linkSoloPlayGame` | Suivi d'activité solo (début, battement ou fin, lien vers la partie enregistrée) |
 | `getAdminSoloActivity(now)` | Panel admin : parties solo en cours, 50 dernières closes ou abandonnées, compteurs sur 24 h |
+| `listOnlineGames(page)` | Panel admin : parties en ligne enregistrées, paginées, avec tous les joueurs présents au lancement (partis en cours de partie compris) |
 | `listUsers(query, page)` / `getAdminUser(id)` | Panel admin : comptes paginés (`ADMIN_PAGE_SIZE` = 50) filtrés par pseudo ou e-mail ; fiche d'un compte |
 | `listFeedback(resolved, page)` / `setFeedbackResolved` / `deleteFeedback` | Panel admin : retours |
 
