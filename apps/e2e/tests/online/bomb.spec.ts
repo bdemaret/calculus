@@ -1,3 +1,4 @@
+import type { Page, WebSocketRoute } from "@playwright/test";
 import { prisma } from "@calculus/db";
 import { t } from "../../fixtures/i18n";
 import { calcText } from "../../fixtures/oracle";
@@ -85,4 +86,56 @@ test.describe("la bombe", () => {
     // Tout le monde a désamorcé : la partie continue avec un nouveau tirage.
     await expect(alice.page.getByTestId("bomb-rules")).toBeVisible({ timeout: 10_000 });
   });
+
+  /** Fait passer les WebSockets par le test, qui peut les couper ou les rendre muettes (réseau de téléphone qui décroche). */
+  async function controlSockets(page: Page) {
+    const sockets: { route: WebSocketRoute; muted: boolean }[] = [];
+    await page.routeWebSocket(/sessionId=/, (route) => {
+      const socket = { route, muted: false };
+      const server = route.connectToServer();
+      route.onMessage((m) => {
+        if (!socket.muted) server.send(m);
+      });
+      server.onMessage((m) => {
+        if (!socket.muted) route.send(m);
+      });
+      sockets.push(socket);
+    });
+    return (code: string) => sockets.filter((s) => s.route.url().includes(code));
+  }
+
+  for (const failure of ["coupée", "muette"] as const) {
+    test(`connexion ${failure} pendant la construction : le joueur revient, sa saisie intacte, et n'est pas éliminé`, async ({ host, bots }) => {
+      const alice = await host("Alice", { ...BOMB, operations: [...BOMB.operations], buildTime: 45 });
+      const page = alice.page;
+      const socketsOf = await controlSockets(page);
+      const code = await alice.create();
+      const [bot] = await bots(code, ["Bot"]);
+      bot!.buildBombs(() => "idle");
+      bot!.play(() => "right");
+      await expect(alice.slot("Bot")).toBeVisible();
+      await alice.start();
+
+      await expect(page.getByTestId("bomb-rules")).toBeVisible({ timeout: 10_000 });
+      const tiles = (await calcText(page).getAttribute("data-calc"))!.split(" ");
+      const box = answerBox(page);
+      await box.fill(`${tiles[0]} + ${tiles[1]}`);
+
+      for (const socket of socketsOf(code)) {
+        if (failure === "coupée") await socket.route.close({ code: 3000 });
+        else socket.muted = true;
+      }
+      await expect(page.getByText(t("lobby.reconnecting"))).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText(t("lobby.reconnecting"))).toBeHidden({ timeout: 25_000 });
+
+      await expect(page.getByText(t("lobby.disconnectedTitle"))).toBeHidden();
+      await expect(box).toHaveValue(`${tiles[0]} + ${tiles[1]}`);
+      await box.press("Enter");
+      await expect(page.getByTestId("bomb-mine")).toContainText(`${tiles[0]} + ${tiles[1]}`);
+      await expect(alice.chips).toContainText("Alice");
+      await expect(page.getByTestId("bomb-assign")).toBeVisible({ timeout: 50_000 });
+      await alice.play("right");
+      await expect(page.getByTestId("bomb-results")).toContainText(t("game.bomb.defused"));
+    });
+  }
 });

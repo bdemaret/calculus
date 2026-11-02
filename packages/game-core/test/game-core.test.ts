@@ -274,6 +274,25 @@ describe("battle royale", () => {
     g.setConnected("p0", false);
     expect(g.canAnswer("p0")).toBe(false);
   });
+
+  it("le dernier adversaire part en pleine manche : le survivant gagne sans avoir répondu", () => {
+    const g = new GameEngine(settings({ mode: "battle-royale" }), players(2), "last");
+    g.startRound(0);
+    g.setConnected("p0", false);
+    const round = g.closeRound()!;
+    expect(round.eliminated).toEqual([]);
+    expect(g.player("p1")?.alive).toBe(true);
+    expect(g.winners().map((p) => p.id)).toEqual(["p1"]);
+  });
+
+  it("chacun son tour : le dernier adversaire part, le joueur actif n'est pas éliminé", () => {
+    const g = new GameEngine(settings({ mode: "battle-royale", turnStyle: "turns" }), players(2), "last-turn");
+    const round = g.startRound(0)!;
+    const other = g.players.find((p) => p.id !== round.activePlayerId)!;
+    g.setConnected(other.id, false);
+    g.closeRound();
+    expect(g.winners().map((p) => p.id)).toEqual([round.activePlayerId]);
+  });
 });
 
 describe("rapport", () => {

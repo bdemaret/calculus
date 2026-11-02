@@ -25,7 +25,7 @@ Serveur Colyseus 0.16 (`@colyseus/core` + `ws-transport`), lancé avec `tsx` (pa
 - **Départs à la bombe** : pendant `build`, partie finie → manche annulée et `finish()` ; sinon, si tous ceux qui restent ont construit, on passe à `assign`.
 - **Joueurs minimum** : `start` et `replay-same` sont refusés sous `GAMES[game].minPlayers` joueurs connectés (message `error` `not-enough-players` à l'hôte ; le site grise aussi le bouton).
 - **Hôte** : si l'hôte part, la main passe au membre arrivé le plus tôt (`members` est une `Map` ordonnée par arrivée).
-- **Reconnexion** : 30 s (`RECONNECT_SECONDS`).
+- **Reconnexion** : 30 s (`RECONNECT_SECONDS`). Le site reprend sa place tout seul (`recover` dans `apps/web/src/lib/colyseus.ts`) après une fermeture non voulue, ou après 10 s sans réponse à son `hello` envoyé toutes les 4 s (WebSocket mort sans fermeture sur un réseau de téléphone) ; l'état et la saisie restent à l'écran.
 - **Elo** : une fois la partie enregistrée, `finish()` place les changements d'Elo dans `RoomSnapshot.ratings` et rediffuse (sauf si une autre partie a commencé entre-temps).
 - **Administration** : chaque salle s'inscrit dans `liveRooms` (retirée dans `onDispose`) ; `adminSummary()` résume la salle à partir du snapshot (code, phase, réglages, joueurs, calcul affiché), jamais la réponse.
 - **Rejouer** : `replay-same` relance avec les mêmes réglages ; `replay-new` ramène au lobby.
