@@ -54,7 +54,7 @@ export async function POST(req: Request) {
   // Le temps passé sur la correction après une erreur n'entre pas dans le rejeu : seuls comptent les temps de réponse.
   const engine = replaySolo(settings, { id: playerId, name: session.user.name }, seed, answers);
 
-  const { id } = await saveGame({
+  const { id, unlocks } = await saveGame({
     code: null,
     solo: true,
     hostUserId: playerId,
@@ -67,5 +67,5 @@ export async function POST(req: Request) {
     userIds: { [playerId]: playerId },
   });
   if (parsed.data.activityId) await linkSoloPlayGame(parsed.data.activityId, playerId, id);
-  return NextResponse.json({ id });
+  return NextResponse.json({ id, unlocks: unlocks[playerId] ?? [] });
 }

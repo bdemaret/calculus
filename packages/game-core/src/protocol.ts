@@ -2,6 +2,7 @@
  * Messages échangés entre le navigateur et le serveur de jeu.
  * Partagés ici pour que les deux côtés parlent exactement la même langue.
  */
+import type { Unlock } from "./achievements";
 import type { RatingChange } from "./elo";
 import type { GameReport } from "./report";
 import type { GameSettings, PlayerAnswer, Puzzle } from "./types";
@@ -18,6 +19,8 @@ export interface BombPair {
 export interface LobbyPlayer {
   id: string;
   name: string;
+  /** Titre porté (id, traduit par chaque joueur). */
+  title: string | null;
   isHost: boolean;
   ready: boolean;
   connected: boolean;
@@ -59,6 +62,8 @@ export interface RoomSnapshot {
   report: GameReport | null;
   /** Effet sur l'Elo des comptes, par id de joueur (jamais l'Elo caché d'un joueur en placement). Arrive peu après la fin, une fois la partie enregistrée. */
   ratings: Record<string, RatingChange> | null;
+  /** Succès débloqués par la partie, par id de joueur. Visibles de tous : arrivent avec `ratings`. */
+  unlocks: Record<string, Unlock[]> | null;
   gameNumber: number;
 }
 
@@ -125,6 +130,8 @@ export interface GameTokenPayload {
   sub: string;
   name: string;
   guest: boolean;
+  /** Titre porté à l'entrée dans le lobby. */
+  title: string | null;
 }
 
 /** Partie en cours vue par le panel administrateur (route `/admin/rooms` du serveur de jeu). */

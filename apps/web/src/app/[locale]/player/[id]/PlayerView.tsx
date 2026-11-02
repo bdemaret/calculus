@@ -3,10 +3,12 @@ import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { PlayerProfile } from "@calculus/db";
 import { Link, useRouter } from "@/i18n/navigation";
+import { AchievementBadge } from "@/components/AchievementBadge";
 import { Avatar } from "@/components/PlayerChips";
+import { PlayerTitle } from "@/components/PlayerTitle";
 import { formatPercent } from "@/lib/format";
 
-/** Profil public : places au classement et bouton pour ajouter le joueur en ami. */
+/** Profil public : places au classement, succès et bouton pour ajouter le joueur en ami. */
 export function PlayerView({ profile }: { profile: PlayerProfile }) {
   const t = useTranslations();
   const locale = useLocale();
@@ -15,7 +17,10 @@ export function PlayerView({ profile }: { profile: PlayerProfile }) {
     <section className="report">
       <div className="setup-head player-head">
         <Avatar name={profile.name} />
-        <h2>{profile.name}</h2>
+        <div>
+          <h2>{profile.name}</h2>
+          <PlayerTitle title={profile.title} />
+        </div>
       </div>
 
       <FriendAction profile={profile} />
@@ -59,6 +64,23 @@ export function PlayerView({ profile }: { profile: PlayerProfile }) {
           <p className="muted">{t("player.unranked")}</p>
         )}
       </div>
+
+      {profile.achievements.count ? (
+        <div className="stack" data-testid="player-achievements">
+          <h3>{t("player.achievementsTitle", { count: profile.achievements.count })}</h3>
+          <ul className="unlocked-list">
+            {profile.achievements.best.map(({ id, tier }) => (
+              <li key={id}>
+                <AchievementBadge tier={tier} />
+                <span>
+                  <strong>{t(`achievements.${id}.name`)}</strong>
+                  <span className="sub">{t(`achievements.${id}.desc`)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <p>
         <Link href="/leaderboard">{t("player.backToLeaderboard")}</Link>

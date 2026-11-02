@@ -357,7 +357,10 @@
     "tipPractice": "S’entraîner",
     "tipsHide": "Ne plus afficher les conseils",
     "tipsHideHelp": "réactivables dans tes préférences",
-    "tipsShow": "Afficher les conseils de technique"
+    "tipsShow": "Afficher les conseils de technique",
+    "unlockedTitle": "{count, plural, =1 {Succès débloqué} other {Succès débloqués}}",
+    "titleUnlocked": "Titre débloqué : {title}",
+    "playerUnlocked": "{name} a débloqué « {achievement} »"
   },
   "auth": {
     "loginTitle": "Se connecter",
@@ -423,7 +426,8 @@
       "label": "Rubriques du profil",
       "account": "Mon profil",
       "friends": "Mes amis",
-      "preferences": "Mes préférences"
+      "preferences": "Mes préférences",
+      "achievements": "Mes succès"
     },
     "identityTitle": "Photo et pseudo",
     "avatarAdd": "Ajouter une photo",
@@ -457,7 +461,8 @@
     "tips": "Conseils en fin de partie",
     "tipsOn": "Afficher",
     "tipsOff": "Désactiver l’aide",
-    "tipsHelp": "Dans le rapport de fin de partie, signale les calculs qu’une technique de calcul mental aurait simplifiés, et explique comment."
+    "tipsHelp": "Dans le rapport de fin de partie, signale les calculs qu’une technique de calcul mental aurait simplifiés, et explique comment.",
+    "newAchievements": "{count, plural, =1 {# nouveau succès} other {# nouveaux succès}}"
   },
   "friends": {
     "title": "Mes amis",
@@ -620,6 +625,7 @@
             [
               "Ton compte : pseudo, adresse e-mail, mot de passe (enregistré sous forme hachée, jamais en clair), date d’inscription, photo de profil si tu en ajoutes une, et préférences de saisie (clavier ou voix), d’affichage des divisions et de conseils en fin de partie.",
               "Tes parties : réglages, calculs posés, réponses, temps de réponse, scores, rang, Elo et statistiques.",
+              "Tes succès : succès et titres obtenus, compteurs de progression, déduits de tes parties, de tes amis et de ta guilde.",
               "Tes amis : demandes envoyées et reçues, liens d’amitié, invitations à une partie.",
               "Ta guilde : guilde dont tu fais partie, rôle (chef ou membre), date d’arrivée, invitations, blason, et l’heure de ta dernière visite sur le site (pour montrer aux membres si tu es en ligne).",
               "Tes retours : le message envoyé depuis « Faire un retour », son type, la page d’où il vient et, si tu n’es pas connecté, l’e-mail que tu choisis de laisser.",
@@ -644,7 +650,7 @@
           "title": "Ce qui est visible par les autres joueurs",
           "body": [
             [
-              "Ton pseudo, ton Elo, ta place au classement, ton nombre de parties et ton pourcentage de victoires sont publics.",
+              "Ton pseudo, ton Elo, ta place au classement, ton nombre de parties, ton pourcentage de victoires, tes succès et ton titre sont publics. Les succès débloqués par une partie en ligne sont montrés aux joueurs de cette partie.",
               "Ta photo de profil n’est visible que par toi, tes amis et les membres de ta guilde, qui voient aussi si tu es en ligne. Le blason d’une guilde est visible par les joueurs connectés qu’elle invite.",
               "Les résultats d’une partie en ligne (pseudos, scores, réponses) sont visibles par toute personne qui a le lien de son rapport, partagé avec les joueurs de la partie.",
               "Ton adresse e-mail n’est jamais affichée. Un joueur qui la connaît déjà peut s’en servir pour t’envoyer une demande d’ami."
@@ -810,7 +816,8 @@
     "add": "Ajouter en ami",
     "outgoing": "Demande envoyée à {name}.",
     "incoming": "{name} t’a envoyé une demande d’ami.",
-    "friends": "Vous êtes amis."
+    "friends": "Vous êtes amis.",
+    "achievementsTitle": "{count, plural, =1 {# succès} other {# succès}}"
   },
   "publicLobbies": {
     "title": "Lobbys ouverts",
@@ -1205,5 +1212,282 @@
       "summary": "× 15, c’est × 10 plus sa moitié.",
       "how": "Calcule {n} × 10, puis ajoute sa moitié."
     }
+  },
+  "achievements": {
+    "games-1": {
+      "name": "Premier cours",
+      "desc": "Jouer ta première partie"
+    },
+    "games-10": {
+      "name": "Bon élan",
+      "desc": "Jouer 10 parties"
+    },
+    "games-50": {
+      "name": "Rentrée réussie",
+      "desc": "Jouer 50 parties"
+    },
+    "games-250": {
+      "name": "Assiduité",
+      "desc": "Jouer 250 parties"
+    },
+    "games-1000": {
+      "name": "Toute une scolarité",
+      "desc": "Jouer 1 000 parties"
+    },
+    "wins-1": {
+      "name": "Première victoire",
+      "desc": "Gagner une partie classée"
+    },
+    "wins-10": {
+      "name": "Bon point",
+      "desc": "Gagner 10 parties classées"
+    },
+    "wins-50": {
+      "name": "Félicitations du jury",
+      "desc": "Gagner 50 parties classées"
+    },
+    "wins-250": {
+      "name": "Mention très bien",
+      "desc": "Gagner 250 parties classées"
+    },
+    "wins-1000": {
+      "name": "Hors concours",
+      "desc": "Gagner 1 000 parties classées"
+    },
+    "correct-100": {
+      "name": "Ça rentre",
+      "desc": "Donner 100 bonnes réponses"
+    },
+    "correct-1000": {
+      "name": "Mille justes",
+      "desc": "Donner 1 000 bonnes réponses"
+    },
+    "correct-10000": {
+      "name": "Dix mille justes",
+      "desc": "Donner 10 000 bonnes réponses"
+    },
+    "correct-100000": {
+      "name": "Cent mille justes",
+      "desc": "Donner 100 000 bonnes réponses"
+    },
+    "level-5-win": {
+      "name": "Au sommet",
+      "desc": "Gagner une partie classée au niveau 5"
+    },
+    "all-games": {
+      "name": "Tour de la classe",
+      "desc": "Finir une partie de chaque jeu"
+    },
+    "all-games-win": {
+      "name": "Grand chelem",
+      "desc": "Gagner une partie classée dans chaque jeu"
+    },
+    "all-levels": {
+      "name": "Tous les étages",
+      "desc": "Gagner une partie classée à chaque niveau"
+    },
+    "br-wins-10": {
+      "name": "Survie",
+      "desc": "Gagner 10 battles royales classées"
+    },
+    "br-wins-100": {
+      "name": "Instinct de survie",
+      "desc": "Gagner 100 battles royales classées"
+    },
+    "br-full-lobby": {
+      "name": "Salle comble",
+      "desc": "Gagner une battle royale classée contre au moins 4 autres comptes"
+    },
+    "br-round-30": {
+      "name": "Marathon",
+      "desc": "Répondre juste à 30 calculs dans une battle royale, niveau 3 ou plus"
+    },
+    "br-spared": {
+      "name": "Sauvé par le gong",
+      "desc": "Survivre à une manche ratée par tous"
+    },
+    "sr-wins-10": {
+      "name": "Pointe de vitesse",
+      "desc": "Gagner 10 courses de vitesse classées"
+    },
+    "sr-wins-100": {
+      "name": "Vitesse de pointe",
+      "desc": "Gagner 100 courses de vitesse classées"
+    },
+    "sr-shutout": {
+      "name": "Carton plein",
+      "desc": "Gagner une course de vitesse classée de 10 manches ou plus sans laisser un point"
+    },
+    "sr-comeback": {
+      "name": "Remontada",
+      "desc": "Gagner une course de vitesse classée après 3 points de retard"
+    },
+    "sr-flash": {
+      "name": "Éclair",
+      "desc": "Répondre juste en moins d’une seconde en ligne, niveau 3 ou plus"
+    },
+    "streak-10": {
+      "name": "Sur sa lancée",
+      "desc": "Enchaîner 10 bonnes réponses, niveau 3 ou plus"
+    },
+    "streak-25": {
+      "name": "Inarrêtable",
+      "desc": "Enchaîner 25 bonnes réponses, niveau 3 ou plus"
+    },
+    "streak-50": {
+      "name": "Cinquante de suite",
+      "desc": "Enchaîner 50 bonnes réponses en ligne, niveau 3 ou plus"
+    },
+    "perfect-solo": {
+      "name": "Copie parfaite",
+      "desc": "Finir sans erreur une partie solo de 10 manches ou plus, niveau 3 ou plus"
+    },
+    "power-50": {
+      "name": "Haute puissance",
+      "desc": "Réussir 50 calculs avec une puissance ou une racine"
+    },
+    "rc-exact-10": {
+      "name": "Compte rond",
+      "desc": "Trouver 10 comptes exacts au bon compte"
+    },
+    "rc-exact-100": {
+      "name": "Cent comptes justes",
+      "desc": "Trouver 100 comptes exacts au bon compte"
+    },
+    "rc-closest": {
+      "name": "Pas loin",
+      "desc": "Marquer au plus proche, au bon compte"
+    },
+    "rc-all-tiles": {
+      "name": "Rien ne se perd",
+      "desc": "Trouver le compte exact avec toutes les plaques"
+    },
+    "missing-op-50": {
+      "name": "Signe des temps",
+      "desc": "Retrouver 50 opérateurs manquants"
+    },
+    "bomb-boom-1": {
+      "name": "Boum",
+      "desc": "Faire exploser une bombe"
+    },
+    "bomb-boom-10": {
+      "name": "Feu d’artifice",
+      "desc": "Faire exploser 10 bombes"
+    },
+    "bomb-boom-100": {
+      "name": "Bouquet final",
+      "desc": "Faire exploser 100 bombes"
+    },
+    "bomb-defuse-10": {
+      "name": "Fil rouge",
+      "desc": "Désamorcer 10 bombes"
+    },
+    "bomb-defuse-100": {
+      "name": "Sang-froid",
+      "desc": "Désamorcer 100 bombes"
+    },
+    "bomb-clean": {
+      "name": "Sans bavure",
+      "desc": "Faire exploser toutes tes bombes d’une partie, 3 au moins"
+    },
+    "bomb-unprepared": {
+      "name": "Roue de secours",
+      "desc": "Gagner une partie où tu n’as pas construit une de tes bombes"
+    },
+    "answer-42": {
+      "name": "La grande question",
+      "desc": "Trouver 42"
+    },
+    "night-owl": {
+      "name": "Nuit blanche",
+      "desc": "Finir une partie entre 2 h et 5 h, heure de Paris"
+    },
+    "pi-day": {
+      "name": "Jour de π",
+      "desc": "Jouer un 14 mars"
+    },
+    "buzzer": {
+      "name": "Sur la sonnerie",
+      "desc": "Répondre juste à moins de 0,2 s de la fin, en ligne"
+    },
+    "all-wrong": {
+      "name": "Zéro pointé",
+      "desc": "Tout rater sur 10 manches ou plus, en répondant à chaque fois"
+    },
+    "so-close": {
+      "name": "Si près du but",
+      "desc": "Rater seulement la dernière manche d’une partie de 10 manches ou plus"
+    },
+    "first-out-10": {
+      "name": "Abonnement à la sortie",
+      "desc": "Être éliminé dès la première manche, 10 fois"
+    },
+    "palindrome": {
+      "name": "Dans les deux sens",
+      "desc": "Trouver un résultat palindrome d’au moins 3 chiffres"
+    },
+    "friend-1": {
+      "name": "Camarade",
+      "desc": "Avoir un ami"
+    },
+    "friend-5": {
+      "name": "Bande de copains",
+      "desc": "Avoir 5 amis"
+    },
+    "guild-join": {
+      "name": "Esprit d’équipe",
+      "desc": "Entrer dans une guilde"
+    },
+    "guild-lead": {
+      "name": "Aux commandes",
+      "desc": "Être à la tête d’une guilde"
+    }
+  },
+  "titles": {
+    "regular": "Fidèle du tableau",
+    "pillar": "Pilier de la classe",
+    "top-of-class": "Tête de classe",
+    "terror": "Terreur des tableaux",
+    "calculator": "Machine à calculer",
+    "living-legend": "Légende vivante",
+    "all-rounder": "Touche-à-tout",
+    "polymath": "Polymathe",
+    "last-standing": "Dernier debout",
+    "against-all": "Seul contre tous",
+    "lightning": "Foudre de guerre",
+    "no-sharing": "Sans partage",
+    "turnaround": "Retournement de situation",
+    "flawless": "Sans-faute",
+    "right-count": "Le compte est bon",
+    "gap-filler": "Bouche-trou de luxe",
+    "pyrotechnic": "Main d’artificier",
+    "defusal-ace": "As du déminage",
+    "answer-to-everything": "Réponse à tout",
+    "night-owl": "Oiseau de nuit",
+    "on-the-wire": "Sur le fil",
+    "dunce-cap": "Bonnet d’âne",
+    "bad-luck": "Pas de chance"
+  },
+  "achievementsPage": {
+    "metaTitle": "Mes succès",
+    "summary": "{count} / {total} succès obtenus",
+    "filtersLabel": "Filtrer les succès",
+    "all": "Tous",
+    "journey": "Parcours",
+    "mode": "Modes",
+    "game": "Jeux",
+    "fun": "Pour le plaisir",
+    "social": "Social",
+    "secret": "???",
+    "secretDesc": "Succès secret",
+    "progress": "{value} / {target}",
+    "offersTitle": "Offre le titre « {title} »",
+    "fresh": "nouveau",
+    "unlockedOn": "Obtenu le {date}",
+    "titlesHeading": "Mon titre",
+    "titlesNone": "Aucun",
+    "titlesEmpty": "Certains succès offrent un titre, qui s’affiche sous ton pseudo.",
+    "titlesLabel": "Choisir mon titre",
+    "titlesError": "Le titre n’a pas pu être enregistré."
   }
 }

@@ -20,6 +20,7 @@ import {
   type BasicOperation,
   type PlayerAnswer,
   type RatingChange,
+  type Unlock,
   type RoomPhase,
   type RoomSnapshot,
   type RoundRecord,
@@ -65,6 +66,7 @@ function generateCode(): string {
 interface Member {
   id: string;
   name: string;
+  title: string | null;
   guest: boolean;
   client: Client;
   connected: boolean;
@@ -110,6 +112,7 @@ export class GameRoom extends Room {
   private lastRound: RoundResultPayload | null = null;
   private report: GameReport | null = null;
   private ratings: Record<string, RatingChange> | null = null;
+  private unlocks: Record<string, Unlock[]> | null = null;
   private gameNumber = 0;
   private timer: Delayed | null = null;
   private createdAt = 0;
@@ -218,6 +221,7 @@ export class GameRoom extends Room {
     this.members.set(auth.id, {
       id: auth.id,
       name: auth.name,
+      title: auth.title,
       guest: auth.guest,
       client,
       connected: true,
@@ -401,6 +405,7 @@ export class GameRoom extends Room {
     this.gameNumber += 1;
     this.report = null;
     this.ratings = null;
+    this.unlocks = null;
     this.lastRound = null;
     this.startedAt = Date.now();
     this.phase = "countdown";
@@ -544,10 +549,15 @@ export class GameRoom extends Room {
       startedAt: new Date(this.startedAt),
       hostUserId: hostIsGuest ? null : this.hostId,
       guestById: this.guestById,
-    }).then((ratings) => {
+    }).then((saved) => {
       // Ignoré si une autre partie a déjà commencé ou si la salle est revenue au lobby entre-temps.
-      if (!ratings || Object.keys(ratings).length === 0 || this.phase !== "finished" || this.gameNumber !== gameNumber) return;
-      this.ratings = ratings;
+      if (!saved || this.phase !== "finished" || this.gameNumber !== gameNumber) return;
+      // Une partie non classée n'a pas d'Elo, mais peut débloquer des succès.
+      const rated = Object.keys(saved.ratings).length > 0;
+      const unlocked = Object.keys(saved.unlocks).length > 0;
+      if (!rated && !unlocked) return;
+      if (rated) this.ratings = saved.ratings;
+      if (unlocked) this.unlocks = saved.unlocks;
       this.broadcastSnapshot();
     });
   }
@@ -559,6 +569,7 @@ export class GameRoom extends Room {
     this.engine = null;
     this.report = null;
     this.ratings = null;
+    this.unlocks = null;
     this.lastRound = null;
     this.deadline = null;
     this.phase = "lobby";
@@ -579,6 +590,7 @@ export class GameRoom extends Room {
         return {
           id: player.id,
           name: player.name,
+          title: m?.title ?? null,
           isHost: player.id === this.hostId,
           ready: m?.ready ?? false,
           connected: !!m?.connected,
@@ -592,6 +604,7 @@ export class GameRoom extends Room {
       players = [...this.members.values()].map((m) => ({
         id: m.id,
         name: m.name,
+        title: m.title,
         isHost: m.id === this.hostId,
         ready: m.ready,
         connected: m.connected,
@@ -628,6 +641,7 @@ export class GameRoom extends Room {
       lastRound: this.phase === "round-result" || this.phase === "finished" ? this.lastRound : null,
       report: this.report,
       ratings: this.ratings,
+      unlocks: this.unlocks,
       gameNumber: this.gameNumber,
     };
   }

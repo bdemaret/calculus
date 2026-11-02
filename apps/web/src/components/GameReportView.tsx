@@ -1,11 +1,13 @@
 "use client";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { GAMES, PLACEMENT_GAMES, TECHNIQUES, detectTechnique, type GameId, type GameModeId, type GameReport, type PlayerReport, type RatingChange, type RoundReview } from "@calculus/game-core";
+import { GAMES, PLACEMENT_GAMES, TECHNIQUES, detectTechnique, type GameId, type GameModeId, type GameReport, type PlayerReport, type RatingChange, type RoundReview, type Unlock } from "@calculus/game-core";
 import { revealSeparator } from "@/lib/answer";
 import { formatPercent, formatSeconds, formatSigned } from "@/lib/format";
+import { sfx } from "@/lib/sound";
 import { useShowTips } from "@/lib/tips";
 import { Link } from "@/i18n/navigation";
+import { AchievementBadge, tierOf } from "./AchievementBadge";
 import { MathText } from "./MathText";
 import { TechniqueSteps } from "./TechniqueSteps";
 
@@ -18,11 +20,53 @@ interface Props {
   timePerQuestion: number;
   /** Effet sur l'Elo par id de joueur (parties en ligne classées uniquement). */
   ratings?: Record<string, RatingChange> | null;
+  /** Succès débloqués par la partie, par id de joueur (juste après la partie seulement). */
+  unlocks?: Record<string, Unlock[]> | null;
   actions?: ReactNode;
 }
 
+/** Ce que le joueur vient de débloquer. */
+function UnlockedBlock({ unlocks }: { unlocks: Unlock[] }) {
+  const t = useTranslations();
+  return (
+    <div className="stack unlocked" data-testid="report-unlocks">
+      <h3>{t("report.unlockedTitle", { count: unlocks.length })}</h3>
+      <ul className="unlocked-list">
+        {unlocks.map(({ achievementId, titleId }) => (
+          <li key={achievementId}>
+            <AchievementBadge tier={tierOf(achievementId)} />
+            <span>
+              <strong>{t(`achievements.${achievementId}.name`)}</strong>
+              <span className="sub">{t(`achievements.${achievementId}.desc`)}</span>
+              {titleId ? (
+                <Link className="sub" href="/profile/achievements">
+                  {t("report.titleUnlocked", { title: t(`titles.${titleId}`) })}
+                </Link>
+              ) : null}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** « X a débloqué … », sous les résultats. */
+function OthersUnlocks({ players, unlocks }: { players: PlayerReport[]; unlocks: Props["unlocks"] }) {
+  const t = useTranslations();
+  const lines = players.flatMap((pl) => (unlocks?.[pl.playerId] ?? []).map((u) => ({ key: `${pl.playerId}:${u.achievementId}`, name: pl.name, id: u.achievementId })));
+  if (lines.length === 0) return null;
+  return (
+    <ul className="others-unlocks">
+      {lines.map(({ key, name, id }) => (
+        <li key={key}>{t("report.playerUnlocked", { name, achievement: t(`achievements.${id}.name`) })}</li>
+      ))}
+    </ul>
+  );
+}
+
 /** Rapport de fin de partie : verdict, classement, statistiques, graphique de progression. */
-export function GameReportView({ report: raw, meId, online, game, mode, timePerQuestion, ratings, actions }: Props) {
+export function GameReportView({ report: raw, meId, online, game, mode, timePerQuestion, ratings, unlocks, actions }: Props) {
   const t = useTranslations("report");
   // Pseudo vide : le compte de ce joueur a été supprimé depuis la partie.
   const report: GameReport = { ...raw, players: raw.players.map((pl) => (pl.name ? pl : { ...pl, name: t("deletedPlayer") })) };
@@ -34,6 +78,11 @@ export function GameReportView({ report: raw, meId, online, game, mode, timePerQ
   const winner = report.players[0];
   const unit = mode === "speed-race" ? t("pts") : t("correctUnit");
   const myRating = mine ? ratings?.[mine.playerId] : undefined;
+  const myUnlocks = mine ? unlocks?.[mine.playerId] : undefined;
+  const hasUnlocks = !!myUnlocks?.length;
+  useEffect(() => {
+    if (hasUnlocks) sfx.unlock();
+  }, [hasUnlocks]);
 
   let big: string;
   let sub: string;
@@ -83,6 +132,8 @@ export function GameReportView({ report: raw, meId, online, game, mode, timePerQ
       {/* Les actions juste sous le verdict, pour rejouer sans avoir à faire défiler le détail. */}
       {actions}
 
+      {myUnlocks?.length ? <UnlockedBlock unlocks={myUnlocks} /> : null}
+
       {online ? (
         <ol className="ranking">
           {report.players.map((pl) => (
@@ -104,6 +155,8 @@ export function GameReportView({ report: raw, meId, online, game, mode, timePerQ
           ))}
         </ol>
       ) : null}
+
+      {online ? <OthersUnlocks players={report.players.filter((pl) => pl !== mine)} unlocks={unlocks} /> : null}
 
       {mine ? (
         <>

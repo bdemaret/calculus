@@ -357,7 +357,10 @@
     "tipPractice": "Practise",
     "tipsHide": "Stop showing tips",
     "tipsHideHelp": "you can turn them back on in your preferences",
-    "tipsShow": "Show technique tips"
+    "tipsShow": "Show technique tips",
+    "unlockedTitle": "{count, plural, =1 {Achievement unlocked} other {Achievements unlocked}}",
+    "titleUnlocked": "Title unlocked: {title}",
+    "playerUnlocked": "{name} unlocked “{achievement}”"
   },
   "auth": {
     "loginTitle": "Log in",
@@ -423,7 +426,8 @@
       "label": "Profile sections",
       "account": "My profile",
       "friends": "My friends",
-      "preferences": "My preferences"
+      "preferences": "My preferences",
+      "achievements": "My achievements"
     },
     "identityTitle": "Photo and username",
     "avatarAdd": "Add a photo",
@@ -457,7 +461,8 @@
     "tips": "End-of-game tips",
     "tipsOn": "Show",
     "tipsOff": "Turn off help",
-    "tipsHelp": "In the end-of-game report, point out the calculations a mental math technique would have made easier, and explain how."
+    "tipsHelp": "In the end-of-game report, point out the calculations a mental math technique would have made easier, and explain how.",
+    "newAchievements": "{count, plural, =1 {# new achievement} other {# new achievements}}"
   },
   "friends": {
     "title": "My friends",
@@ -621,6 +626,7 @@
             [
               "Your account: username, email address, password (stored hashed, never in plain text), sign-up date, profile photo if you add one, and preferences for input (keyboard or voice), division display and end-of-game tips.",
               "Your games: settings, questions asked, answers, response times, scores, rank, Elo and statistics.",
+              "Your achievements: achievements and titles earned and progress counters, derived from your games, friends and guild.",
               "Your friends: requests sent and received, friendships, game invitations.",
               "Your guild: the guild you belong to, your role (leader or member), when you joined, invitations, crest, and the time of your last visit to the site (to show members whether you are online).",
               "Your feedback: the message sent from “Send feedback”, its type, the page it came from and, if you are not signed in, the email you choose to leave.",
@@ -645,7 +651,7 @@
           "title": "What other players can see",
           "body": [
             [
-              "Your username, Elo, leaderboard position, number of games and win rate are public.",
+              "Your username, Elo, leaderboard position, number of games, win rate, achievements and title are public. Achievements unlocked by an online game are shown to the players of that game.",
               "Your profile photo is only visible to you, your friends and your guild members, who can also see whether you are online. A guild’s crest is visible to the signed-in players it invites.",
               "Results of an online game (usernames, scores, answers) are visible to anyone with the link to its report, which is shared with the game’s players.",
               "Your email address is never displayed. A player who already knows it can use it to send you a friend request."
@@ -813,7 +819,8 @@
     "add": "Add friend",
     "outgoing": "Friend request sent to {name}.",
     "incoming": "{name} sent you a friend request.",
-    "friends": "You are friends."
+    "friends": "You are friends.",
+    "achievementsTitle": "{count, plural, =1 {# achievement} other {# achievements}}"
   },
   "publicLobbies": {
     "title": "Open lobbies",
@@ -1208,5 +1215,282 @@
       "summary": "× 15 is × 10 plus half of that.",
       "how": "Work out {n} × 10, then add half of it."
     }
+  },
+  "achievements": {
+    "games-1": {
+      "name": "First lesson",
+      "desc": "Play your first game"
+    },
+    "games-10": {
+      "name": "Off to a good start",
+      "desc": "Play 10 games"
+    },
+    "games-50": {
+      "name": "Back to school",
+      "desc": "Play 50 games"
+    },
+    "games-250": {
+      "name": "Perfect attendance",
+      "desc": "Play 250 games"
+    },
+    "games-1000": {
+      "name": "A whole education",
+      "desc": "Play 1,000 games"
+    },
+    "wins-1": {
+      "name": "First win",
+      "desc": "Win a ranked game"
+    },
+    "wins-10": {
+      "name": "Gold star",
+      "desc": "Win 10 ranked games"
+    },
+    "wins-50": {
+      "name": "Honour roll",
+      "desc": "Win 50 ranked games"
+    },
+    "wins-250": {
+      "name": "Summa cum laude",
+      "desc": "Win 250 ranked games"
+    },
+    "wins-1000": {
+      "name": "In a league of your own",
+      "desc": "Win 1,000 ranked games"
+    },
+    "correct-100": {
+      "name": "It’s sinking in",
+      "desc": "Give 100 correct answers"
+    },
+    "correct-1000": {
+      "name": "A thousand right",
+      "desc": "Give 1,000 correct answers"
+    },
+    "correct-10000": {
+      "name": "Ten thousand right",
+      "desc": "Give 10,000 correct answers"
+    },
+    "correct-100000": {
+      "name": "A hundred thousand right",
+      "desc": "Give 100,000 correct answers"
+    },
+    "level-5-win": {
+      "name": "At the summit",
+      "desc": "Win a ranked game at level 5"
+    },
+    "all-games": {
+      "name": "Around the classroom",
+      "desc": "Finish a game of every game type"
+    },
+    "all-games-win": {
+      "name": "Grand slam",
+      "desc": "Win a ranked game of every game type"
+    },
+    "all-levels": {
+      "name": "Every floor",
+      "desc": "Win a ranked game at every level"
+    },
+    "br-wins-10": {
+      "name": "Survivor",
+      "desc": "Win 10 ranked battle royales"
+    },
+    "br-wins-100": {
+      "name": "Survival instinct",
+      "desc": "Win 100 ranked battle royales"
+    },
+    "br-full-lobby": {
+      "name": "Full house",
+      "desc": "Win a ranked battle royale against at least 4 other accounts"
+    },
+    "br-round-30": {
+      "name": "Marathon",
+      "desc": "Get 30 calculations right in a battle royale, level 3 or higher"
+    },
+    "br-spared": {
+      "name": "Saved by the bell",
+      "desc": "Survive a round that everyone failed"
+    },
+    "sr-wins-10": {
+      "name": "Burst of speed",
+      "desc": "Win 10 ranked speed races"
+    },
+    "sr-wins-100": {
+      "name": "Top speed",
+      "desc": "Win 100 ranked speed races"
+    },
+    "sr-shutout": {
+      "name": "Clean sheet",
+      "desc": "Win a ranked speed race of 10 rounds or more without conceding a point"
+    },
+    "sr-comeback": {
+      "name": "Comeback",
+      "desc": "Win a ranked speed race after trailing by 3 points"
+    },
+    "sr-flash": {
+      "name": "Flash",
+      "desc": "Answer correctly in under a second online, level 3 or higher"
+    },
+    "streak-10": {
+      "name": "On a roll",
+      "desc": "Get 10 correct answers in a row, level 3 or higher"
+    },
+    "streak-25": {
+      "name": "Unstoppable",
+      "desc": "Get 25 correct answers in a row, level 3 or higher"
+    },
+    "streak-50": {
+      "name": "Fifty straight",
+      "desc": "Get 50 correct answers in a row online, level 3 or higher"
+    },
+    "perfect-solo": {
+      "name": "Perfect paper",
+      "desc": "Finish a solo game of 10 rounds or more without a mistake, level 3 or higher"
+    },
+    "power-50": {
+      "name": "High power",
+      "desc": "Solve 50 calculations with a power or a root"
+    },
+    "rc-exact-10": {
+      "name": "Spot on",
+      "desc": "Hit the exact target 10 times in Right Count"
+    },
+    "rc-exact-100": {
+      "name": "A hundred exact",
+      "desc": "Hit the exact target 100 times in Right Count"
+    },
+    "rc-closest": {
+      "name": "Close enough",
+      "desc": "Score with the closest total in Right Count"
+    },
+    "rc-all-tiles": {
+      "name": "Nothing wasted",
+      "desc": "Hit the exact target using every tile"
+    },
+    "missing-op-50": {
+      "name": "Sign of the times",
+      "desc": "Find 50 missing operators"
+    },
+    "bomb-boom-1": {
+      "name": "Boom",
+      "desc": "Get one of your bombs to explode"
+    },
+    "bomb-boom-10": {
+      "name": "Fireworks",
+      "desc": "Get 10 of your bombs to explode"
+    },
+    "bomb-boom-100": {
+      "name": "Grand finale",
+      "desc": "Get 100 of your bombs to explode"
+    },
+    "bomb-defuse-10": {
+      "name": "Red wire",
+      "desc": "Defuse 10 bombs"
+    },
+    "bomb-defuse-100": {
+      "name": "Nerves of steel",
+      "desc": "Defuse 100 bombs"
+    },
+    "bomb-clean": {
+      "name": "Flawless detonation",
+      "desc": "Get all your bombs in a game to explode, at least 3"
+    },
+    "bomb-unprepared": {
+      "name": "Spare wheel",
+      "desc": "Win a game in which you failed to build one of your bombs"
+    },
+    "answer-42": {
+      "name": "The ultimate question",
+      "desc": "Find 42"
+    },
+    "night-owl": {
+      "name": "All-nighter",
+      "desc": "Finish a game between 2 and 5 a.m., Paris time"
+    },
+    "pi-day": {
+      "name": "Pi Day",
+      "desc": "Play on March 14"
+    },
+    "buzzer": {
+      "name": "At the buzzer",
+      "desc": "Answer correctly with under 0.2 s left, online"
+    },
+    "all-wrong": {
+      "name": "Straight Fs",
+      "desc": "Get everything wrong over 10 rounds or more, answering every time"
+    },
+    "so-close": {
+      "name": "So close",
+      "desc": "Miss only the last round of a game of 10 rounds or more"
+    },
+    "first-out-10": {
+      "name": "Frequent exit",
+      "desc": "Get eliminated in the first round, 10 times"
+    },
+    "palindrome": {
+      "name": "Both ways",
+      "desc": "Find a palindromic result of at least 3 digits"
+    },
+    "friend-1": {
+      "name": "Classmate",
+      "desc": "Have a friend"
+    },
+    "friend-5": {
+      "name": "The whole gang",
+      "desc": "Have 5 friends"
+    },
+    "guild-join": {
+      "name": "Team spirit",
+      "desc": "Join a guild"
+    },
+    "guild-lead": {
+      "name": "In charge",
+      "desc": "Lead a guild"
+    }
+  },
+  "titles": {
+    "regular": "Blackboard regular",
+    "pillar": "Pillar of the class",
+    "top-of-class": "Top of the class",
+    "terror": "Terror of the blackboard",
+    "calculator": "Human calculator",
+    "living-legend": "Living legend",
+    "all-rounder": "All-rounder",
+    "polymath": "Polymath",
+    "last-standing": "Last one standing",
+    "against-all": "One against all",
+    "lightning": "Bolt of lightning",
+    "no-sharing": "No sharing",
+    "turnaround": "Turnaround",
+    "flawless": "Flawless",
+    "right-count": "Right on target",
+    "gap-filler": "Deluxe gap-filler",
+    "pyrotechnic": "Pyrotechnic touch",
+    "defusal-ace": "Defusal ace",
+    "answer-to-everything": "Answer to everything",
+    "night-owl": "Night owl",
+    "on-the-wire": "Down to the wire",
+    "dunce-cap": "Dunce cap",
+    "bad-luck": "Bad luck"
+  },
+  "achievementsPage": {
+    "metaTitle": "My achievements",
+    "summary": "{count} / {total} achievements earned",
+    "filtersLabel": "Filter achievements",
+    "all": "All",
+    "journey": "Journey",
+    "mode": "Modes",
+    "game": "Games",
+    "fun": "For fun",
+    "social": "Social",
+    "secret": "???",
+    "secretDesc": "Secret achievement",
+    "progress": "{value} / {target}",
+    "offersTitle": "Grants the title “{title}”",
+    "fresh": "new",
+    "unlockedOn": "Earned on {date}",
+    "titlesHeading": "My title",
+    "titlesNone": "None",
+    "titlesEmpty": "Some achievements grant a title, shown under your username.",
+    "titlesLabel": "Choose my title",
+    "titlesError": "Your title could not be saved."
   }
 }

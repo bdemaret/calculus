@@ -13,6 +13,7 @@ import { InviteFriends } from "@/components/InviteFriends";
 import { AutoStart } from "@/components/LobbyBanner";
 import { Margin, MarginNote } from "@/components/Margin";
 import { Avatar, PlayerChips, type ChipPlayer } from "@/components/PlayerChips";
+import { PlayerTitle } from "@/components/PlayerTitle";
 import { SettingsForm } from "@/components/SettingsForm";
 import { TimerBar } from "@/components/TimerBar";
 import { JoinError, joinLobby, leaveLobby, readRoom, subscribeRoom, type LobbyState } from "@/lib/colyseus";
@@ -231,7 +232,10 @@ function WaitingRoom({
               return (
                 <div className="slot filled" key={p.id} style={p.connected ? undefined : { opacity: 0.5 }}>
                   <Avatar name={p.name} />
-                  <span className="nm">{p.name}</span>
+                  <span className="slot-name">
+                    <span className="nm">{p.name}</span>
+                    <PlayerTitle title={p.title} />
+                  </span>
                   {p.isHost ? (
                     <span className="host">{t("lobby.host")}</span>
                   ) : p.ready ? (
@@ -544,6 +548,7 @@ function Finished({ room, snap, me, isHost, onLeave }: { room: Room; snap: RoomS
         mode={snap.settings.mode}
         timePerQuestion={snap.settings.timePerQuestion}
         ratings={snap.ratings}
+        unlocks={snap.unlocks}
         actions={
           <>
             <div className="actions">

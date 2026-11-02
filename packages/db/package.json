@@ -16,6 +16,7 @@
     "migrate:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
     "studio": "dotenv -e ../../.env -- prisma studio",
     "seed:leaderboard": "dotenv -e ../../.env -- tsx scripts/seed-leaderboard.ts",
+    "backfill:achievements": "dotenv -e ../../.env -- tsx scripts/backfill-achievements.ts",
     "postinstall": "prisma generate",
     "typecheck": "tsc --noEmit"
   },

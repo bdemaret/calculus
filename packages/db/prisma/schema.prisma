@@ -30,6 +30,8 @@ model User {
   divisionDisplay String  @default("standard")
   /// Conseils de technique de calcul dans le rapport de fin de partie
   showTips      Boolean   @default(true)
+  /// Titre choisi, affiché sous le pseudo. Hors de `additionalFields` : le client ne doit pas pouvoir l'écrire
+  titleId       String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
@@ -48,6 +50,9 @@ model User {
   guildMember     GuildMember?
   guildInvitesReceived GuildInvite[] @relation("GuildInviteTo")
   guildInvitesSent     GuildInvite[] @relation("GuildInviteFrom")
+  achievements    UserAchievement[]
+  titles          UserTitle[]
+  counters        UserCounter[]
 
   @@map("user")
 }
@@ -142,6 +147,7 @@ model Game {
   players     GamePlayer[]
   questions   Question[]
   soloPlay    SoloPlay?
+  achievements UserAchievement[]
 
   @@index([endedAt])
   @@index([game, mode, difficulty])
@@ -370,6 +376,52 @@ model UserStats {
   updatedAt         DateTime @updatedAt
 
   @@map("user_stats")
+}
+
+/* ---------- Succès et titres ---------- */
+
+/// Succès obtenu. Le catalogue est dans game-core : `achievementId` n'est pas une clé étrangère.
+model UserAchievement {
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  unlockedAt    DateTime  @default(now())
+  /// Partie qui l'a débloqué (null : succès social ou partie supprimée)
+  gameId        String?
+  game          Game?     @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  /// Null tant que le joueur ne l'a pas vu
+  seenAt        DateTime?
+
+  @@id([userId, achievementId])
+  @@index([achievementId])
+  @@index([gameId])
+  @@map("user_achievement")
+}
+
+/// Titre possédé, quelle que soit la façon dont il a été obtenu.
+model UserTitle {
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  titleId    String
+  /// D'où vient le titre : `achievement` pour l'instant
+  source     String
+  /// Ce qui l'a donné : l'id du succès
+  sourceRef  String?
+  unlockedAt DateTime @default(now())
+
+  @@id([userId, titleId])
+  @@map("user_title")
+}
+
+/// Compteur cumulatif d'un joueur (`games`, `wins:bomb`…), incrémenté par `saveGame`.
+model UserCounter {
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key    String
+  value  Int    @default(0)
+
+  @@id([userId, key])
+  @@map("user_counter")
 }
 
 /* ---------- Retours des joueurs ---------- */

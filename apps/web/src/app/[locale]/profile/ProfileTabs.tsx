@@ -4,12 +4,13 @@ import { Link, usePathname } from "@/i18n/navigation";
 
 const TABS = [
   { href: "/profile", key: "account" },
+  { href: "/profile/achievements", key: "achievements" },
   { href: "/profile/friends", key: "friends" },
   { href: "/profile/preferences", key: "preferences" },
 ] as const;
 
-/** Onglets du profil ; « Mes amis » porte le nombre de demandes reçues. */
-export function ProfileTabs({ requests }: { requests: number }) {
+/** Onglets du profil ; « Mes amis » porte le nombre de demandes reçues, « Mes succès » celui des nouveautés. */
+export function ProfileTabs({ requests, newAchievements }: { requests: number; newAchievements: number }) {
   const t = useTranslations("profile");
   const pathname = usePathname();
   return (
@@ -22,6 +23,11 @@ export function ProfileTabs({ requests }: { requests: number }) {
             {tab.key === "friends" && requests ? (
               <span className="tab-badge" title={t("friendRequests", { count: requests })}>
                 {requests}
+              </span>
+            ) : null}
+            {tab.key === "achievements" && newAchievements ? (
+              <span className="tab-badge" title={t("newAchievements", { count: newAchievements })}>
+                {newAchievements}
               </span>
             ) : null}
           </Link>

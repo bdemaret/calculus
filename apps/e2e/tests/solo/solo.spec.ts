@@ -1,3 +1,4 @@
+import { prisma } from "@calculus/db";
 import { gamesOf } from "../../fixtures/db";
 import { t } from "../../fixtures/i18n";
 import { expect, presetSolo, test } from "../../fixtures/test";
@@ -174,6 +175,21 @@ test.describe("solo en invité", () => {
 });
 
 test.describe("solo connecté", () => {
+  test("un titre se porte seulement s'il est possédé", async ({ page, user }) => {
+    const refused = await page.request.patch("/api/profile/title", { data: { titleId: "terror" } });
+    expect(refused.status()).toBe(403);
+    expect((await page.request.patch("/api/profile/title", { data: { titleId: "inconnu" } })).status()).toBe(400);
+
+    const { id: userId } = await prisma.user.findUniqueOrThrow({ where: { email: user.email } });
+    await prisma.userTitle.create({ data: { userId, titleId: "night-owl", source: "achievement" } });
+    await page.goto("/fr/profile/achievements");
+    const title = t("titles.night-owl");
+    await page.getByRole("group", { name: t("achievementsPage.titlesLabel") }).getByRole("button", { name: title }).click();
+    await expect(page.locator(".profile-head").getByText(title)).toBeVisible();
+    await page.goto(`/fr/player/${userId}`);
+    await expect(page.getByText(title)).toBeVisible();
+  });
+
   test("la partie est rejouée par le serveur, enregistrée et visible dans le tableau de bord", async ({ page, user }) => {
     await presetSolo(page, { rounds: 5 });
     const solo = new SoloPage(page);
@@ -194,5 +210,34 @@ test.describe("solo connecté", () => {
     await page.getByRole("link", { name: t("dashboard.view") }).click();
     await expect(page).toHaveURL(/\/fr\/report\//);
     await expect(page.getByTestId("report-verdict")).toHaveText("4/5");
+  });
+
+  test("une partie débloque un succès, annoncé puis visible dans le profil, nouveau une seule fois", async ({ page, user }) => {
+    await presetSolo(page, { rounds: 5 });
+    const solo = new SoloPage(page);
+    await solo.goto();
+    await solo.start();
+    await solo.playAll(["right", "right", "right", "right", "right"]);
+    const name = t("achievements.games-1.name");
+    await expect(page.getByTestId("report-unlocks").getByText(name)).toBeVisible();
+
+    await page.goto("/fr/profile");
+    const tab = page.getByRole("link", { name: new RegExp(t("profile.tabs.achievements")) });
+    await expect(tab.locator(".tab-badge")).toBeVisible();
+    await tab.click();
+    const card = page.getByTestId("achievement-games-1");
+    await expect(card).toContainText(name);
+    await expect(card).toContainText(t("achievementsPage.fresh"));
+    // La pastille part quand le serveur a noté la visite.
+    await expect(tab.locator(".tab-badge")).toHaveCount(0);
+    await page.reload();
+    await expect(card).toBeVisible();
+    await expect(card).not.toContainText(t("achievementsPage.fresh"));
+    // Un succès secret ne se dévoile pas.
+    await expect(page.getByTestId("achievement-night-owl")).toHaveCount(0);
+
+    const userId = (await prisma.user.findUniqueOrThrow({ where: { email: user.email } })).id;
+    await page.goto(`/fr/player/${userId}`);
+    await expect(page.getByTestId("player-achievements").getByText(name)).toBeVisible();
   });
 });

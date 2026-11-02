@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import {
+  ACHIEVEMENTS,
   GAMES,
   GAME_IDS,
   INITIAL_RATING,
@@ -7,8 +8,18 @@ import {
   buildReport,
   closestAnswers,
   computeRatingChanges,
+  countersDelta,
   describeRatingChange,
+  evaluateAchievements,
+  factsOf,
+  fallbackBomb,
+  progressOf,
+  type AchievementCategory,
+  type AchievementTier,
   type AnswerRecord,
+  type Counters,
+  type Difficulty,
+  type GameFacts,
   type GameId,
   type GameModeId,
   type GameReport,
@@ -20,6 +31,7 @@ import {
   type RatingChange,
   type RoundRecord,
   type Standing,
+  type Unlock,
 } from "@calculus/game-core";
 import { randomUUID } from "node:crypto";
 import { FEEDBACK_GUESTS_PER_HOUR, FEEDBACK_PER_USER_PER_HOUR, type FeedbackKindName } from "./feedback";
@@ -55,6 +67,79 @@ export interface SavedGame {
   id: string;
   /** Effet sur l'Elo de chaque joueur, par clé de joueur (vide si la partie n'est pas classée). Jamais l'Elo caché d'un joueur en placement. */
   ratings: Record<string, RatingChange>;
+  /** Succès débloqués par cette partie, par clé de joueur. */
+  unlocks: Record<string, Unlock[]>;
+}
+
+/** Ce que chaque compte gagne à cette partie. Pur : une erreur ici fait perdre un succès, jamais une partie. */
+function computeProgress(input: SaveGameInput, rated: boolean): Map<string, { userId: string; facts: GameFacts; delta: Record<string, number> }> {
+  const progress = new Map<string, { userId: string; facts: GameFacts; delta: Record<string, number> }>();
+  try {
+    const accounts = input.standings.filter((s) => input.userIds[s.player.id]).length;
+    const source = { solo: input.solo, settings: input.settings, endedAt: input.endedAt.getTime(), rated, accounts, standings: input.standings, history: input.history };
+    for (const { player } of input.standings) {
+      const userId = input.userIds[player.id];
+      const facts = userId ? factsOf(source, player.id) : null;
+      if (userId && facts) progress.set(player.id, { userId, facts, delta: countersDelta(facts) });
+    }
+  } catch (err) {
+    console.error("[succès] échec du calcul", err);
+    progress.clear();
+  }
+  return progress;
+}
+
+/** Inscrit des succès obtenus et les titres qu'ils offrent. Deux parties simultanées ne les doublent pas. */
+async function grantUnlocks(
+  tx: Prisma.TransactionClient,
+  grants: { userId: string; unlock: Unlock; gameId: string | null; backfilledAt?: { unlockedAt: Date; seenAt: Date } }[],
+): Promise<void> {
+  if (grants.length === 0) return;
+  await tx.userAchievement.createMany({
+    data: grants.map(({ userId, unlock, gameId, backfilledAt }) => ({ userId, achievementId: unlock.achievementId, gameId, ...backfilledAt })),
+    skipDuplicates: true,
+  });
+  const titles = grants.flatMap(({ userId, unlock, backfilledAt }) =>
+    unlock.titleId ? [{ userId, titleId: unlock.titleId, source: "achievement", sourceRef: unlock.achievementId, unlockedAt: backfilledAt?.unlockedAt }] : [],
+  );
+  if (titles.length) await tx.userTitle.createMany({ data: titles, skipDuplicates: true });
+}
+
+/** Ajoute à leurs compteurs ce que la partie a apporté, puis débloque ce qui est atteint. */
+async function applyAchievements(
+  tx: Prisma.TransactionClient,
+  progress: ReadonlyMap<string, { userId: string; facts: GameFacts; delta: Record<string, number> }>,
+  gameId: string,
+): Promise<Record<string, Unlock[]>> {
+  const unlocks: Record<string, Unlock[]> = {};
+  if (progress.size === 0) return unlocks;
+  const increments = [...progress.values()].flatMap(({ userId, delta }) => Object.entries(delta).map(([key, value]) => ({ userId, key, value })));
+  if (increments.length) {
+    // Une seule requête, en incrément : la transaction reste courte à 12 joueurs, et deux parties simultanées ne s'écrasent pas.
+    await tx.$executeRaw`
+      INSERT INTO "user_counter" ("userId", "key", "value")
+      SELECT * FROM unnest(${increments.map((i) => i.userId)}::text[], ${increments.map((i) => i.key)}::text[], ${increments.map((i) => i.value)}::int[])
+      ON CONFLICT ("userId", "key") DO UPDATE SET "value" = "user_counter"."value" + EXCLUDED."value"`;
+  }
+  const userIds = [...progress.values()].map((p) => p.userId);
+  const [counterRows, ownedRows] = await Promise.all([
+    tx.userCounter.findMany({ where: { userId: { in: userIds } } }),
+    tx.userAchievement.findMany({ where: { userId: { in: userIds } }, select: { userId: true, achievementId: true } }),
+  ]);
+  const grants: { userId: string; unlock: Unlock; gameId: string }[] = [];
+  for (const [playerKey, { userId, facts }] of progress) {
+    const counters = Object.fromEntries(counterRows.filter((r) => r.userId === userId).map((r) => [r.key, r.value]));
+    const owned = new Set(ownedRows.filter((r) => r.userId === userId).map((r) => r.achievementId));
+    try {
+      const earned = evaluateAchievements(facts, counters, owned);
+      if (earned.length) unlocks[playerKey] = earned;
+      for (const unlock of earned) grants.push({ userId, unlock, gameId });
+    } catch (err) {
+      console.error("[succès] échec de l'évaluation", err);
+    }
+  }
+  await grantUnlocks(tx, grants);
+  return unlocks;
 }
 
 /**
@@ -72,6 +157,7 @@ export async function saveGame(input: SaveGameInput): Promise<SavedGame> {
   const ratings: Record<string, RatingChange> = {};
   /** Elo avant, variation et parties jouées après celle-ci, pour chaque joueur classé (valeurs internes). */
   const stored = new Map<string, { before: number; delta: number; games: number }>();
+  let unlocks: Record<string, Unlock[]> = {};
 
   await prisma.$transaction(async (tx) => {
     // Elo : calculé avant de créer les joueurs, pour garder « avant / variation » sur chaque ligne.
@@ -215,9 +301,165 @@ export async function saveGame(input: SaveGameInput): Promise<SavedGame> {
         });
       }
     }
+
+    unlocks = await applyAchievements(tx, computeProgress(input, stored.size >= 2), gameId);
   });
 
-  return { id: gameId, ratings };
+  return { id: gameId, ratings, unlocks };
+}
+
+/** Compteurs des succès sociaux, relus à la source plutôt que stockés. */
+async function socialCounters(db: Prisma.TransactionClient, userId: string): Promise<Counters> {
+  const [friends, member] = await Promise.all([
+    db.friendship.count({ where: { status: "accepted", OR: [{ requesterId: userId }, { addresseeId: userId }] } }),
+    db.guildMember.findUnique({ where: { userId }, select: { role: true } }),
+  ]);
+  return { friends, "guild-member": member ? 1 : 0, "guild-leader": member?.role === "leader" ? 1 : 0 };
+}
+
+/**
+ * Succès qui ne viennent pas d'une partie (amis, guilde).
+ * Une erreur ici ne doit jamais faire échouer l'action sociale qui l'a déclenchée.
+ */
+export async function grantSocialAchievements(userIds: string[]): Promise<void> {
+  try {
+    for (const userId of userIds) {
+      const [counters, owned] = await Promise.all([socialCounters(prisma, userId), prisma.userAchievement.findMany({ where: { userId }, select: { achievementId: true } })]);
+      const earned = evaluateAchievements(null, counters, new Set(owned.map((o) => o.achievementId)));
+      await prisma.$transaction((tx) => grantUnlocks(tx, earned.map((unlock) => ({ userId, unlock, gameId: null }))));
+    }
+  } catch (err) {
+    console.error("[succès] échec des succès sociaux", err);
+  }
+}
+
+/** Un succès tel que son propriétaire le voit dans son profil. */
+export interface AchievementStatus {
+  id: string;
+  category: AchievementCategory;
+  tier: AchievementTier;
+  secret: boolean;
+  /** Titre offert. */
+  title: string | null;
+  /** Date d'obtention (ISO), null tant qu'il n'est pas obtenu. */
+  unlockedAt: string | null;
+  /** Obtenu depuis la dernière visite de l'onglet. */
+  isNew: boolean;
+  /** Avancée d'un succès cumulatif. */
+  progress: { value: number; target: number } | null;
+}
+
+/** Tous les succès du catalogue et leur état pour ce compte. */
+export async function getAchievements(userId: string): Promise<AchievementStatus[]> {
+  const [owned, rows, social] = await Promise.all([
+    prisma.userAchievement.findMany({ where: { userId } }),
+    prisma.userCounter.findMany({ where: { userId } }),
+    socialCounters(prisma, userId),
+  ]);
+  const byId = new Map(owned.map((a) => [a.achievementId, a]));
+  const counters = { ...Object.fromEntries(rows.map((r) => [r.key, r.value])), ...social };
+  return ACHIEVEMENTS.map((a) => {
+    const row = byId.get(a.id);
+    return {
+      id: a.id,
+      category: a.category,
+      tier: a.tier,
+      secret: a.secret ?? false,
+      title: a.title ?? null,
+      unlockedAt: row?.unlockedAt.toISOString() ?? null,
+      isNew: !!row && !row.seenAt,
+      progress: progressOf(a, counters),
+    };
+  });
+}
+
+/** Titres possédés et titre porté. */
+export async function getTitles(userId: string): Promise<{ owned: string[]; current: string | null }> {
+  const [owned, user] = await Promise.all([
+    prisma.userTitle.findMany({ where: { userId }, orderBy: { unlockedAt: "asc" }, select: { titleId: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { titleId: true } }),
+  ]);
+  return { owned: owned.map((t) => t.titleId), current: user?.titleId ?? null };
+}
+
+/** Porte un titre (null : aucun). Faux si le joueur ne le possède pas. */
+export async function setUserTitle(userId: string, titleId: string | null): Promise<boolean> {
+  if (titleId && !(await prisma.userTitle.findUnique({ where: { userId_titleId: { userId, titleId } } }))) return false;
+  await prisma.user.update({ where: { id: userId }, data: { titleId } });
+  return true;
+}
+
+/** Succès obtenus que le joueur n'a pas encore vus. */
+export function countUnseenAchievements(userId: string): Promise<number> {
+  return prisma.userAchievement.count({ where: { userId, seenAt: null } });
+}
+
+export async function markAchievementsSeen(userId: string): Promise<void> {
+  await prisma.userAchievement.updateMany({ where: { userId, seenAt: null }, data: { seenAt: new Date() } });
+}
+
+/** Ce que le rattrapage a fait, ou ferait, pour un compte. */
+export interface BackfillResult {
+  games: number;
+  /** Parties illisibles, laissées de côté. */
+  skipped: number;
+  counters: Counters;
+  unlocked: string[];
+}
+
+/**
+ * Recalcule les compteurs d'un compte depuis ses parties et lui donne ce qu'il aurait dû obtenir.
+ * Ne retire jamais un succès. Relançable : les compteurs sont remis à zéro, les déblocages déjà là ignorés.
+ * Le verrou sur la ligne `user` fait attendre `saveGame`, dont les clés étrangères la lisent : une partie
+ * qui se termine pendant le recalcul n'est ni perdue ni comptée deux fois.
+ */
+export async function backfillAchievements(userId: string, { dryRun = false } = {}): Promise<BackfillResult> {
+  return prisma.$transaction(
+    async (tx) => {
+      await tx.$queryRaw`SELECT 1 FROM "user" WHERE "id" = ${userId} FOR UPDATE`;
+      const games = await tx.game.findMany({ where: { players: { some: { userId } } }, orderBy: { endedAt: "asc" }, include: GAME_CONTENT });
+      const owned = new Set((await tx.userAchievement.findMany({ where: { userId }, select: { achievementId: true } })).map((a) => a.achievementId));
+      let counters: Counters = {};
+      const grants: Parameters<typeof grantUnlocks>[1] = [];
+      const now = new Date();
+      const earn = (earned: Unlock[], gameId: string | null, unlockedAt: Date) => {
+        for (const unlock of earned) {
+          owned.add(unlock.achievementId);
+          grants.push({ userId, unlock, gameId, backfilledAt: { unlockedAt, seenAt: now } });
+        }
+      };
+
+      let skipped = 0;
+      for (const game of games) {
+        try {
+          const { settings, standings, history } = rebuildGame(game);
+          // Un compte supprimé garde son Elo sur la ligne : il comptait bien comme compte dans cette partie.
+          const accounts = game.players.filter((p) => p.userId || p.ratingBefore !== null).length;
+          const source = { solo: game.solo, settings, endedAt: game.endedAt.getTime(), rated: !game.solo && accounts >= 2, accounts, standings, history };
+          const facts = factsOf(source, game.players.find((p) => p.userId === userId)!.playerKey);
+          if (!facts) continue;
+          const after: Record<string, number> = { ...counters };
+          for (const [key, value] of Object.entries(countersDelta(facts))) after[key] = (after[key] ?? 0) + value;
+          const earned = evaluateAchievements(facts, after, owned);
+          counters = after;
+          earn(earned, game.id, game.endedAt);
+        } catch (err) {
+          console.error(`[succès] partie ${game.id} illisible`, err);
+          skipped += 1;
+        }
+      }
+      // Amitiés et guildes d'avant les succès : aucun événement ne les débloquerait.
+      earn(evaluateAchievements(null, { ...counters, ...(await socialCounters(tx, userId)) }, owned), null, now);
+
+      if (!dryRun) {
+        await tx.userCounter.deleteMany({ where: { userId } });
+        await tx.userCounter.createMany({ data: Object.entries(counters).map(([key, value]) => ({ userId, key, value })) });
+        await grantUnlocks(tx, grants);
+      }
+      return { games: games.length, skipped, counters, unlocked: grants.map((g) => g.unlock.achievementId) };
+    },
+    { timeout: 120_000 },
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -237,16 +479,30 @@ export interface StoredGameReport {
   ratings: Record<string, RatingChange>;
 }
 
-export async function loadGameReport(id: string): Promise<StoredGameReport | null> {
-  const game = await prisma.game.findUnique({
-    where: { id },
-    include: {
-      players: { orderBy: { rank: "asc" } },
-      questions: { orderBy: [{ position: "asc" }, { forPlayerKey: "asc" }], include: { answers: true } },
-    },
-  });
-  if (!game) return null;
+const GAME_CONTENT = {
+  players: { orderBy: { rank: "asc" } },
+  questions: { orderBy: [{ position: "asc" }, { forPlayerKey: "asc" }], include: { answers: true } },
+} satisfies Prisma.GameInclude;
 
+type StoredGame = Prisma.GameGetPayload<{ include: typeof GAME_CONTENT }>;
+
+/** Bombes d'une manche. Le drapeau de secours n'est pas stocké : la bombe de secours se recalcule depuis la graine (voir `GameEngine`). */
+function bombsOf(
+  seed: string,
+  index: number,
+  draw: Extract<Puzzle, { game: "bomb" }>,
+  personal: NonNullable<RoundRecord["personal"]>,
+): NonNullable<RoundRecord["bombs"]> {
+  return Object.fromEntries(
+    Object.values(personal).map(({ question, authorId }) => [authorId, { expr: question.text, fallback: fallbackBomb(draw, `${seed}:${index}:${authorId}`).expr === question.text }]),
+  );
+}
+
+/**
+ * Remet une partie enregistrée sous la forme qu'elle avait à sa fin. `spared` et, hors course de vitesse,
+ * `scorers` ne sont pas stockés : ils restent vides.
+ */
+function rebuildGame(game: StoredGame): { settings: GameSettings; standings: Standing[]; history: RoundRecord[] } {
   const keyByRow = new Map(game.players.map((p) => [p.id, p.playerKey]));
   const standings: Standing[] = game.players.map((p) => {
     const player: PlayerState = {
@@ -266,7 +522,7 @@ export async function loadGameReport(id: string): Promise<StoredGameReport | nul
   });
   // Les parties d'avant les jeux n'ont pas `game` dans leurs réglages : la colonne fait foi.
   const settings = { ...(game.settings as unknown as GameSettings), game: game.game as GameId };
-  const toQuestion = (q: (typeof game.questions)[number]): Question => ({
+  const toQuestion = (q: StoredGame["questions"][number]): Question => ({
     index: q.position,
     text: q.text,
     answer: q.answer,
@@ -274,10 +530,10 @@ export async function loadGameReport(id: string): Promise<StoredGameReport | nul
     // À la bombe, `puzzle` est le tirage de la manche ; le calcul de chacun est un calcul standard.
     puzzle: q.forPlayerKey ? { game: "standard" } : ((q.puzzle as Puzzle | null) ?? { game: "standard" }),
     tags: q.tags as OpTag[],
-    difficulty: settings.difficulty,
+    difficulty: q.difficulty as Difficulty,
   });
   // Les lignes d'une même manche (une par destinataire à la bombe) sont regroupées.
-  const byPosition = new Map<number, (typeof game.questions)[number][]>();
+  const byPosition = new Map<number, StoredGame["questions"]>();
   for (const q of game.questions) byPosition.set(q.position, [...(byPosition.get(q.position) ?? []), q]);
   const history: RoundRecord[] = [...byPosition.values()].map((rows) => {
     const q = rows[0]!;
@@ -301,7 +557,7 @@ export async function loadGameReport(id: string): Promise<StoredGameReport | nul
         personal && draw?.game === "bomb"
           ? { index: q.position, text: draw.tiles.join(" "), answer: 0, solution: "", puzzle: draw, tags: [], difficulty: settings.difficulty }
           : toQuestion(q),
-      ...(personal ? { personal } : {}),
+      ...(personal ? { personal, ...(draw?.game === "bomb" ? { bombs: bombsOf(game.seed, q.position, draw, personal) } : {}) } : {}),
       activePlayerId: q.activePlayerKey,
       startedAt: 0,
       timeLimitMs: q.timeLimitMs,
@@ -311,6 +567,14 @@ export async function loadGameReport(id: string): Promise<StoredGameReport | nul
       spared: false,
     };
   });
+
+  return { settings, standings, history };
+}
+
+export async function loadGameReport(id: string): Promise<StoredGameReport | null> {
+  const game = await prisma.game.findUnique({ where: { id }, include: GAME_CONTENT });
+  if (!game) return null;
+  const { settings, standings, history } = rebuildGame(game);
 
   const playerKeyByUser: Record<string, string> = {};
   for (const p of game.players) if (p.userId) playerKeyByUser[p.userId] = p.playerKey;
@@ -464,6 +728,8 @@ export interface LeaderboardEntry {
   rank: number;
   userId: string;
   name: string;
+  /** Titre porté */
+  title: string | null;
   rating: number;
   /** Parties classées dans ce jeu, ce mode et cette difficulté */
   games: number;
@@ -491,8 +757,8 @@ export interface Board {
 /** Seuls les joueurs sortis du placement sont classés : l'Elo caché ne quitte jamais la base. */
 const rankedWhere = (board: Board) => ({ ...board, games: { gte: PLACEMENT_GAMES } });
 const leaderboardOrder = [{ rating: "desc" }, { games: "desc" }, { userId: "asc" }] satisfies Prisma.RatingOrderByWithRelationInput[];
-const leaderboardSelect = { userId: true, rating: true, games: true, user: { select: { name: true } } } as const;
-type LeaderboardRow = { userId: string; rating: number; games: number; user: { name: string } };
+const leaderboardSelect = { userId: true, rating: true, games: true, user: { select: { name: true, titleId: true } } } as const;
+type LeaderboardRow = { userId: string; rating: number; games: number; user: { name: string; titleId: string | null } };
 
 /** Place d'un Elo : 1 + nombre de joueurs classés strictement au-dessus. */
 function rankOf(board: Board, rating: number): Promise<number> {
@@ -514,6 +780,7 @@ const toEntry = (r: LeaderboardRow, rank: number, wins: Map<string, number>): Le
   rank,
   userId: r.userId,
   name: r.user.name,
+  title: r.user.titleId,
   rating: r.rating,
   games: r.games,
   wins: wins.get(r.userId) ?? 0,
@@ -573,15 +840,23 @@ export interface PlayerRanking {
 export interface PlayerProfile {
   id: string;
   name: string;
+  /** Titre porté */
+  title: string | null;
   /** Uniquement là où le placement est terminé : l'Elo caché ne quitte jamais la base. */
   rankings: PlayerRanking[];
+  /** Succès obtenus, et les plus prestigieux d'entre eux. */
+  achievements: { count: number; best: { id: string; tier: AchievementTier }[] };
   /** Lien avec le joueur connecté, null pour un visiteur */
   friendship: FriendshipState | null;
 }
 
+/** Succès montrés sur le profil public. */
+const PROFILE_ACHIEVEMENTS = 6;
+const TIER_ORDER: readonly AchievementTier[] = ["platinum", "gold", "silver", "bronze"];
+
 /**
- * Profil public d'un joueur, ouvert depuis le classement. Ne montre que ce que le classement rend déjà public
- * (pseudo, Elo, place, parties, % de victoires), jamais l'e-mail ni les statistiques privées.
+ * Profil public d'un joueur, ouvert depuis le classement : ce que le classement rend déjà public
+ * (pseudo, Elo, place, parties, % de victoires) et ses succès, jamais l'e-mail ni les statistiques privées.
  */
 export async function getPlayerProfile(userId: string, viewerId?: string): Promise<PlayerProfile | null> {
   const user = await prisma.user.findUnique({
@@ -589,10 +864,17 @@ export async function getPlayerProfile(userId: string, viewerId?: string): Promi
     select: {
       id: true,
       name: true,
+      titleId: true,
       ratings: { where: { games: { gte: PLACEMENT_GAMES } }, orderBy: [{ game: "asc" }, { mode: "asc" }, { difficulty: "asc" }] },
+      achievements: { select: { achievementId: true }, orderBy: { unlockedAt: "desc" } },
     },
   });
   if (!user) return null;
+  const owned = new Set(user.achievements.map((a) => a.achievementId));
+  const best = ACHIEVEMENTS.filter((a) => owned.has(a.id))
+    .sort((a, b) => TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier))
+    .slice(0, PROFILE_ACHIEVEMENTS)
+    .map((a) => ({ id: a.id, tier: a.tier }));
   const [rankings, friendship] = await Promise.all([
     Promise.all(
       user.ratings.map(async (r) => {
@@ -603,7 +885,7 @@ export async function getPlayerProfile(userId: string, viewerId?: string): Promi
     ),
     viewerId ? friendshipState(viewerId, userId) : null,
   ]);
-  return { id: user.id, name: user.name, rankings, friendship };
+  return { id: user.id, name: user.name, title: user.titleId, rankings, achievements: { count: owned.size, best }, friendship };
 }
 
 /* ------------------------------------------------------------------ */
@@ -728,6 +1010,7 @@ async function requestFriendship(fromId: string, target: { id: string; name: str
   if (existing && existing.requesterId === fromId) return { status: "already-sent", name: target.name };
   if (existing) {
     await prisma.friendship.update({ where: { id: existing.id }, data: { status: "accepted", acceptedAt: new Date() } });
+    await grantSocialAchievements([fromId, target.id]);
     return { status: "accepted", name: target.name };
   }
 
@@ -749,6 +1032,7 @@ export async function acceptFriendRequest(userId: string, fromId: string): Promi
     where: { requesterId: fromId, addresseeId: userId, status: "pending" },
     data: { status: "accepted", acceptedAt: new Date() },
   });
+  if (count > 0) await grantSocialAchievements([userId, fromId]);
   return count > 0;
 }
 
@@ -1047,6 +1331,7 @@ export async function createGuild(userId: string, rawName: string): Promise<Guil
     if (isUniqueError(err, "userId")) return "in-guild";
     throw err;
   }
+  await grantSocialAchievements([userId]);
   return null;
 }
 
@@ -1117,7 +1402,7 @@ export async function declineGuildInvite(userId: string, inviteId: string): Prom
 /** Accepte une invitation reçue : le joueur entre dans la guilde si elle n'est pas pleine. */
 export async function acceptGuildInvite(userId: string, inviteId: string, now: Date): Promise<GuildError | null> {
   try {
-    return await prisma.$transaction(async (tx) => {
+    const refused = await prisma.$transaction(async (tx) => {
       const invite = await tx.guildInvite.findFirst({ where: { id: inviteId, toId: userId }, select: { guildId: true } });
       if (!invite) return "not-found";
       // Verrou sur la guilde : deux acceptations simultanées ne dépassent pas la limite de membres.
@@ -1128,6 +1413,8 @@ export async function acceptGuildInvite(userId: string, inviteId: string, now: D
       await tx.guildInvite.deleteMany({ where: { toId: userId } });
       return null;
     });
+    if (!refused) await grantSocialAchievements([userId]);
+    return refused;
   } catch (err) {
     if (isUniqueError(err, "userId")) return "in-guild";
     throw err;

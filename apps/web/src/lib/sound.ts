@@ -50,6 +50,7 @@ export const sfx = {
   go: () => tone([523, 784], 0.08),
   out: () => tone([330, 247, 196], 0.1, "triangle", 0.05),
   win: () => tone([523, 659, 784, 1047], 0.11),
+  unlock: () => tone([784, 1175], 0.08, "triangle", 0.05),
 };
 
 export async function celebrate() {

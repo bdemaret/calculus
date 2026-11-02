@@ -1,9 +1,11 @@
 import { jwtVerify } from "jose";
+import { TITLE_IDS } from "@calculus/game-core";
 
 export interface GameIdentity {
   id: string;
   name: string;
   guest: boolean;
+  title: string | null;
 }
 
 const secret = () => {
@@ -19,7 +21,8 @@ export async function verifyGameToken(token: unknown): Promise<GameIdentity | nu
     const { payload } = await jwtVerify(token, secret(), { issuer: "calculus-web", audience: "calculus-game" });
     const name = typeof payload.name === "string" ? payload.name.trim().slice(0, 20) : "";
     if (typeof payload.sub !== "string" || !name) return null;
-    return { id: payload.sub, name, guest: payload.guest === true };
+    const title = typeof payload.title === "string" && TITLE_IDS.includes(payload.title) ? payload.title : null;
+    return { id: payload.sub, name, guest: payload.guest === true, title };
   } catch {
     return null;
   }

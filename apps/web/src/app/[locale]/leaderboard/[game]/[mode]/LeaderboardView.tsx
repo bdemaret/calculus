@@ -5,6 +5,7 @@ import type { LeaderboardData, LeaderboardEntry } from "@calculus/db";
 import { DIFFICULTIES, GAMES, GAME_IDS, PLACEMENT_GAMES, type Difficulty, type GameId, type GameModeId } from "@calculus/game-core";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { formatPercent } from "@/lib/format";
+import { PlayerTitle } from "@/components/PlayerTitle";
 
 interface Props {
   game: GameId;
@@ -178,6 +179,7 @@ function BoardTable({ entries, viewerId, label, anchorMe }: { entries: Leaderboa
                   {e.name}
                 </Link>
                 {e.userId === viewerId ? <span className="muted"> {t("leaderboard.you")}</span> : null}
+                <PlayerTitle title={e.title} />
               </td>
               <td>
                 <strong>{e.rating}</strong>

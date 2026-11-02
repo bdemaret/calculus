@@ -18,6 +18,7 @@ import {
   type PlayerAnswer,
   type RoundRecord,
   type SoloAnswer,
+  type Unlock,
 } from "@calculus/game-core";
 import { Link, useRouter } from "@/i18n/navigation";
 import { CalcLine } from "@/components/CalcLine";
@@ -67,6 +68,7 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
   const [closed, setClosed] = useState<RoundRecord | null>(null);
   const [report, setReport] = useState<GameReport | null>(null);
   const [save, setSave] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [unlocks, setUnlocks] = useState<Unlock[]>([]);
   const [, force] = useState(0);
   const tips = useShowTips();
   const touch = useTouch();
@@ -160,6 +162,7 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
     startedAt.current = Date.now();
     setReport(null);
     setSave("idle");
+    setUnlocks([]);
     setClosed(null);
     setRound(null);
     setPhase("countdown");
@@ -267,7 +270,10 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
           activityId: activity.current?.id ?? undefined,
         }),
       })
-        .then((r) => setSave(r.ok ? "saved" : "error"))
+        .then(async (r) => {
+          setSave(r.ok ? "saved" : "error");
+          if (r.ok) setUnlocks(((await r.json()) as { unlocks: Unlock[] }).unlocks);
+        })
         .catch(() => setSave("error"));
     }
   }
@@ -315,6 +321,7 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
           game={e.settings.game}
           mode={e.settings.mode}
           timePerQuestion={e.settings.timePerQuestion}
+          unlocks={{ [ME]: unlocks }}
           actions={
             <>
               <div className="actions">

@@ -15,3 +15,4 @@ export * from "./protocol";
 export * from "./publicLobbies";
 export * from "./techniques";
 export * from "./solo";
+export * from "./achievements";

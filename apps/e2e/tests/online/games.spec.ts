@@ -310,6 +310,29 @@ test.describe("Elo", () => {
   const ratingOf = (userId: string) =>
     prisma.rating.findUniqueOrThrow({ where: { userId_game_mode_difficulty: { userId, game: "standard", mode: "speed-race", difficulty: 2 } } });
 
+  test("les succès s'annoncent à celui qui les débloque, et aux autres sous les résultats", async ({ page, user: _user, request }) => {
+    const rival = await signUp(request);
+    await playRated(page, request, rival);
+    await expect(page.getByTestId("report-unlocks").getByText(t("achievements.wins-1.name"))).toBeVisible();
+    await expect(page.getByText(t("report.playerUnlocked", { name: rival.name, achievement: t("achievements.games-1.name") }))).toBeVisible();
+  });
+
+  test("le titre choisi s'affiche chez les autres joueurs du lobby", async ({ page, user: _user, request }) => {
+    const rival = await signUp(request);
+    const rivalId = await idOf(rival.email);
+    await prisma.userTitle.create({ data: { userId: rivalId, titleId: "night-owl", source: "achievement" } });
+    expect((await request.patch("/api/profile/title", { data: { titleId: "night-owl" } })).ok()).toBe(true);
+    const { token } = (await (await request.post("/api/game-token", { data: {} })).json()) as { token: string };
+    const alice = new LobbyPage(page);
+    await alice.preset(null, { mode: "speed-race", rounds: 5, difficulty: 2 });
+    const bot = await Bot.join(await alice.create(), rival.name, token);
+    try {
+      await expect(alice.slot(rival.name)).toContainText(t("titles.night-owl"));
+    } finally {
+      await bot.leave();
+    }
+  });
+
   test("deux comptes neufs : l'Elo bouge en caché pendant le placement", async ({ page, user, request }) => {
     const rival = await signUp(request);
     const { ratings } = await playRated(page, request, rival);

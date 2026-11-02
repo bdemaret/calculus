@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { SignJWT } from "jose";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { getTitles } from "@calculus/db";
 import { getSession } from "@/lib/auth";
 import { cleanName } from "@/lib/names";
 import { rateLimited, requestIp } from "@/lib/rateLimit";
@@ -34,8 +35,8 @@ export async function POST(req: Request) {
   if (limited) return NextResponse.json({ error: "rate-limited" }, { status: 429 });
 
   const payload = session
-    ? { name: cleanName(session.user.name) || "Joueur", guest: false }
-    : { name: guestName, guest: true };
+    ? { name: cleanName(session.user.name) || "Joueur", guest: false, title: (await getTitles(session.user.id)).current }
+    : { name: guestName, guest: true, title: null };
   const sub = session ? session.user.id : `guest_${randomUUID()}`;
 
   const token = await new SignJWT(payload)
