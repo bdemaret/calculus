@@ -26,7 +26,7 @@ export async function LegalPage({ doc }: { doc: LegalDoc }) {
   return (
     <article className="legal">
       <header className="stack">
-        <h2>{t(`${doc}.title`)}</h2>
+        <h1>{t(`${doc}.title`)}</h1>
         <p className="muted">{t("updated", { date: format.dateTime(new Date(LEGAL_UPDATED), { dateStyle: "long" }) })}</p>
       </header>
       {sections.map((section) => (

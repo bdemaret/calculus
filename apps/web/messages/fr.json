@@ -1,6 +1,15 @@
 {
   "meta": {
-    "description": "Calcul mental en solo ou jusqu’à douze joueurs : battle royale, course de vitesse, statistiques de progression."
+    "title": "Calculus · Jeu de calcul mental en ligne, solo ou multijoueur",
+    "tagline": "Le jeu de calcul mental, seul ou à plusieurs",
+    "games": "Calcul mental, bon compte, nombre manquant et bombe : découvre les jeux de Calculus, leurs modes et leurs cinq niveaux.",
+    "solo": "Entraîne-toi seul au calcul mental, du « 7 + 4 » au « 125 × 8 − 36 ÷ 4 » : cinq niveaux et plusieurs jeux pour progresser.",
+    "online": "Défie jusqu’à onze joueurs au calcul mental en ligne : crée un lobby, partage le code et gagne en battle royale ou en course de vitesse.",
+    "learn": "Des astuces de calcul mental expliquées pas à pas et classées par niveau, avec un entraînement pour chaque technique.",
+    "daily": "Cinq calculs de plus en plus durs et un seul essai par jour : fais ton meilleur temps et grimpe au classement du calcul du jour.",
+    "leaderboard": "Le classement Elo des meilleurs joueurs de Calculus, par jeu, par mode et par niveau.",
+    "changelog": "Les nouveautés de Calculus, version après version.",
+    "description": "Entraîne-toi au calcul mental, seul ou jusqu’à 12 joueurs en ligne : battle royale, course de vitesse, 5 niveaux et statistiques de progression."
   },
   "common": {
     "back": "Retour",

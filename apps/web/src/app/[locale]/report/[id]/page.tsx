@@ -4,11 +4,12 @@ import { loadGameReport } from "@calculus/db";
 import { Link } from "@/i18n/navigation";
 import { getSession } from "@/lib/auth";
 import { GameReportView } from "@/components/GameReportView";
+import { NO_INDEX } from "@/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "report" });
-  return { title: t("pageTitle") };
+  return { title: t("pageTitle"), ...NO_INDEX };
 }
 
 /** Rapport d'une partie enregistrée (accessible depuis le tableau de bord). */

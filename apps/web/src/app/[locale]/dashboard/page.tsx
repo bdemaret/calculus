@@ -2,12 +2,13 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getDashboard } from "@calculus/db";
 import { redirect } from "@/i18n/navigation";
 import { getSession } from "@/lib/auth";
+import { NO_INDEX } from "@/lib/seo";
 import { DashboardView } from "./DashboardView";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "dashboard" });
-  return { title: t("title") };
+  return { title: t("title"), ...NO_INDEX };
 }
 
 export default async function DashboardPage({ params }: { params: Promise<{ locale: string }> }) {

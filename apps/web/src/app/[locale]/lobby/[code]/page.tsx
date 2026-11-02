@@ -1,12 +1,13 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { normalizeCode } from "@calculus/game-core";
 import { getSession } from "@/lib/auth";
+import { NO_INDEX } from "@/lib/seo";
 import { LobbyClient } from "./LobbyClient";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string; code: string }> }) {
   const { locale, code } = await params;
   const t = await getTranslations({ locale, namespace: "lobby" });
-  return { title: t("pageTitle", { code: normalizeCode(code) }) };
+  return { title: t("pageTitle", { code: normalizeCode(code) }), ...NO_INDEX };
 }
 
 export default async function LobbyPage({ params }: { params: Promise<{ locale: string; code: string }> }) {

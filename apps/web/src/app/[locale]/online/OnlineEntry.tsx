@@ -60,7 +60,7 @@ export function OnlineEntry({ accountName }: { accountName: string | null }) {
         <MarginNote value={t("online.margin")} />
       </Margin>
       <div className="setup-head">
-        <h2>{t("online.title")}</h2>
+        <h1>{t("online.title")}</h1>
       </div>
       {accountName ? (
         <p>{t("online.connectedAs", { name: accountName })}</p>

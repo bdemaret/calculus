@@ -4,6 +4,7 @@ import { z } from "zod";
 import { LEADERBOARD_SIZE, getLeaderboard, searchLeaderboard } from "@calculus/db";
 import { DIFFICULTIES, GAMES, GAME_IDS, type Difficulty, type GameId, type GameModeId } from "@calculus/game-core";
 import { getSession } from "@/lib/auth";
+import { publicPage } from "@/lib/seo";
 import { LeaderboardView } from "./LeaderboardView";
 
 type Params = Promise<{ locale: string; game: string; mode: string }>;
@@ -22,9 +23,9 @@ const query = z.object({
 });
 
 export async function generateMetadata({ params }: { params: Params }) {
-  const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "leaderboard" });
-  return { title: t("title") };
+  const { locale, game, mode } = await params;
+  const t = await getTranslations({ locale });
+  return publicPage(locale, `/leaderboard/${game}/${mode}`, t("leaderboard.title"), t("meta.leaderboard"));
 }
 
 export default async function LeaderboardPage({ params, searchParams }: { params: Params; searchParams: SearchParams }) {

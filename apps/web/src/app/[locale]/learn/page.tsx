@@ -4,6 +4,7 @@ import { DIFFICULTIES, TECHNIQUES, TECHNIQUE_IDS, detectTechnique, renderTokens,
 import { MathText } from "@/components/MathText";
 import { TechniqueSteps } from "@/components/TechniqueSteps";
 import { Link } from "@/i18n/navigation";
+import { publicPage } from "@/lib/seo";
 import { LearnHashRedirect } from "./LearnHashRedirect";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -17,10 +18,14 @@ const query = z.object({
     .catch(1),
 });
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+export async function generateMetadata({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: SearchParams }) {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "learn" });
-  return { title: t("title") };
+  const level = query.parse(await searchParams).level as Difficulty;
+  const t = await getTranslations({ locale });
+  const description = t("meta.learn");
+  // Chaque niveau montre ses propres fiches : il garde sa propre adresse dans les recherches.
+  if (level === 1) return publicPage(locale, "/learn", t("learn.title"), description);
+  return publicPage(locale, `/learn?level=${level}`, `${t("learn.title")} · ${t("learn.level", { level, name: t(`levels.${level}`) })}`, description);
 }
 
 /** Techniques de calcul : un onglet par niveau, une fiche « À retenir » par technique du niveau. */
@@ -39,7 +44,7 @@ export default async function LearnPage({ params, searchParams }: { params: Prom
       {/* Les anciens liens `/learn#id` (sans niveau) ouvrent le niveau de la technique. */}
       <LearnHashRedirect level={level} levels={Object.fromEntries(TECHNIQUE_IDS.map((id) => [id, TECHNIQUES[id].level]))} />
       <div className="setup-head">
-        <h2>{t("learn.title")}</h2>
+        <h1>{t("learn.title")}</h1>
         <p className="muted">{t("learn.intro")}</p>
       </div>
       <nav className="board-tabs" aria-label={t("learn.levelsNav")}>

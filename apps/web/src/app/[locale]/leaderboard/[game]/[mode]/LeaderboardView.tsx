@@ -43,7 +43,7 @@ export function LeaderboardView({ game, mode, difficulty, query, board, size, re
   return (
     <section className="report">
       <div className="setup-head">
-        <h2>{t("leaderboard.title")}</h2>
+        <h1>{t("leaderboard.title")}</h1>
         <p className="muted">{t("leaderboard.lede", { total: PLACEMENT_GAMES })}</p>
       </div>
 

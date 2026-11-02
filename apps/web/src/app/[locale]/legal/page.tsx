@@ -1,10 +1,11 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { LegalPage } from "@/components/LegalPage";
+import { publicPage } from "@/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "legal" });
-  return { title: t("notice.title") };
+  return publicPage(locale, "/legal", t("notice.title"));
 }
 
 export default async function LegalNoticePage({ params }: { params: Promise<{ locale: string }> }) {

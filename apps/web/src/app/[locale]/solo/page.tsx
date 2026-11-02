@@ -1,12 +1,14 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { GAMES, GAME_IDS } from "@calculus/game-core";
 import { getSession } from "@/lib/auth";
+import { publicPage } from "@/lib/seo";
 import { SoloGame } from "./SoloGame";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "solo" });
-  return { title: t("title") };
+  const meta = await getTranslations({ locale, namespace: "meta" });
+  return publicPage(locale, "/solo", t("title"), meta("solo"));
 }
 
 export default async function SoloPage({

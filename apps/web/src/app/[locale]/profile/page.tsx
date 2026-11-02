@@ -1,12 +1,13 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { redirect } from "@/i18n/navigation";
 import { getSession } from "@/lib/auth";
+import { NO_INDEX } from "@/lib/seo";
 import { ProfileForm } from "./ProfileForm";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "profile" });
-  return { title: t("title") };
+  return { title: t("title"), ...NO_INDEX };
 }
 
 /** Onglet « Mon profil » : photo, pseudo, e-mail, mot de passe, déconnexion et suppression du compte. */

@@ -67,7 +67,7 @@ export function PracticeClient({ technique }: { technique: TechniqueId }) {
         <Link className="link-btn" href={`/learn?level=${TECHNIQUES[technique].level}#${technique}`}>
           ← {t("learn.back")}
         </Link>
-        <h2>{t(`techniques.${technique}.name`)}</h2>
+        <h1>{t(`techniques.${technique}.name`)}</h1>
         <p className="muted">
           <span className="tag">{t("learn.level", { level: TECHNIQUES[technique].level, name: t(`levels.${TECHNIQUES[technique].level}`) })}</span>{" "}
           {t(`techniques.${technique}.summary`)}

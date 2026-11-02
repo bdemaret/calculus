@@ -41,6 +41,7 @@ messages/fr.json, en.json    Traductions
 ## Conventions
 
 - **Pages** : composant serveur `page.tsx` (lit `params.locale`, appelle `setRequestLocale`, `generateMetadata` via `getTranslations`) qui rend un composant client `XxxClient.tsx` / `XxxView.tsx` marqué `"use client"`.
+- **Référencement** : `@/lib/seo` donne `publicPage(locale, path, title, description?)` (canonical, Open Graph) aux pages publiques et `NO_INDEX` aux pages de compte, de partie et de joueur. Une page publique va aussi dans `app/sitemap.ts`, sa description dans `meta.*`, et son titre principal est un `<h1>`. Le `hreflang` vient de l'en-tête `Link` posé par le middleware next-intl. Ne pas bloquer une page `NO_INDEX` dans `app/robots.ts` : le robot doit la lire pour voir la consigne. `opengraph-image.tsx` dessine l'aperçu des liens partagés.
 - **Navigation** : importer `Link`, `redirect`, `useRouter`, `usePathname` depuis `@/i18n/navigation`, jamais depuis `next/link` / `next/navigation`, pour garder le préfixe de langue.
 - **Traductions** : aucun texte en dur dans l'UI. Toute nouvelle clé va dans **les deux** fichiers `messages/fr.json` et `messages/en.json`. Le français est la langue de référence (tutoiement, typographie française : `’`, espaces avant `: ; ! ?`, « guillemets »).
 - **Auth** : `getSession()` de `@/lib/auth` côté serveur (fichier `server-only`) ; `@/lib/auth-client` côté navigateur.

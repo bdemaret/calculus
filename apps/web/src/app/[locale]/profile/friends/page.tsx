@@ -2,12 +2,13 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getFriends } from "@calculus/db";
 import { redirect } from "@/i18n/navigation";
 import { getSession } from "@/lib/auth";
+import { NO_INDEX } from "@/lib/seo";
 import { FriendsClient } from "./FriendsClient";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "friends" });
-  return { title: t("title") };
+  return { title: t("title"), ...NO_INDEX };
 }
 
 export default async function FriendsPage({ params }: { params: Promise<{ locale: string }> }) {

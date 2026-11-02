@@ -1,10 +1,12 @@
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
 import { RELEASES, releaseKey } from "@/lib/releases";
+import { publicPage } from "@/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "changelog" });
-  return { title: t("title") };
+  const meta = await getTranslations({ locale, namespace: "meta" });
+  return publicPage(locale, "/changelog", t("title"), meta("changelog"));
 }
 
 /** Notes de version, de la plus récente à la plus ancienne (textes dans `changelog.notes`). */
@@ -17,7 +19,7 @@ export default async function ChangelogPage({ params }: { params: Promise<{ loca
   return (
     <article className="legal changelog">
       <header className="stack">
-        <h2>{t("title")}</h2>
+        <h1>{t("title")}</h1>
       </header>
       {RELEASES.map((r) => (
         <section key={r.version} id={releaseKey(r.version)}>

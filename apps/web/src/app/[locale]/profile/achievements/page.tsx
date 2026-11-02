@@ -2,6 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getAchievements } from "@calculus/db";
 import { redirect } from "@/i18n/navigation";
 import { getSession } from "@/lib/auth";
+import { NO_INDEX } from "@/lib/seo";
 import { AchievementsView } from "./AchievementsView";
 
 type Params = Promise<{ locale: string }>;
@@ -9,7 +10,7 @@ type Params = Promise<{ locale: string }>;
 export async function generateMetadata({ params }: { params: Params }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "achievementsPage" });
-  return { title: t("metaTitle") };
+  return { title: t("metaTitle"), ...NO_INDEX };
 }
 
 /** Onglet « Mes succès » du profil. */

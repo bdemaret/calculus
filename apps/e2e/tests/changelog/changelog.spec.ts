@@ -39,7 +39,7 @@ test("le bandeau de nouvelle version s'affiche aux invités jusqu'à ce qu'il so
   await expect(notice).toHaveCount(0);
   // Lu : il ne revient plus, même après un rechargement.
   await page.goto("/fr/games");
-  await expect(page.getByRole("heading", { level: 2 }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(notice).toHaveCount(0);
 });
 

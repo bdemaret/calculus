@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getPlayerProfile } from "@calculus/db";
 import { getSession } from "@/lib/auth";
+import { NO_INDEX } from "@/lib/seo";
 import { PlayerView } from "./PlayerView";
 
 type Params = Promise<{ locale: string; id: string }>;
@@ -13,7 +14,7 @@ export async function generateMetadata({ params }: { params: Params }) {
   const { locale, id } = await params;
   const t = await getTranslations({ locale, namespace: "player" });
   const profile = id.length <= MAX_ID_LENGTH ? await getPlayerProfile(id) : null;
-  return { title: profile ? t("title", { name: profile.name }) : t("notFound") };
+  return { title: profile ? t("title", { name: profile.name }) : t("notFound"), ...NO_INDEX };
 }
 
 /** Profil public d'un joueur, ouvert depuis le classement. */

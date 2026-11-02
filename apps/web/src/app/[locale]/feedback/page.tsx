@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getSession } from "@/lib/auth";
+import { NO_INDEX } from "@/lib/seo";
 import { FeedbackForm } from "./FeedbackForm";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -7,7 +8,7 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "feedback" });
-  return { title: t("title") };
+  return { title: t("title"), ...NO_INDEX };
 }
 
 export default async function FeedbackPage({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: SearchParams }) {

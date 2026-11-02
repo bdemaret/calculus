@@ -2,12 +2,13 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getMyGuild, getReceivedGuildInvites } from "@calculus/db";
 import { redirect } from "@/i18n/navigation";
 import { getSession } from "@/lib/auth";
+import { NO_INDEX } from "@/lib/seo";
 import { GuildClient } from "./GuildClient";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "guild" });
-  return { title: t("title") };
+  return { title: t("title"), ...NO_INDEX };
 }
 
 /** Page de la guilde : sa guilde (membres, invitations, lobby de guilde), ou les invitations reçues et la fondation d'une guilde. */

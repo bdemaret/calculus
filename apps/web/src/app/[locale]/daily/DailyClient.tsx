@@ -155,12 +155,20 @@ export function DailyClient({ loggedIn, children }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [phase, run]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (phase === "loading") return <p className="muted">{t("daily.loading")}</p>;
+  // Le titre reste dans le HTML du serveur : c'est tout ce que lit un moteur de recherche sur cette page.
+  if (phase === "loading") {
+    return (
+      <div className="setup-head">
+        <h1>{t("daily.title")}</h1>
+        <p className="muted">{t("daily.lede", { rounds: DAILY_ROUNDS })}</p>
+      </div>
+    );
+  }
 
   if (phase === "error") {
     return (
       <section className="daily-intro">
-        <h2>{t("daily.title")}</h2>
+        <h1>{t("daily.title")}</h1>
         <p className="form-error">{t("daily.error")}</p>
         <div className="actions">
           <button className="btn" type="button" onClick={() => window.location.reload()}>
@@ -180,7 +188,7 @@ export function DailyClient({ loggedIn, children }: Props) {
         </Margin>
         <div className="daily-intro">
           <div className="setup-head">
-            <h2>{t("daily.title")}</h2>
+            <h1>{t("daily.title")}</h1>
             <p className="muted">{t("daily.lede", { rounds: DAILY_ROUNDS })}</p>
           </div>
           <div className="actions">
@@ -277,7 +285,7 @@ function DailyResult({ run, board }: { run: DailyRunView; board: ReactNode }) {
         <MarginNote value={t("daily.margin")} />
       </Margin>
       <div className="setup-head">
-        <h2>{t("daily.resultTitle")}</h2>
+        <h1>{t("daily.resultTitle")}</h1>
       </div>
       <div className="daily-score">
         <span className="grade" data-testid="daily-score">

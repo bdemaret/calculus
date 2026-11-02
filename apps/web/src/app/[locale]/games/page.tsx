@@ -1,11 +1,13 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { DIFFICULTIES, GAMES, GAME_IDS, GAME_MODES, defaultSettings, generateQuestion } from "@calculus/game-core";
 import { Link } from "@/i18n/navigation";
+import { publicPage } from "@/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "gamesPage" });
-  return { title: t("title") };
+  const meta = await getTranslations({ locale, namespace: "meta" });
+  return publicPage(locale, "/games", t("title"), meta("games"));
 }
 
 export default async function GamesPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -15,7 +17,7 @@ export default async function GamesPage({ params }: { params: Promise<{ locale: 
   return (
     <section className="setup">
       <div className="setup-head">
-        <h2>{t("gamesPage.title")}</h2>
+        <h1>{t("gamesPage.title")}</h1>
         <p className="muted">{t("gamesPage.intro")}</p>
       </div>
       <h3>{t("gamesPage.gamesTitle")}</h3>

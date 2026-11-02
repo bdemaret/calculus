@@ -1,6 +1,15 @@
 {
   "meta": {
-    "description": "Mental math, solo or with up to twelve players: battle royale, speed race and progress stats."
+    "title": "Calculus · Online mental math game, solo or multiplayer",
+    "tagline": "The mental math game, solo or with friends",
+    "games": "Mental math, the right count, missing number and bomb: discover the games of Calculus, their modes and their five levels.",
+    "solo": "Practise mental math on your own, from “7 + 4” to “125 × 8 − 36 ÷ 4”: five levels and several games to improve.",
+    "online": "Challenge up to eleven players at mental math online: create a lobby, share the code and win in battle royale or speed race.",
+    "learn": "Mental math tricks explained step by step and sorted by level, with practice for each technique.",
+    "daily": "Five calculations, harder and harder, and one try a day: set your best time and climb the daily challenge leaderboard.",
+    "leaderboard": "The Elo ranking of the best Calculus players, by game, mode and level.",
+    "changelog": "What’s new in Calculus, release after release.",
+    "description": "Practise mental math solo or with up to 12 players online: battle royale, speed race, 5 levels and progress stats."
   },
   "common": {
     "back": "Back",

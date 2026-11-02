@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { OnlineCount } from "@/components/OnlineCount";
 import { ThemeSync } from "@/components/ThemeSync";
 import { themeInitScript } from "@/lib/theme";
+import { SITE_URL } from "@/lib/seo";
 import "../globals.css";
 
 // Polices chargées directement depuis Google Fonts par le navigateur.
@@ -22,7 +23,13 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "meta" });
-  return { title: { default: "Calculus", template: "%s · Calculus" }, description: t("description") };
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: { default: t("title"), template: "%s · Calculus" },
+    description: t("description"),
+    openGraph: { type: "website", siteName: "Calculus", title: t("title"), description: t("description") },
+    twitter: { card: "summary_large_image" },
+  };
 }
 
 export default async function LocaleLayout({ children, params }: { children: ReactNode; params: Promise<{ locale: string }> }) {

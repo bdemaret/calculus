@@ -283,7 +283,7 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
           <MarginNote value={t("solo.marginSolo")} />
         </Margin>
         <div className="setup-head">
-          <h2>{t("solo.title")}</h2>
+          <h1>{t("solo.title")}</h1>
         </div>
         <SettingsForm id="solo-settings" settings={settings} onChange={changeSettings} online={false} />
         <div className="actions">

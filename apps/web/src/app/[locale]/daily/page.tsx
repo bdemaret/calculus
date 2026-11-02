@@ -3,6 +3,7 @@ import { getDailyBoard, settleDailyChallenges } from "@calculus/db";
 import { dailyDate, isDailyDate } from "@calculus/game-core";
 import { Link } from "@/i18n/navigation";
 import { getSession } from "@/lib/auth";
+import { publicPage } from "@/lib/seo";
 import { DailyBoardView } from "./DailyBoardView";
 import { DailyClient } from "./DailyClient";
 import "./daily.css";
@@ -10,7 +11,8 @@ import "./daily.css";
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "daily" });
-  return { title: t("title") };
+  const meta = await getTranslations({ locale, namespace: "meta" });
+  return publicPage(locale, "/daily", t("title"), meta("daily"));
 }
 
 /** Calcul du jour et son classement ; `?date=` montre seulement le classement d'un jour passé. */
@@ -36,7 +38,7 @@ export default async function DailyPage({
   return (
     <section className="report">
       <div className="setup-head">
-        <h2>{t("title")}</h2>
+        <h1>{t("title")}</h1>
       </div>
       {board}
       <p>

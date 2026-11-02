@@ -6,7 +6,14 @@ import { getSession } from "@/lib/auth";
 import { DailyCard } from "@/components/DailyCard";
 import { HeroCalc } from "@/components/HeroCalc";
 import { PublicLobbies } from "@/components/PublicLobbies";
+import { publicPage } from "@/lib/seo";
 import "./home.css";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "meta" });
+  return publicPage(locale, "", { absolute: t("title") }, t("description"));
+}
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
