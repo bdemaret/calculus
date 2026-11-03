@@ -8,6 +8,7 @@ import { local } from "@/lib/storage";
 /**
  * Bandeau « nouvelle version », sous l'en-tête, pendant 48 h après une mise en production.
  * La version vue est retenue dans le navigateur (comptes et invités) : ouvrir les notes ou fermer le bandeau suffit.
+ * Une première visite retient la version en ligne sans rien afficher.
  */
 export function ReleaseNotice() {
   const t = useTranslations("changelog");
@@ -19,9 +20,12 @@ export function ReleaseNotice() {
     if (pathname === "/changelog") {
       local.set(RELEASE_SEEN_KEY, APP_VERSION);
       setShow(false);
-    } else {
-      setShow(showsReleaseNotice(Date.now(), local.get<string | null>(RELEASE_SEEN_KEY, null)));
+      return;
     }
+    const seen = local.get<string | null>(RELEASE_SEEN_KEY, null);
+    // Première visite : rien de « nouveau » pour ce visiteur, et un bandeau tardif décalerait toute la page.
+    if (seen === null) local.set(RELEASE_SEEN_KEY, APP_VERSION);
+    else setShow(showsReleaseNotice(Date.now(), seen));
   }, [pathname]);
 
   if (!show) return null;

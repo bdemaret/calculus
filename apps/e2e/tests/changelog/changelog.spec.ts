@@ -10,6 +10,13 @@ async function appVersion(page: Page): Promise<string> {
   return /v(\d+\.\d+\.\d+)/.exec(text)![1]!;
 }
 
+/** Visiteur déjà venu, sur une ancienne version. Sans écraser ce que la page écrit ensuite. */
+async function returningVisitor(page: Page) {
+  await page.addInitScript(() => {
+    if (localStorage.getItem("calculus:release.seen") === null) localStorage.setItem("calculus:release.seen", JSON.stringify("0.0.0"));
+  });
+}
+
 test("le pied de page affiche la version et mène aux nouveautés, en français et en anglais", async ({ page }) => {
   await page.goto("/fr");
   const version = await appVersion(page);
@@ -28,7 +35,16 @@ test("pas de bandeau de nouvelle version plus de 48 h après la mise en producti
   await expect(page.getByRole("link", { name: t("changelog.noticeOpen") })).toHaveCount(0);
 });
 
+test("pas de bandeau de nouvelle version à la première visite", async ({ page }) => {
+  await page.clock.setFixedTime(new Date(Date.parse(RELEASED_AT) + 2 * HOUR));
+  await page.goto("/fr");
+  await expect(page.getByRole("contentinfo")).toBeVisible();
+  await expect(page.getByRole("link", { name: t("changelog.noticeOpen") })).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("calculus:release.seen"))).not.toBeNull();
+});
+
 test("le bandeau de nouvelle version s'affiche aux invités jusqu'à ce qu'il soit lu", async ({ page }) => {
+  await returningVisitor(page);
   await page.clock.setFixedTime(new Date(Date.parse(RELEASED_AT) + 2 * HOUR));
   await page.goto("/fr");
   const version = await appVersion(page);
@@ -44,6 +60,7 @@ test("le bandeau de nouvelle version s'affiche aux invités jusqu'à ce qu'il so
 });
 
 test("fermer le bandeau de nouvelle version le retire pour de bon", async ({ page }) => {
+  await returningVisitor(page);
   await page.clock.setFixedTime(new Date(Date.parse(RELEASED_AT) + 47 * HOUR));
   await page.goto("/fr");
   const close = page.getByRole("button", { name: t("changelog.noticeDismiss") });

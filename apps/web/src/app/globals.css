@@ -24,8 +24,8 @@
   --ko: #d7263d;
   --hl-blend: multiply;
 
-  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
-  --font-hand: "Caveat", "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
+  --font-display: var(--font-bricolage), "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-hand: var(--font-caveat), "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
 
   --m: 84px;          /* largeur de la marge */
   --pad: 32px;        /* retrait du texte après la marge : les colonnes du quadrillage partent de là */
@@ -150,7 +150,8 @@ button, input { font: inherit; color: inherit; }
 
 h1, h2, h3 { text-wrap: balance; margin: 0; letter-spacing: -0.02em; font-variation-settings: "opsz" 72; }
 h1, h2 { --leading: 1.1; font-size: 34px; font-weight: 750; line-height: 1.1; }
-h3 { --leading: 1.2; font-size: 20px; font-weight: 700; }
+/* `.h3` : un titre de section sous le h1, avec l'allure d'un h3 (hiérarchie sans saut de niveau). */
+h3, .h3 { --leading: 1.2; font-size: 20px; font-weight: 700; line-height: inherit; }
 p { margin: 0; }
 .muted { color: var(--muted); }
 .stack { display: grid; gap: 16px; }
@@ -215,7 +216,7 @@ p { margin: 0; }
 .technique-card { display: flex; flex-direction: column; gap: var(--sub); padding: 22px; background: var(--surface); border: 2px solid var(--ink-deep); border-radius: var(--radius-card); box-shadow: var(--sticker); scroll-margin-top: 16px; }
 .technique-card:target { box-shadow: var(--sticker), 0 0 0 4px var(--hl); animation: pop .28s ease-out; }
 .technique-kicker { font-family: var(--font-hand); font-size: 22px; font-weight: 700; line-height: calc(var(--sub) * 3); color: var(--margin-red); transform: rotate(-2deg); transform-origin: left; width: max-content; }
-.technique-card h4 { font-size: 22px; font-weight: 760; letter-spacing: -0.015em; line-height: calc(var(--sub) * 3); }
+.technique-card h3 { font-size: 22px; font-weight: 760; letter-spacing: -0.015em; line-height: calc(var(--sub) * 3); }
 .technique-card .muted { font-size: 15px; }
 .technique-example { font-family: var(--font-hand); font-size: 34px; line-height: calc(var(--sub) * 5); color: var(--ink); overflow-wrap: anywhere; }
 .technique-card .technique-steps ol { font-size: 24px; }
@@ -580,7 +581,7 @@ img.crest { object-fit: cover; padding: 0; background: var(--line); }
 .invite-more { margin: 0; padding: 0 4px; font-size: 14px; }
 .invite-notice { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sub) 16px; padding: 10px 16px; border-radius: var(--radius-card); border: 2px solid var(--ink); background: var(--surface); font-weight: 650; animation: pop .28s ease-out; }
 .release-notice { margin-bottom: 16px; box-shadow: inset 6px 0 0 var(--hl); }
-.changelog h3 time { font-size: 15px; font-weight: 500; }
+.changelog .h3 time { font-size: 15px; font-weight: 500; }
 .lobby-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sub) 16px; margin-bottom: 16px; padding: 10px 16px; border-radius: var(--radius-card); border: 2px solid var(--ink); background: var(--surface); box-shadow: inset 6px 0 0 var(--hl); animation: pop .28s ease-out; }
 .lobby-banner-info { display: grid; gap: 0; min-width: 0; }
 .lobby-banner-info .muted { font-size: 14px; }

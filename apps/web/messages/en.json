@@ -676,7 +676,6 @@
             [
               "Scalingo (hosting of the website, online games and database; French company, servers in France);",
               "Resend (email delivery, United States);",
-              "Google Fonts (site fonts): your browser contacts Google’s servers, which receive your IP address;",
               "voice input, if you turn it on: speech recognition is done by your browser, which may send the audio to its vendor (Google for Chrome, Apple for Safari, Microsoft for Edge). Calculus only receives the recognised number, never the audio."
             ],
             "Transfers to the United States are covered by the EU–US Data Privacy Framework or by the European Commission’s standard contractual clauses."

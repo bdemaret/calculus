@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Bricolage_Grotesque, Caveat } from "next/font/google";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
@@ -12,9 +13,9 @@ import { themeInitScript } from "@/lib/theme";
 import { SITE_URL } from "@/lib/seo";
 import "../globals.css";
 
-// Polices chargées directement depuis Google Fonts par le navigateur.
-const FONTS_URL =
-  "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&family=Caveat:wght@500;700&display=swap";
+// Polices téléchargées au build et servies par le site : rien ne bloque l'affichage et aucun visiteur ne contacte Google.
+const display = Bricolage_Grotesque({ subsets: ["latin"], axes: ["opsz", "wdth"], variable: "--font-bricolage" });
+const hand = Caveat({ subsets: ["latin"], variable: "--font-caveat", preload: false });
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -39,12 +40,9 @@ export default async function LocaleLayout({ children, params }: { children: Rea
 
   return (
     // suppressHydrationWarning : data-theme est posé par le script avant l'hydratation.
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale} className={`${display.variable} ${hand.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link rel="stylesheet" href={FONTS_URL} />
       </head>
       <body>
         <NextIntlClientProvider>

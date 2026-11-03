@@ -20,7 +20,7 @@ export default async function GamesPage({ params }: { params: Promise<{ locale: 
         <h1>{t("gamesPage.title")}</h1>
         <p className="muted">{t("gamesPage.intro")}</p>
       </div>
-      <h3>{t("gamesPage.gamesTitle")}</h3>
+      <h2 className="h3">{t("gamesPage.gamesTitle")}</h2>
       <div className="mode-list">
         {GAME_IDS.map((g) => (
           <div className="mode-item" key={g}>
@@ -46,7 +46,7 @@ export default async function GamesPage({ params }: { params: Promise<{ locale: 
           </div>
         ))}
       </div>
-      <h3>{t("gamesPage.modesTitle")}</h3>
+      <h2 className="h3">{t("gamesPage.modesTitle")}</h2>
       <div className="mode-list">
         {GAME_MODES.map((m) => (
           <div className="mode-item" key={m}>
@@ -58,11 +58,11 @@ export default async function GamesPage({ params }: { params: Promise<{ locale: 
         ))}
       </div>
       <div className="stack">
-        <h3>{t("gamesPage.turnTitle")}</h3>
+        <h2 className="h3">{t("gamesPage.turnTitle")}</h2>
         <p className="muted">{t("gamesPage.turnText")}</p>
       </div>
       <div className="stack">
-        <h3>{t("gamesPage.levelsTitle")}</h3>
+        <h2 className="h3">{t("gamesPage.levelsTitle")}</h2>
         <div className="bars">
           {DIFFICULTIES.map((d) => (
             <div className="bar-row" key={d} style={{ gridTemplateColumns: "140px minmax(0,1fr)" }}>

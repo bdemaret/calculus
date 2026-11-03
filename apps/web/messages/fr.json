@@ -675,7 +675,6 @@
             [
               "Scalingo (hébergement du site, des parties en ligne et de la base de données ; société française, serveurs en France) ;",
               "Resend (envoi des e-mails, États-Unis) ;",
-              "Google Fonts (polices du site) : ton navigateur contacte les serveurs de Google, qui reçoivent ton adresse IP ;",
               "dictée vocale, si tu l’actives : la reconnaissance vocale est faite par ton navigateur, qui peut envoyer le son à son éditeur (Google pour Chrome, Apple pour Safari, Microsoft pour Edge). Calculus ne reçoit que le nombre reconnu, jamais le son."
             ],
             "Les transferts vers les États-Unis sont encadrés par le Data Privacy Framework UE–États-Unis ou par les clauses contractuelles types de la Commission européenne."

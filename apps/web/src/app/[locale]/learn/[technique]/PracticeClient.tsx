@@ -110,7 +110,7 @@ export function PracticeClient({ technique }: { technique: TechniqueId }) {
       </p>
       {outcome && hint ? (
         <div className="practice-explain">
-          <h3>{t("learn.howTo")}</h3>
+          <h2 className="h3">{t("learn.howTo")}</h2>
           <TechniqueSteps hint={hint} />
         </div>
       ) : null}

@@ -21,7 +21,7 @@ export async function Header() {
   return (
     <>
       <header className="top">
-        <Link className="brand" href="/" aria-label={t("home")} style={{ textDecoration: "none" }}>
+        <Link className="brand" href="/" aria-label={`Calculus ${t("tagline")}, ${t("home")}`} style={{ textDecoration: "none" }}>
           <span className="brand-name">Calculus</span>
           <span className="brand-note">{t("tagline")}</span>
         </Link>

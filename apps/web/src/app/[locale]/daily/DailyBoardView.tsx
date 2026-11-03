@@ -15,7 +15,7 @@ export function DailyBoardView({ board, today, viewerId }: { board: DailyBoard; 
   const meInTop = board.me != null && board.top.some((e) => e.userId === board.me!.userId);
   return (
     <div className="stack" id="daily-board">
-      <h3>{board.date === today ? t("boardToday") : t("boardOf", { day })}</h3>
+      <h2 className="h3">{board.date === today ? t("boardToday") : t("boardOf", { day })}</h2>
       {board.date === today ? <p className="muted">{t("boardRule")}</p> : null}
       {board.top.length ? <BoardTable entries={board.top} viewerId={viewerId} label={t("boardLabel", { day })} champion={board.settled} /> : <p className="muted">{t("boardEmpty")}</p>}
       {board.me && !meInTop ? <BoardTable entries={[board.me]} viewerId={viewerId} label={t("boardMe")} champion={false} /> : null}

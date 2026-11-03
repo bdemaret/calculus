@@ -81,7 +81,7 @@ export function LeaderboardView({ game, mode, difficulty, query, board, size, re
 
       {viewerId ? (
         <div className="stack">
-          <h3>{t("leaderboard.meTitle")}</h3>
+          <h2 className="h3">{t("leaderboard.meTitle")}</h2>
           {board.me ? (
             <>
               <BoardTable entries={[board.me]} viewerId={viewerId} label={t("leaderboard.meTitle")} />
@@ -133,7 +133,7 @@ export function LeaderboardView({ game, mode, difficulty, query, board, size, re
 
       {results ? (
         <div className="stack">
-          <h3>{t("leaderboard.resultsTitle", { query })}</h3>
+          <h2 className="h3">{t("leaderboard.resultsTitle", { query })}</h2>
           {results.length ? (
             <BoardTable entries={results} viewerId={viewerId} label={t("leaderboard.resultsTitle", { query })} />
           ) : (
@@ -143,7 +143,7 @@ export function LeaderboardView({ game, mode, difficulty, query, board, size, re
       ) : null}
 
       <div className="stack">
-        <h3>{t("leaderboard.topTitle", { count: size })}</h3>
+        <h2 className="h3">{t("leaderboard.topTitle", { count: size })}</h2>
         {board.top.length ? (
           <BoardTable entries={board.top} viewerId={viewerId} label={t("leaderboard.topTitle", { count: size })} anchorMe />
         ) : (

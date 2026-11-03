@@ -23,12 +23,12 @@ export default async function ChangelogPage({ params }: { params: Promise<{ loca
       </header>
       {RELEASES.map((r) => (
         <section key={r.version} id={releaseKey(r.version)}>
-          <h3>
+          <h2 className="h3">
             {t("version", { version: r.version })}{" "}
             <time className="muted" dateTime={r.date}>
               {format.dateTime(new Date(r.date), { dateStyle: "long", timeZone: "UTC" })}
             </time>
-          </h3>
+          </h2>
           <ul>
             {(t.raw(`notes.${releaseKey(r.version)}`) as string[]).map((item) => (
               <li key={item}>{item}</li>

@@ -31,7 +31,7 @@ export async function LegalPage({ doc }: { doc: LegalDoc }) {
       </header>
       {sections.map((section) => (
         <section key={section.title}>
-          <h3>{section.title}</h3>
+          <h2 className="h3">{section.title}</h2>
           {section.body.map((block, i) =>
             typeof block === "string" ? (
               <p key={i}>{fill(block)}</p>

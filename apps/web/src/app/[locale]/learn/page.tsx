@@ -54,9 +54,9 @@ export default async function LearnPage({ params, searchParams }: { params: Prom
           </Link>
         ))}
       </nav>
-      <h3 className="learn-level">
+      <h2 className="h3 learn-level">
         {t("learn.level", { level, name: t(`levels.${level}`) })} <span className="tag">{t("learn.count", { count: techniques.length })}</span>
-      </h3>
+      </h2>
       <div className="technique-cards">
         {techniques.map(({ id }) => {
           // L'exemple de chaque technique est reconnu par elle (vérifié par les tests de game-core).
@@ -64,7 +64,7 @@ export default async function LearnPage({ params, searchParams }: { params: Prom
           return (
             <article className="technique-card" key={id} id={id} aria-labelledby={`${id}-name`}>
               <span className="technique-kicker">{t("learn.kicker")}</span>
-              <h4 id={`${id}-name`}>{t(`techniques.${id}.name`)}</h4>
+              <h3 id={`${id}-name`}>{t(`techniques.${id}.name`)}</h3>
               <p className="muted">{t(`techniques.${id}.summary`)}</p>
               <p className="technique-example">
                 <MathText text={hint.target} /> = <b>{hint.result}</b>

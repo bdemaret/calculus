@@ -84,7 +84,7 @@ export function OnlineEntry({ accountName }: { accountName: string | null }) {
       )}
       <div className="online">
         <form className="panel" onSubmit={create}>
-          <h3>{t("online.createTitle")}</h3>
+          <h2 className="h3">{t("online.createTitle")}</h2>
           <p className="muted">{t("online.createText")}</p>
           <button className="btn" type="submit" disabled={busy}>
             {busy ? t("online.creating") : t("online.create")}
@@ -92,7 +92,7 @@ export function OnlineEntry({ accountName }: { accountName: string | null }) {
           {error ? <p className="form-error">{error}</p> : null}
         </form>
         <form className="panel" onSubmit={join}>
-          <h3>{t("online.joinTitle")}</h3>
+          <h2 className="h3">{t("online.joinTitle")}</h2>
           <label className="field-label" htmlFor="code">
             {t("online.joinCode")}
           </label>

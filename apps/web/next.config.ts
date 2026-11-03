@@ -28,8 +28,8 @@ function gameServerOrigins(): string[] {
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""}`,
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self'",
   "img-src 'self' data: blob:",
   `connect-src 'self' ${dev ? "ws: wss: http: https:" : gameServerOrigins().join(" ")}`,
   "worker-src 'self' blob:",
