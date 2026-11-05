@@ -546,7 +546,15 @@
     "ratingsTitle": "Your Elo",
     "ratingsLegend": "Your Elo shows after {total} placement games, separately for each mode and difficulty. Only online games against other signed-up players change it.",
     "elo": "Elo",
-    "ratingGames": "{count, plural, one {# game} other {# games}}"
+    "ratingGames": "{count, plural, one {# game} other {# games}}",
+    "filterLabel": "Filter by game",
+    "allGames": "All games",
+    "byDifficultyTitle": "By difficulty",
+    "colGames": "Games",
+    "colAccuracy": "Accuracy",
+    "colTime": "Average time",
+    "colWins": "Online wins",
+    "colStreak": "Best streak"
   },
   "leaderboard": {
     "title": "Leaderboard",

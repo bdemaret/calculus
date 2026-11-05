@@ -1,8 +1,9 @@
 "use client";
+import { useState } from "react";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { DashboardData } from "@calculus/db";
-import { DIFFICULTIES, GAMES, GAME_IDS, PLACEMENT_GAMES, type RatingChange } from "@calculus/game-core";
+import type { DashboardBreakdown, DashboardData } from "@calculus/db";
+import { DIFFICULTIES, GAMES, GAME_IDS, PLACEMENT_GAMES, type GameId, type RatingChange } from "@calculus/game-core";
 import { Link } from "@/i18n/navigation";
 import { Margin, MarginNote } from "@/components/Margin";
 import { formatPercent, formatSeconds, formatSigned } from "@/lib/format";
@@ -11,7 +12,13 @@ export function DashboardView({ data, name }: { data: DashboardData; name: strin
   const t = useTranslations();
   const locale = useLocale();
   const format = useFormatter();
-  const s = data.stats;
+  // Filtre par jeu : null = tous les jeux.
+  const [game, setGame] = useState<GameId | null>(null);
+  const playedGames = GAME_IDS.filter((g) => data.breakdown.some((b) => b.game === g));
+  const rows = game ? data.breakdown.filter((b) => b.game === game) : data.breakdown;
+  // Tous les jeux : les compteurs de `UserStats` ; un jeu : la somme de ses lignes par difficulté.
+  const s = game ? statsOf(rows) : data.stats;
+  const recent = game ? data.recent.filter((g) => g.game === game) : data.recent;
   const pc = (x: number) => formatPercent(x, locale);
   const sec = (ms: number) => formatSeconds(ms, locale);
 
@@ -33,7 +40,7 @@ export function DashboardView({ data, name }: { data: DashboardData; name: strin
   }
 
   // Du plus ancien au plus récent, pour lire la progression de gauche à droite.
-  const progress = [...data.recent].reverse().map((g, i) => ({
+  const progress = [...recent].reverse().map((g, i) => ({
     n: i + 1,
     accuracy: Math.round(g.accuracy * 100),
     time: g.avgCorrectMs != null ? Math.round(g.avgCorrectMs / 100) / 10 : null,
@@ -46,8 +53,21 @@ export function DashboardView({ data, name }: { data: DashboardData; name: strin
       </Margin>
       <div className="setup-head">
         <h2>{t("dashboard.hello", { name })}</h2>
-        <p className="muted">{t("dashboard.summary", { games: s.gamesPlayed, online: s.onlineGames, solo: s.soloGames })}</p>
+        <p className="muted">{t("dashboard.summary", { games: data.stats.gamesPlayed, online: data.stats.onlineGames, solo: data.stats.soloGames })}</p>
       </div>
+
+      {playedGames.length > 1 ? (
+        <div className="seg" role="group" aria-label={t("dashboard.filterLabel")} data-testid="dashboard-game-filter">
+          <button type="button" aria-pressed={game === null} onClick={() => setGame(null)}>
+            {t("dashboard.allGames")}
+          </button>
+          {playedGames.map((g) => (
+            <button type="button" key={g} aria-pressed={game === g} onClick={() => setGame(g)}>
+              {t(`games.${g}.name`)}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <div className="stats">
         <div className="stat">
@@ -67,6 +87,8 @@ export function DashboardView({ data, name }: { data: DashboardData; name: strin
           <span className="k">{t("report.bestStreak")}</span>
         </div>
       </div>
+
+      <DifficultyTable rows={rows} />
 
       {data.ratings.length ? <RatingsGrid ratings={data.ratings} /> : null}
 
@@ -102,10 +124,10 @@ export function DashboardView({ data, name }: { data: DashboardData; name: strin
               </div>
             ))}
           </div>
-          {s.bestSurvival > 0 ? (
+          {data.stats.bestSurvival > 0 ? (
             <p className="callout">
               {t("dashboard.bestSurvival")}
-              <b>{s.bestSurvival}</b>
+              <b>{data.stats.bestSurvival}</b>
             </p>
           ) : null}
         </div>
@@ -127,7 +149,7 @@ export function DashboardView({ data, name }: { data: DashboardData; name: strin
               </tr>
             </thead>
             <tbody>
-              {data.recent.map((g) => (
+              {recent.map((g) => (
                 <tr key={g.gameId}>
                   <td>{format.dateTime(new Date(g.endedAt), { dateStyle: "short", timeStyle: "short" })}</td>
                   <td>
@@ -206,6 +228,75 @@ function RatingsGrid({ ratings }: { ratings: DashboardData["ratings"] }) {
         </table>
       </div>
       <p className="callout">{t("dashboard.ratingsLegend", { total: PLACEMENT_GAMES })}</p>
+    </div>
+  );
+}
+
+/** Totaux d'un ensemble de lignes jeu × difficulté, au format des statistiques globales. */
+function statsOf(rows: DashboardBreakdown[]): DashboardData["stats"] {
+  const sum = (k: "games" | "online" | "wins" | "answered" | "correct" | "correctTimeMs") => rows.reduce((n, r) => n + r[k], 0);
+  const max = (k: "bestStreak" | "bestSurvival") => rows.reduce((n, r) => Math.max(n, r[k]), 0);
+  const gamesPlayed = sum("games");
+  const online = sum("online");
+  const answered = sum("answered");
+  const correct = sum("correct");
+  return {
+    gamesPlayed,
+    onlineGames: online,
+    soloGames: gamesPlayed - online,
+    wins: sum("wins"),
+    answered,
+    correct,
+    accuracy: answered ? correct / answered : 0,
+    avgCorrectMs: correct ? Math.round(sum("correctTimeMs") / correct) : null,
+    bestStreak: max("bestStreak"),
+    bestSurvival: max("bestSurvival"),
+  };
+}
+
+/** Statistiques par difficulté (lignes), sur les jeux retenus par le filtre ; « – » pour un niveau jamais joué. */
+function DifficultyTable({ rows }: { rows: DashboardBreakdown[] }) {
+  const t = useTranslations();
+  const locale = useLocale();
+  return (
+    <div className="stack">
+      <h3>{t("dashboard.byDifficultyTitle")}</h3>
+      <div className="scroll-x">
+        <table className="games" data-testid="difficulty-stats">
+          <thead>
+            <tr>
+              <th>{t("settings.difficulty")}</th>
+              <th>{t("dashboard.colGames")}</th>
+              <th>{t("dashboard.colAccuracy")}</th>
+              <th>{t("dashboard.colTime")}</th>
+              <th>{t("dashboard.colWins")}</th>
+              <th>{t("dashboard.colStreak")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {DIFFICULTIES.map((d) => {
+              const s = statsOf(rows.filter((r) => r.difficulty === d));
+              if (!s.gamesPlayed)
+                return (
+                  <tr key={d} className="muted">
+                    <td>{t(`levels.${d}`)}</td>
+                    <td colSpan={5}>–</td>
+                  </tr>
+                );
+              return (
+                <tr key={d}>
+                  <td>{t(`levels.${d}`)}</td>
+                  <td>{s.gamesPlayed}</td>
+                  <td>{formatPercent(s.accuracy, locale)}</td>
+                  <td>{s.avgCorrectMs != null ? formatSeconds(s.avgCorrectMs, locale) : "–"}</td>
+                  <td>{s.wins}</td>
+                  <td>{s.bestStreak}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

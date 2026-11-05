@@ -645,13 +645,29 @@ export interface DashboardData {
   /** Elo par jeu, mode et difficulté, là où le joueur a déjà joué une partie classée ; `rating` null pendant le placement. */
   ratings: { game: string; mode: string; difficulty: number; rating: number | null; games: number }[];
   byOperation: { tag: OpTag; attempts: number; correct: number; avgCorrectMs: number | null }[];
+  /** Totaux par jeu et difficulté (toutes les parties du joueur), pour le tableau filtrable du tableau de bord. */
+  breakdown: DashboardBreakdown[];
+}
+
+export interface DashboardBreakdown {
+  game: string;
+  difficulty: number;
+  games: number;
+  online: number;
+  /** Victoires en ligne (1re place d'une partie à plusieurs), comme `UserStats.wins` */
+  wins: number;
+  answered: number;
+  correct: number;
+  correctTimeMs: number;
+  bestStreak: number;
+  bestSurvival: number;
 }
 
 /** Jeux comptés dans les statistiques par opération du tableau de bord. */
 const OPERATION_STATS_GAMES: GameId[] = GAME_IDS.filter((g) => GAMES[g].operationStats);
 
 export async function getDashboard(userId: string): Promise<DashboardData> {
-  const [s, recentRows, answers, ratingRows] = await Promise.all([
+  const [s, recentRows, answers, ratingRows, breakdownRows] = await Promise.all([
     prisma.userStats.findUnique({ where: { userId } }),
     prisma.gamePlayer.findMany({
       where: { userId },
@@ -671,6 +687,24 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       orderBy: [{ game: "asc" }, { mode: "asc" }, { difficulty: "asc" }],
       select: { game: true, mode: true, difficulty: true, rating: true, games: true },
     }),
+    // Mêmes règles que les incréments de `UserStats` dans `saveGame`, ventilées par jeu et difficulté.
+    prisma.$queryRaw<
+      { game: string; difficulty: number; games: number; online: number; wins: number; answered: number; correct: number; correctTimeMs: bigint; bestStreak: number; bestSurvival: number }[]
+    >`
+      SELECT g."game", g."difficulty",
+        count(*)::int AS "games",
+        count(*) FILTER (WHERE NOT g."solo")::int AS "online",
+        count(*) FILTER (WHERE p."rank" = 1 AND (SELECT count(*) FROM "game_player" o WHERE o."gameId" = g."id") > 1)::int AS "wins",
+        coalesce(sum(p."answered"), 0)::int AS "answered",
+        coalesce(sum(p."correct"), 0)::int AS "correct",
+        coalesce(sum(p."correctTimeMs"), 0)::bigint AS "correctTimeMs",
+        coalesce(max(p."bestStreak"), 0)::int AS "bestStreak",
+        coalesce(max(CASE WHEN g."mode" = 'battle-royale' THEN p."score" ELSE 0 END), 0)::int AS "bestSurvival"
+      FROM "game_player" p
+      JOIN "game" g ON g."id" = p."gameId"
+      WHERE p."userId" = ${userId}
+      GROUP BY g."game", g."difficulty"
+      ORDER BY g."game", g."difficulty"`,
   ]);
 
   const ops = new Map<OpTag, { tag: OpTag; attempts: number; correct: number; time: number }>();
@@ -726,6 +760,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       correct: o.correct,
       avgCorrectMs: o.correct ? Math.round(o.time / o.correct) : null,
     })),
+    breakdown: breakdownRows.map((r) => ({ ...r, correctTimeMs: Number(r.correctTimeMs) })),
   };
 }
 

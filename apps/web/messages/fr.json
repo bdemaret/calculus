@@ -546,7 +546,15 @@
     "ratingsTitle": "Ton Elo",
     "ratingsLegend": "Ton Elo s’affiche après {total} parties de placement, propre à chaque mode et à chaque difficulté. Seules les parties en ligne contre d’autres joueurs inscrits le font bouger.",
     "elo": "Elo",
-    "ratingGames": "{count, plural, one {# partie} other {# parties}}"
+    "ratingGames": "{count, plural, one {# partie} other {# parties}}",
+    "filterLabel": "Filtrer par jeu",
+    "allGames": "Tous les jeux",
+    "byDifficultyTitle": "Par difficulté",
+    "colGames": "Parties",
+    "colAccuracy": "Réussite",
+    "colTime": "Temps moyen",
+    "colWins": "Victoires en ligne",
+    "colStreak": "Meilleure série"
   },
   "leaderboard": {
     "title": "Classement",
