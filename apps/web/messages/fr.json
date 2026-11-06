@@ -892,6 +892,14 @@
     "noticeOpen": "Voir les nouveautés",
     "noticeDismiss": "Fermer",
     "notes": {
+      "v1_3_0": [
+        "Donjons : pars en expédition de 2 à 4 joueurs, sur invitation ou avec un code, à travers une carte de salles sur quatre étages, puis affrontez le boss ensemble.",
+        "Donjons : douze ennemis à vaincre à coups de calculs, des coffres (méfie-toi des mimiques), un sac de deux objets, des vies et la possibilité de relever un allié tombé.",
+        "Succès : de nouveaux succès de donjon et deux titres à débloquer, « Aventurier » et « Fléau des donjons ».",
+        "Tableau de bord : tes statistiques par difficulté (parties, réussite, temps moyen, victoires en ligne, meilleure série), filtrables par jeu.",
+        "Sur mobile, le site s’affiche plus vite : les polices sont désormais servies directement par Calculus.",
+        "Corrections : le bandeau de nouvelle version ne s’affiche plus dès ta première visite, et en ligne, revenir dans une partie sous le même compte ne te retire plus par erreur."
+      ],
       "v1_2_0": [
         "Calcul du jour : cinq calculs de Facile à Légende, les mêmes pour tout le monde, un seul essai par jour et un classement quotidien.",
         "Succès et titres : débloque des succès en jouant et choisis le titre affiché sous ton pseudo depuis ton profil.",

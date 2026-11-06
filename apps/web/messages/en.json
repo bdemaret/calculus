@@ -895,6 +895,14 @@
     "noticeOpen": "See what’s new",
     "noticeDismiss": "Dismiss",
     "notes": {
+      "v1_3_0": [
+        "Dungeons: set off on an expedition with 2 to 4 players, by invitation or with a code, across a map of rooms on four floors, then face the boss together.",
+        "Dungeons: twelve enemies to defeat with your calculations, chests (beware of mimics), a two-item bag, lives, and the chance to revive a fallen ally.",
+        "Achievements: new dungeon achievements and two titles to unlock, “Adventurer” and “Scourge of the dungeons”.",
+        "Dashboard: your stats by difficulty (games, accuracy, average time, online wins, best streak), filterable by game.",
+        "On mobile, the site loads faster: fonts are now served directly by Calculus.",
+        "Fixes: the new-version banner no longer shows on your very first visit, and online, rejoining a game with the same account no longer removes you by mistake."
+      ],
       "v1_2_0": [
         "Daily calc: five calculations from Easy to Legend, the same for everyone, one attempt a day and a daily leaderboard.",
         "Achievements and titles: unlock achievements as you play and pick the title shown under your username from your profile.",
