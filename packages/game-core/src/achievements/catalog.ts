@@ -32,6 +32,9 @@ const isPalindrome = (n: number) => {
   return digits.length >= 3 && digits === [...digits].reverse().join("");
 };
 
+/** Réponses minimales d'une expédition « parfaite » (une seule série d'elfe ne suffit pas). */
+const DUNGEON_PERFECT_MIN_ANSWERED = 10;
+
 /** Toutes les plaques du tirage entrent dans l'expression. */
 function usedAllTiles(round: RoundFacts): boolean {
   if (!round.tiles || !round.expr) return false;
@@ -263,6 +266,32 @@ export const ACHIEVEMENTS: readonly AchievementDefinition[] = [
   ...ladder("first-out", "first-out", "fun", [[10, "bronze", "bad-luck"]], true),
   { id: "palindrome", category: "fun", tier: "bronze", secret: true, check: (f) => f.rounds.some((r) => r.correct && isPalindrome(r.expected)) },
 
+  /* ---------- Donjons (toujours en ligne, entre comptes) ---------- */
+  ...ladder(
+    "dungeon-wins",
+    "dungeon-wins",
+    "dungeon",
+    [
+      [1, "bronze", "adventurer"],
+      [10, "silver"],
+      [100, "gold", "dungeon-scourge"],
+    ],
+    true,
+  ),
+  {
+    id: "dungeon-perfect",
+    category: "dungeon",
+    tier: "gold",
+    online: true,
+    dungeonCheck: (f) => f.won && f.answered >= DUNGEON_PERFECT_MIN_ANSWERED && f.correct === f.answered,
+  },
+  { id: "dungeon-legend", category: "dungeon", tier: "gold", online: true, dungeonCheck: (f) => f.won && f.difficulty === 5 },
+  { id: "dungeon-last-life", category: "dungeon", tier: "bronze", online: true, dungeonCheck: (f) => f.won && f.lives === 1 },
+  { id: "dungeon-full-party", category: "dungeon", tier: "bronze", online: true, dungeonCheck: (f) => f.won && f.players === 4 },
+  ...ladder("dungeon-guardian", "dungeon-hearts", "dungeon", [[10, "silver"]], true),
+  // Perdue sans un seul ennemi vaincu : l'équipe n'a jamais passé les premières salles.
+  { id: "dungeon-wiped", category: "dungeon", tier: "bronze", secret: true, online: true, dungeonCheck: (f) => !f.won && f.enemiesDefeated === 0 },
+
   /* ---------- Social ---------- */
   ...ladder("friend", "friends", "social", [
     [1, "bronze"],
@@ -309,6 +338,8 @@ export const TITLES: readonly TitleDefinition[] = [
   { id: "on-the-wire", rarity: "rare" },
   { id: "dunce-cap", rarity: "common" },
   { id: "bad-luck", rarity: "common" },
+  { id: "adventurer", rarity: "common" },
+  { id: "dungeon-scourge", rarity: "epic" },
 ];
 
 export const TITLE_IDS: readonly string[] = TITLES.map((t) => t.id);

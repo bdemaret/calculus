@@ -1,8 +1,6 @@
-import { randomBytes, randomInt } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { Room, ServerError, type AuthContext, type Client, type Delayed } from "@colyseus/core";
 import {
-  CODE_ALPHABET,
-  CODE_LENGTH,
   BASIC_OPERATIONS,
   GAMES,
   GameEngine,
@@ -30,6 +28,7 @@ import { z } from "zod";
 import { verifyGameToken, type GameIdentity } from "./token";
 import { MAX_GAME_ROOMS, checkMatchmake } from "./limits";
 import { clearInvites, persistGame } from "./persist";
+import { activeCodes, generateCode, liveDungeons } from "./codes";
 import { PUBLIC_LOBBY_KEY, publicLobbies } from "./publicLobbies";
 
 /** Durées des transitions, en ms. */
@@ -47,21 +46,8 @@ const RECONNECT_SECONDS = 30;
  */
 const MAX_MESSAGES_PER_SECOND = 20;
 
-const activeCodes = new Set<string>();
 /** Salles ouvertes dans ce processus, lues par la route d'administration (`/admin/rooms`). */
 export const liveRooms = new Set<GameRoom>();
-
-/**
- * Code de salle tiré avec `node:crypto` : avec `Math.random`, les codes affichés permettraient
- * de retrouver l'état du générateur, donc de prédire les graines des parties.
- */
-function generateCode(): string {
-  for (;;) {
-    let code = "";
-    for (let i = 0; i < CODE_LENGTH; i++) code += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];
-    if (!activeCodes.has(code)) return code;
-  }
-}
 
 interface Member {
   id: string;
@@ -122,7 +108,7 @@ export class GameRoom extends Room {
 
   onCreate(options: { settings?: unknown; publicKey?: unknown }) {
     // Plafond global : les lobbys publics (créés par le serveur lui-même) passent toujours.
-    if (options?.publicKey !== PUBLIC_LOBBY_KEY && liveRooms.size >= MAX_GAME_ROOMS) throw new ServerError(JOIN_ERRORS.busy, "busy");
+    if (options?.publicKey !== PUBLIC_LOBBY_KEY && liveRooms.size + liveDungeons.size >= MAX_GAME_ROOMS) throw new ServerError(JOIN_ERRORS.busy, "busy");
     this.code = generateCode();
     activeCodes.add(this.code);
     this.roomId = this.code;
@@ -251,12 +237,19 @@ export class GameRoom extends Room {
     this.broadcastSnapshot();
     try {
       const back = await this.allowReconnection(client, RECONNECT_SECONDS);
+      // Entre-temps, le lancement d'une partie ou le retour au lobby a retiré ce membre absent (et le même compte
+      // a pu revenir) : cette ancienne place n'existe plus, on ferme la connexion reprise.
+      if (this.members.get(m.id) !== m) {
+        back.leave(4000);
+        return;
+      }
       m.client = back;
       m.connected = true;
       back.send("welcome", { playerId: m.id });
       this.broadcastSnapshot();
     } catch {
-      this.removeMember(m.id);
+      // Seulement si c'est toujours lui : un joueur revenu sous le même compte ne doit pas être retiré à sa place.
+      if (this.members.get(m.id) === m) this.removeMember(m.id);
     }
   }
 

@@ -25,8 +25,8 @@ interface Props {
   actions?: ReactNode;
 }
 
-/** Ce que le joueur vient de débloquer. */
-function UnlockedBlock({ unlocks }: { unlocks: Unlock[] }) {
+/** Ce que le joueur vient de débloquer (aussi en fin d'expédition, dans les donjons). */
+export function UnlockedBlock({ unlocks }: { unlocks: Unlock[] }) {
   const t = useTranslations();
   return (
     <div className="stack unlocked" data-testid="report-unlocks">

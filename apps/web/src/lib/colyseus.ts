@@ -36,7 +36,8 @@ function gameServerUrl(): string {
   return url.toString().replace(/\/$/, "");
 }
 
-function getClient(): Client {
+/** Client Colyseus partagé (lobbys, donjons, présence). */
+export function getClient(): Client {
   client = client ?? new Client(gameServerUrl());
   return client;
 }
@@ -49,7 +50,7 @@ export async function fetchPublicLobbies(signal?: AbortSignal): Promise<PublicLo
   return (await res.json()) as PublicLobbyList;
 }
 
-export type JoinErrorCode = "locked" | "bad-token" | "in-progress" | "duplicate" | "full" | "not-found" | "server-down" | "name-required" | "busy" | "generic";
+export type JoinErrorCode = "locked" | "account-required" | "bad-token" | "in-progress" | "duplicate" | "full" | "not-found" | "server-down" | "name-required" | "busy" | "generic";
 
 export class JoinError extends Error {
   constructor(public code: JoinErrorCode) {
@@ -57,7 +58,7 @@ export class JoinError extends Error {
   }
 }
 
-function toJoinError(err: unknown): JoinError {
+export function toJoinError(err: unknown): JoinError {
   if (err instanceof JoinError) return err;
   const e = err as { code?: number; message?: string } | undefined;
   const msg = String(e?.message ?? "");
@@ -72,6 +73,8 @@ function toJoinError(err: unknown): JoinError {
       return new JoinError("full");
     case JOIN_ERRORS.busy:
       return new JoinError("busy");
+    case JOIN_ERRORS.accountRequired:
+      return new JoinError("account-required");
   }
   if (/locked/i.test(msg)) return new JoinError("locked");
   if (/not found|introuvable|invalid/i.test(msg)) return new JoinError("not-found");
@@ -81,7 +84,7 @@ function toJoinError(err: unknown): JoinError {
 }
 
 /** Demande au site un jeton pour entrer dans un lobby. */
-async function fetchToken(name: string): Promise<string> {
+export async function fetchToken(name: string): Promise<string> {
   const res = await fetch("/api/game-token", {
     method: "POST",
     headers: { "content-type": "application/json" },

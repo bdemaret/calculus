@@ -22,7 +22,7 @@ export default async function AdminOverviewPage({ params, searchParams }: { para
     const date = format.dateTime(new Date(start), { dateStyle: "medium", timeZone: "UTC" });
     return history.bucket === "week" ? t("weekOf", { date }) : date;
   };
-  const playing = live?.rooms.reduce((sum, r) => sum + r.players.length, 0) ?? 0;
+  const playing = (live?.rooms.reduce((sum, r) => sum + r.players.length, 0) ?? 0) + (live?.dungeons.reduce((sum, d) => sum + d.players.length, 0) ?? 0);
 
   return (
     <>
@@ -36,7 +36,7 @@ export default async function AdminOverviewPage({ params, searchParams }: { para
           <span className="k">{t("usersLast7Days")}</span>
         </div>
         <Link className="stat stat-link" href="/admin/games">
-          <span className="v">{live ? n(live.rooms.length) : "–"}</span>
+          <span className="v">{live ? n(live.rooms.length + live.dungeons.length) : "–"}</span>
           <span className="k">{live ? t("liveRooms", { players: playing }) : t("liveUnavailable")}</span>
         </Link>
         <Link className="stat stat-link" href="/admin/feedback">

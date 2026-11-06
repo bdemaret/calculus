@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
-import type { AdminRoomSummary } from "@calculus/game-core";
+import { DUNGEON_ROUNDS } from "@calculus/game-core";
+import type { LiveRooms } from "@/lib/admin";
 import { Avatar } from "@/components/PlayerChips";
 
-type Live = { rooms: AdminRoomSummary[]; serverNow: number } | null;
+type Live = LiveRooms | null;
 
 /** Durée de rafraîchissement de la liste des parties en cours. */
 const REFRESH_MS = 5000;
@@ -38,16 +39,17 @@ export function LiveGames({ initial }: { initial: Live }) {
   const rooms = [...live.rooms].sort(
     (a, b) => Number(a.phase === "lobby") - Number(b.phase === "lobby") || b.createdAt - a.createdAt,
   );
-  const players = rooms.reduce((sum, r) => sum + r.players.length, 0);
+  const dungeons = [...(live.dungeons ?? [])].sort((a, b) => Number(a.phase === "lobby") - Number(b.phase === "lobby") || b.createdAt - a.createdAt);
+  const players = rooms.reduce((sum, r) => sum + r.players.length, 0) + dungeons.reduce((sum, d) => sum + d.players.length, 0);
   const since = (ms: number) => format.relativeTime(new Date(ms), new Date(live.serverNow));
 
   return (
     <div className="stack">
       <p className="muted" aria-live="polite">
-        {t("admin.games.summary", { rooms: rooms.length, players })}
+        {t("admin.games.summary", { rooms: rooms.length + dungeons.length, players })}
         {updatedAt != null ? ` · ${t("admin.games.updated", { time: format.dateTime(new Date(updatedAt), { timeStyle: "medium" }) })}` : null}
       </p>
-      {rooms.length === 0 ? <p className="muted">{t("admin.games.empty")}</p> : null}
+      {rooms.length + dungeons.length === 0 ? <p className="muted">{t("admin.games.empty")}</p> : null}
       <ul className="admin-rooms">
         {rooms.map((r) => (
           <li key={r.code} className="panel admin-room">
@@ -87,6 +89,44 @@ export function LiveGames({ initial }: { initial: Live }) {
           </li>
         ))}
       </ul>
+      {dungeons.length ? (
+        <>
+          <h2 className="h3">{t("admin.games.dungeons")}</h2>
+          <ul className="admin-rooms">
+            {dungeons.map((d) => (
+              <li key={d.code} className="panel admin-room">
+                <div className="admin-room-head">
+                  <strong className="admin-code">{d.code}</strong>
+                  <span className={`admin-phase ${d.phase === "lobby" || d.phase === "countdown" || d.phase === "finished" ? d.phase : "question"}`}>
+                    {d.phase === "lobby" || d.phase === "countdown" || d.phase === "finished" ? t(`admin.games.phase.${d.phase}`) : t(`dungeon.phase.${d.phase}`)}
+                  </span>
+                  <span className="muted">
+                    {t("dungeon.title")} · {t("admin.games.level", { level: d.difficulty })}
+                  </span>
+                </div>
+                <p className="muted admin-room-meta">
+                  {d.startedAt != null
+                    ? t("admin.games.startedAt", { since: since(d.startedAt), game: d.gameNumber })
+                    : t("admin.games.openedAt", { since: since(d.createdAt) })}
+                  {d.round != null ? ` · ${t("admin.games.dungeonRound", { round: d.round + 1, total: DUNGEON_ROUNDS, score: d.score })}` : null}
+                  {d.boss ? ` · ${t("admin.games.dungeonBoss", { hp: d.boss.hp, max: d.boss.maxHp })}` : null}
+                </p>
+                <ul className="players">
+                  {d.players.map((p) => (
+                    <li key={p.id} className={`chip${p.lives === 0 ? " out" : ""}`}>
+                      <Avatar name={p.name} />
+                      <span className="nm">{p.name}</span>
+                      {p.lives != null ? <span className="pts">{t("admin.games.lives", { count: p.lives })}</span> : null}
+                      {p.isHost ? <span className="tag-mini">{t("admin.games.host")}</span> : null}
+                      {!p.connected ? <span className="tag-mini ko">{t("admin.games.disconnected")}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
     </div>
   );
 }

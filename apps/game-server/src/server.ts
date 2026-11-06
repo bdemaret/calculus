@@ -1,9 +1,11 @@
 import type { IncomingMessage, Server as HttpServer, ServerResponse } from "node:http";
 import { Server } from "@colyseus/core";
 import { WebSocketTransport } from "@colyseus/ws-transport";
-import { PRESENCE_ROOM } from "@calculus/game-core";
+import { DUNGEON_ROOM, PRESENCE_ROOM } from "@calculus/game-core";
 import { GameRoom, liveRooms } from "./GameRoom";
+import { liveDungeons } from "./codes";
 import { PresenceRoom } from "./PresenceRoom";
+import { DungeonRoom } from "./DungeonRoom";
 import { gameTokenSecretError, webOriginError } from "./env";
 import { verifyWebSocket } from "./limits";
 import { verifyAdminToken } from "./token";
@@ -49,7 +51,13 @@ export function handleGameHttp(req: IncomingMessage, res: ServerResponse): boole
         return;
       }
       res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
-      res.end(JSON.stringify({ rooms: [...liveRooms].map((r) => r.adminSummary()), serverNow: Date.now() }));
+      res.end(
+        JSON.stringify({
+          rooms: [...liveRooms].map((r) => r.adminSummary()),
+          dungeons: [...liveDungeons].map((d) => d.adminSummary()),
+          serverNow: Date.now(),
+        }),
+      );
     });
     return true;
   }
@@ -67,6 +75,7 @@ export async function startGameServer(httpServer: HttpServer, port: number): Pro
   });
   gameServer.define("game", GameRoom);
   gameServer.define(PRESENCE_ROOM, PresenceRoom);
+  gameServer.define(DUNGEON_ROOM, DungeonRoom);
   // Arrêt : on ne recrée plus de lobby public pendant la fermeture des salles.
   gameServer.onBeforeShutdown(() => publicLobbies.stop());
   await gameServer.listen(port);

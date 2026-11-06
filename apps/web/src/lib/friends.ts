@@ -1,6 +1,6 @@
 "use client";
 import { defaultSettings, sanitizeSettings } from "@calculus/game-core";
-import type { FriendsData, GameInviteSummary } from "@calculus/db";
+import type { FriendsData, GameInviteKind, GameInviteSummary } from "@calculus/db";
 import { createLobby } from "./colyseus";
 import { local } from "./storage";
 
@@ -16,9 +16,9 @@ export async function createInviteLobby(): Promise<string> {
   return room.roomId;
 }
 
-/** Invite un ami dans le lobby `code`. Renvoie false si le serveur refuse. */
-export async function inviteFriend(userId: string, code: string): Promise<boolean> {
-  const res = await fetch("/api/invites", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ userId, code }) }).catch(() => null);
+/** Invite un ami dans le lobby (ou le donjon) `code`. Renvoie false si le serveur refuse. */
+export async function inviteFriend(userId: string, code: string, kind: GameInviteKind = "game"): Promise<boolean> {
+  const res = await fetch("/api/invites", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ userId, code, kind }) }).catch(() => null);
   return !!res?.ok;
 }
 

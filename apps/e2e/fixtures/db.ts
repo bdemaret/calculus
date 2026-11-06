@@ -107,3 +107,13 @@ export async function seedDashboardGamesFor(email: string, games: SeededGame[]):
     },
   });
 }
+
+/** Expéditions de donjon enregistrées pour ce compte, la plus récente d'abord, avec leurs joueurs. */
+export async function dungeonRunsOf(email: string) {
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  return prisma.dungeonRun.findMany({
+    where: { players: { some: { userId: user.id } } },
+    include: { players: { orderBy: { position: "asc" } } },
+    orderBy: { endedAt: "desc" },
+  });
+}

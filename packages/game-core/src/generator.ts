@@ -359,11 +359,13 @@ export interface GenerateOptions {
   parentheses: boolean;
   /** Plus grand exposant d'une puissance (2 par défaut). */
   powerMax?: number;
+  /** Bornes sur mesure (ennemis du donjon) ; sinon celles de `LEVELS[difficulty]`. */
+  level?: LevelConfig;
 }
 
 /** Génère un calcul avec un générateur aléatoire donné. */
 export function generateWithRng(rng: Rng, opts: GenerateOptions, index = 0): Question {
-  const cfg = LEVELS[opts.difficulty];
+  const cfg = opts.level ?? LEVELS[opts.difficulty];
   const ops = opts.operations.length > 0 ? opts.operations : cfg.defaultOperations;
   const parenChance = cfg.level >= 4 ? 0.6 : 0.4;
   const powerMax = opts.powerMax ?? DEFAULT_POWER;

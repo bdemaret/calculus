@@ -1,7 +1,7 @@
 import "server-only";
 import { notFound } from "next/navigation";
 import { SignJWT } from "jose";
-import type { AdminRoomSummary } from "@calculus/game-core";
+import type { AdminDungeonSummary, AdminRoomSummary } from "@calculus/game-core";
 import { getSession } from "./auth";
 
 /**
@@ -35,8 +35,15 @@ function gameServerHttpUrl(): string | null {
   return ws.replace(/^ws(s?):\/\//, "http$1://").replace(/\/$/, "");
 }
 
+/** Ce que renvoie `/admin/rooms` : lobbys et donjons ouverts. */
+export interface LiveRooms {
+  rooms: AdminRoomSummary[];
+  dungeons: AdminDungeonSummary[];
+  serverNow: number;
+}
+
 /** Parties en cours sur le serveur de jeu (null si le serveur est injoignable ou mal configuré). */
-export async function fetchLiveRooms(): Promise<{ rooms: AdminRoomSummary[]; serverNow: number } | null> {
+export async function fetchLiveRooms(): Promise<LiveRooms | null> {
   const base = gameServerHttpUrl();
   const secret = process.env.GAME_TOKEN_SECRET;
   if (!base || !secret) return null;
@@ -55,7 +62,9 @@ export async function fetchLiveRooms(): Promise<{ rooms: AdminRoomSummary[]; ser
       signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return null;
-    return (await res.json()) as { rooms: AdminRoomSummary[]; serverNow: number };
+    const data = (await res.json()) as Partial<LiveRooms>;
+    // Un serveur de jeu plus ancien (déploiement en cours) n'envoie pas encore les donjons.
+    return { rooms: data.rooms ?? [], dungeons: data.dungeons ?? [], serverNow: data.serverNow ?? Date.now() };
   } catch {
     return null;
   }

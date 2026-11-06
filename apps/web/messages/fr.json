@@ -36,7 +36,8 @@
     "guild": "Guilde",
     "guildInvites": "Guilde, {count, plural, one {# invitation en attente} other {# invitations en attente}}",
     "learn": "Techniques",
-    "daily": "Calcul du jour"
+    "daily": "Calcul du jour",
+    "dungeon": "Donjons"
   },
   "home": {
     "title": "Qui calcule le plus <hl>vite</hl> ?",
@@ -52,7 +53,10 @@
     "playOnlineSub": "Crée un lobby ou rejoins tes amis avec un code.",
     "playSolo": "Jouer solo",
     "playSoloKicker": "5 niveaux",
-    "playSoloSub": "Cinq niveaux, du « 7 + 4 » au « 125 × 8 − 36 ÷ 4 »."
+    "playSoloSub": "Cinq niveaux, du « 7 + 4 » au « 125 × 8 − 36 ÷ 4 ».",
+    "dungeonKicker": "en équipe",
+    "dungeon": "Donjons",
+    "dungeonSub": "De 2 à 4 amis, cinq manches pour vaincre le boss ensemble."
   },
   "modes": {
     "battle-royale": {
@@ -181,7 +185,8 @@
     "name-required": "Choisis un pseudo pour jouer en invité.",
     "busy": "Trop de connexions en ce moment. Réessaie dans une minute.",
     "generic": "Impossible de rejoindre le lobby. Réessaie.",
-    "locked": "Ce lobby est complet ou une partie y est en cours."
+    "locked": "Ce lobby est complet ou une partie y est en cours.",
+    "account-required": "Les donjons sont réservés aux joueurs connectés."
   },
   "lobby": {
     "pageTitle": "Lobby {code}",
@@ -523,7 +528,8 @@
     "noticeJoin": "Rejoindre",
     "noticeIgnore": "Ignorer",
     "noticeGuild": "{name} t’invite dans le lobby de la guilde « {guild} ».",
-    "noticeMore": "{count, plural, one {# autre invitation en attente} other {# autres invitations en attente}}"
+    "noticeMore": "{count, plural, one {# autre invitation en attente} other {# autres invitations en attente}}",
+    "noticeDungeon": "{name} t’invite dans un donjon."
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -983,7 +989,11 @@
         "previous": "Précédentes",
         "next": "Suivantes",
         "page": "page {page} sur {pages}"
-      }
+      },
+      "dungeons": "Donjons",
+      "dungeonRound": "manche {round} / {total} · score {score}",
+      "dungeonBoss": "boss {hp} / {max} PV",
+      "lives": "{count, plural, =0 {à terre} one {# vie} other {# vies}}"
     },
     "feedback": {
       "filter": "Filtrer les retours",
@@ -1485,6 +1495,42 @@
     "guild-lead": {
       "name": "Aux commandes",
       "desc": "Être à la tête d’une guilde"
+    },
+    "dungeon-wins-1": {
+      "name": "Première expédition",
+      "desc": "Vaincre le boss d’un donjon"
+    },
+    "dungeon-wins-10": {
+      "name": "Pilier des profondeurs",
+      "desc": "Vaincre le boss de 10 donjons"
+    },
+    "dungeon-wins-100": {
+      "name": "Cent descentes",
+      "desc": "Vaincre le boss de 100 donjons"
+    },
+    "dungeon-perfect": {
+      "name": "Expédition parfaite",
+      "desc": "Réussir tous tes calculs d’une expédition victorieuse (10 au moins)"
+    },
+    "dungeon-legend": {
+      "name": "Au fond de la légende",
+      "desc": "Vaincre le boss d’un donjon au niveau Légende"
+    },
+    "dungeon-last-life": {
+      "name": "De justesse",
+      "desc": "Vaincre le boss avec une seule vie"
+    },
+    "dungeon-full-party": {
+      "name": "Compagnie au complet",
+      "desc": "Vaincre le boss à quatre"
+    },
+    "dungeon-guardian-10": {
+      "name": "Ange gardien",
+      "desc": "Donner 10 cœurs à tes alliés dans les donjons"
+    },
+    "dungeon-wiped": {
+      "name": "Demi-tour",
+      "desc": "Voir l’expédition échouer sans qu’un seul ennemi soit vaincu"
     }
   },
   "titles": {
@@ -1511,7 +1557,9 @@
     "night-owl": "Oiseau de nuit",
     "on-the-wire": "Sur le fil",
     "dunce-cap": "Bonnet d’âne",
-    "bad-luck": "Pas de chance"
+    "bad-luck": "Pas de chance",
+    "adventurer": "Aventurier",
+    "dungeon-scourge": "Fléau des donjons"
   },
   "achievementsPage": {
     "metaTitle": "Mes succès",
@@ -1523,6 +1571,7 @@
     "game": "Jeux",
     "fun": "Pour le plaisir",
     "social": "Social",
+    "dungeon": "Donjons",
     "secret": "???",
     "secretDesc": "Succès secret",
     "progress": "{value} / {target}",
@@ -1577,5 +1626,254 @@
     "previousDay": "← Jour précédent",
     "nextDay": "Jour suivant →",
     "backToToday": "Retour au calcul du jour"
+  },
+  "dungeon": {
+    "title": "Donjons",
+    "pageTitle": "Donjon {code}",
+    "margin": "coop",
+    "rules": {
+      "rounds": "Une carte de salles sur quatre étages : à chaque manche, chacun choisit une salle accessible. Une salle réussie ouvre celles qui suivent.",
+      "positioning": "Il faut ouvrir la salle du boss avant la fin de la 4e manche, sinon l’expédition est perdue. À plusieurs dans la même salle, vous avez plusieurs chances.",
+      "perfect": "Un ennemi, c’est une série de calculs à réussir en entier (sauf l’hydre et la horde, qui ont leurs règles).",
+      "lives": "Trois vies chacun. Les coffres et les ennemis redoutables donnent du butin : cœurs, boucliers, clés, bombes…",
+      "boss": "Les sceaux brisés affaiblissent le boss, qu’on affronte toute l’équipe ensemble à la 5e manche, contre la montre."
+    },
+    "createTitle": "Ouvrir une expédition",
+    "createText": "Tu choisis la difficulté, puis tu invites tes amis ou tu leur donnes le code.",
+    "create": "Ouvrir une expédition",
+    "joinTitle": "Rejoindre une expédition",
+    "cannotJoin": "Impossible d’entrer dans le donjon {code}",
+    "back": "Retour aux donjons",
+    "lobbyMargin": "équipe",
+    "lobbyTitle": "Préparez l’expédition",
+    "difficulty": "Difficulté",
+    "start": "Entrer",
+    "notEnough": "Il faut au moins {count} joueurs pour entrer dans le donjon.",
+    "hostHint": "Tu es l’hôte : choisis la difficulté, puis entre quand l’équipe est prête.",
+    "entering": "Entrée dans le donjon · {level}",
+    "roundOf": "Manche {n} sur {total}",
+    "bossRound": "Le boss",
+    "score": "score",
+    "phase": {
+      "positioning": "Choisissez vos adversaires",
+      "combat": "Combat",
+      "loot": "Butin",
+      "round-result": "Bilan de la manche",
+      "boss": "Combat contre le boss",
+      "finished": "Fin de l’expédition"
+    },
+    "livesAria": "{count, plural, =0 {à terre} one {# vie} other {# vies}}",
+    "down": "à terre",
+    "gone": "parti",
+    "floor": "étage {n}",
+    "defeated": "vaincu",
+    "inspectHint": "Survole ou touche une salle pour voir ce qu’elle contient.",
+    "cardSeries": "{count} calculs, {time} par calcul",
+    "cardVisible": "énoncé visible {time}",
+    "cardPoints": "{points} points",
+    "pickHint": "Touche une salle éclairée pour t’y placer : elle est accessible depuis une salle réussie.",
+    "lockHint": "Tu peux encore changer d’avis, ou verrouiller ton choix.",
+    "lock": "Verrouiller",
+    "locked": "Choix verrouillé. On attend le reste de l’équipe.",
+    "downWatching": "Tu es à terre : tu regardes ton équipe. Un cœur te relèvera.",
+    "teamChoosing": "choisit…",
+    "teamPicked": "a choisi",
+    "teamLocked": "prêt",
+    "fighting": "Face à : {enemy}",
+    "progress": "calcul {n} sur {count}",
+    "seriesWon": "vaincu !",
+    "seriesFailed": "échec",
+    "hiddenCalc": "? ? ?",
+    "mummyHint": "La momie a caché le calcul : réponds de mémoire.",
+    "timeUp": "temps écoulé",
+    "failedAt": "échec au calcul {n} sur {count}",
+    "lootKeep": "Le garder",
+    "lootGive": "Le donner à {name}",
+    "lootHint": "Sans choix, tu le gardes (ou il va à l’allié qui en a le plus besoin si tu n’as plus de place).",
+    "lootPending": "{name} choisit à qui donner son cœur…",
+    "lootKept": "{name} garde : {item}.",
+    "lootGiven": "{name} donne {item} à {to}.",
+    "lootLost": "{item} s’est perdu : plus personne n’avait de place.",
+    "boss": {
+      "name": "Le boss",
+      "hp": "{hp} / {max} PV",
+      "hpAria": "Points de vie du boss",
+      "damage": "{count, plural, =0 {aucun coup} one {# coup} other {# coups}}",
+      "desc": "Il attend au sommet du donjon. Toute l’équipe l’affronte ensemble, contre la montre : chaque bonne réponse lui retire un PV, chaque erreur coûte une vie. Les sceaux brisés en route l’affaiblissent."
+    },
+    "end": {
+      "won": "Le boss est vaincu !",
+      "lost": "L’expédition a échoué",
+      "reason": {
+        "no-enemy-defeated": "Aucun ennemi n’a été vaincu pendant une manche.",
+        "team-down": "Toute l’équipe est à terre.",
+        "boss-timeout": "Le boss a tenu jusqu’à la fin du temps.",
+        "boss-not-reached": "La salle du boss n’a pas été atteinte à temps."
+      },
+      "score": "score de l’équipe",
+      "level": "difficulté",
+      "levelValue": "niveau {n}",
+      "rounds": "manches",
+      "enemies": "ennemis vaincus",
+      "boss": "PV retirés au boss",
+      "mine": "Ta part",
+      "points": "points",
+      "bossDamage": "coups au boss",
+      "hearts": "cœurs donnés / reçus",
+      "accuracy": "bonnes réponses",
+      "avgTime": "temps moyen",
+      "player": "joueur",
+      "livesLeft": "vies restantes",
+      "deleted": "compte supprimé",
+      "again": "Rejouer",
+      "hostHint": "Rejouer ramène toute l’équipe dans la salle d’attente.",
+      "waitHost": "On attend que l’hôte relance une expédition.",
+      "reportTitle": "Bilan de l’expédition",
+      "playedOn": "Expédition du {date}",
+      "newExpedition": "Retour aux donjons",
+      "seals": "sceaux brisés",
+      "items": "objets trouvés",
+      "toDungeons": "Retour aux donjons",
+      "toHome": "Retour au menu principal"
+    },
+    "enemies": {
+      "elf": {
+        "name": "Elfe",
+        "desc": "Des calculs très simples, mais presque pas de temps pour chacun."
+      },
+      "troll": {
+        "name": "Troll",
+        "desc": "De gros calculs simples : additions et soustractions à trois chiffres, avec le temps de poser."
+      },
+      "knight": {
+        "name": "Chevalier",
+        "desc": "Un adversaire équilibré : des calculs du niveau de la partie, au temps habituel."
+      },
+      "mummy": {
+        "name": "Momie",
+        "desc": "Le calcul n’apparaît qu’une seconde : il faut le retenir pour y répondre."
+      },
+      "witch": {
+        "name": "Sorcière",
+        "desc": "Elle cache un nombre dans l’égalité : à toi de retrouver ce qui manque."
+      },
+      "specter": {
+        "name": "Spectre",
+        "desc": "Il fait disparaître l’opérateur : plus, moins, fois ou divisé ? Réponds par le bon signe."
+      },
+      "cyclops": {
+        "name": "Cyclope",
+        "desc": "Un seul calcul, énorme, avec beaucoup de temps. Tout ou rien."
+      },
+      "skeleton": {
+        "name": "Squelette archer",
+        "desc": "Des calculs simples, mais chaque flèche part plus vite que la précédente."
+      },
+      "hydra": {
+        "name": "Hydre",
+        "desc": "Une erreur ne fait pas échouer : deux têtes repoussent (deux calculs de plus). Il faut finir avant la fin du chrono."
+      },
+      "goblins": {
+        "name": "Horde de gobelins",
+        "desc": "Beaucoup de petits calculs, partagés entre tous ceux qui l’affrontent : chaque bonne réponse retire un gobelin."
+      },
+      "dragon": {
+        "name": "Dragon",
+        "desc": "Puissances et racines. Il garde un raccourci : le vaincre ouvre directement la salle du boss."
+      },
+      "mimic": {
+        "name": "Mimique",
+        "desc": "Un coffre… qui mord. Vaincue, elle laisse un objet rare."
+      }
+    },
+    "leave": "Quitter",
+    "items": {
+      "heart": {
+        "name": "Cœur",
+        "desc": "Une vie de plus, à toi ou à un allié (il se relève s’il était à terre)."
+      },
+      "shield": {
+        "name": "Bouclier",
+        "desc": "Ton prochain échec ne coûte pas de vie. Agit tout seul."
+      },
+      "hourglass": {
+        "name": "Sablier",
+        "desc": "50 % de temps en plus sur ta prochaine série."
+      },
+      "second-chance": {
+        "name": "Seconde chance",
+        "desc": "Ta première erreur de la prochaine série est pardonnée."
+      },
+      "key": {
+        "name": "Clé",
+        "desc": "Franchis une salle accessible sans combat (ni points, ni butin, ni sceau)."
+      },
+      "bomb": {
+        "name": "Bombe",
+        "desc": "Face au boss : lui retire 3 points de vie d’un coup."
+      },
+      "phoenix": {
+        "name": "Plume de phénix",
+        "desc": "Si tu tombes à 0 vie, tu te relèves avec 1 vie. Agit toute seule."
+      },
+      "banner": {
+        "name": "Bannière",
+        "desc": "Une vie de plus pour toute l’équipe."
+      },
+      "purse": {
+        "name": "Bourse d’or",
+        "desc": "250 points en fin d’expédition, tant qu’elle est dans un sac."
+      },
+      "map": {
+        "name": "Carte",
+        "desc": "Lève le brouillard sur tout le donjon (les mimiques restent déguisées)."
+      }
+    },
+    "kinds": {
+      "unknown": "Salle inconnue",
+      "unknownDesc": "Le brouillard la cache encore. Avance pour découvrir ce qu’elle contient.",
+      "enemy": "Ennemi",
+      "enemyDesc": "Un ennemi t’attend ici ; approche-toi pour savoir lequel.",
+      "seal": "Sceau",
+      "sealDesc": "Briser ce sceau affaiblit le boss (−20 % de points de vie).",
+      "sealShadowDesc": "Un sceau gardé par un ennemi : le briser affaiblit le boss.",
+      "chest": "Coffre",
+      "chestDesc": "Un objet de butin, sans combat. Y aller te prend la manche… et certains coffres mordent.",
+      "bossDoor": "mène à la salle du boss"
+    },
+    "goal": "Objectif : ouvrir la salle du boss",
+    "goalReached": "La salle du boss est ouverte !",
+    "seals": "{broken} / {total} sceaux",
+    "sealsHint": "Chaque sceau brisé retire 20 % des points de vie du boss.",
+    "keyMode": "Touche la salle accessible à ouvrir avec la clé.",
+    "chestTaken": "Tu as pris le coffre : ton butin t’attend à la fin de la manche.",
+    "hordeLeft": "{n} gobelins restants sur {count}",
+    "hydraLeft": "{n} têtes restantes",
+    "cardHorde": "{count} gobelins à se partager en {time}",
+    "cardHydra": "{count} têtes au départ, {time} pour tout couper",
+    "cardLoot": "laisse un objet",
+    "bag": {
+      "title": "Ton sac",
+      "empty": "vide",
+      "use": "Utiliser",
+      "cancel": "Annuler",
+      "passive": "agit tout seul",
+      "give": "→ {name}",
+      "drop": "Jeter",
+      "buffHourglass": "Sablier actif",
+      "buffSecondChance": "Seconde chance active"
+    },
+    "lootFound": "{room} t’a laissé : {item}. À qui le donnes-tu ?",
+    "roundCleared": "{count, plural, =0 {Aucune salle réussie} one {# salle réussie} other {# salles réussies}} · +{points} points",
+    "sealsBrokenNews": "{count, plural, one {Un sceau brisé : le boss faiblit.} other {# sceaux brisés : le boss faiblit.}}",
+    "chestOpened": "coffre ouvert",
+    "bossWeakened": "{count, plural, one {Affaibli par # sceau brisé} other {Affaibli par # sceaux brisés}}",
+    "book": {
+      "open": "Voir le livre des monstres",
+      "title": "Le livre des monstres",
+      "intro": "Ce qui vous attend dans les couloirs. Les étoiles disent la force de chaque ennemi.",
+      "close": "Fermer",
+      "tier": "{count, plural, one {# étoile} other {# étoiles}}"
+    }
   }
 }

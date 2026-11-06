@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "tsx watch --env-file=../../.env src/index.ts",
+    "dungeon:bots": "tsx --env-file=../../.env scripts/dungeon-bots.mts",
     "start": "NODE_ENV=production tsx src/index.ts",
     "typecheck": "tsc --noEmit"
   },

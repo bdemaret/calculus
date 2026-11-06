@@ -45,6 +45,9 @@ export async function Header() {
                   {t("admin")}
                 </Link>
               ) : null}
+              <Link className="nav-link" href="/dungeon">
+                {t("dungeon")}
+              </Link>
               <Link className="nav-link" href="/dashboard">
                 {t("dashboard")}
               </Link>

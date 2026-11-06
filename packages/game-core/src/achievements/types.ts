@@ -1,6 +1,6 @@
 import type { Difficulty, GameId, GameModeId, Operation, OpTag, TurnStyle } from "../types";
 
-export type AchievementCategory = "journey" | "mode" | "game" | "fun" | "social";
+export type AchievementCategory = "journey" | "mode" | "game" | "fun" | "social" | "dungeon";
 export type AchievementTier = "bronze" | "silver" | "gold" | "platinum";
 export type TitleRarity = "common" | "rare" | "epic" | "legendary";
 
@@ -63,6 +63,22 @@ export interface GameFacts {
   };
 }
 
+/** Ce qu'une expédition terminée a apporté à un joueur : seule entrée des exploits de donjon. */
+export interface DungeonFacts {
+  won: boolean;
+  difficulty: Difficulty;
+  /** Joueurs de l'expédition (départs compris). */
+  players: number;
+  /** Ennemis vaincus par l'équipe. */
+  enemiesDefeated: number;
+  /** Le joueur est parti avant la fin : il garde ses cœurs donnés, rien d'autre. */
+  gone: boolean;
+  lives: number;
+  correct: number;
+  answered: number;
+  heartsGiven: number;
+}
+
 /** Ce qu'il faut pour un succès cumulatif : un compteur à atteindre, ou plusieurs compteurs à entamer. */
 export type AchievementTarget = { counter: string; value: number } | { every: readonly string[] };
 
@@ -78,6 +94,8 @@ export interface AchievementDefinition {
   target?: AchievementTarget;
   /** Exploit d'une partie. */
   check?: (facts: GameFacts) => boolean;
+  /** Exploit d'une expédition (donjons). */
+  dungeonCheck?: (facts: DungeonFacts) => boolean;
   /** Titre offert. */
   title?: string;
 }

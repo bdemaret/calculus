@@ -10,6 +10,8 @@ const inviteBody = z.object({
     .string()
     .length(CODE_LENGTH)
     .refine((c) => normalizeCode(c) === c),
+  /** Lobby classique (par défaut) ou donjon. */
+  kind: z.enum(["game", "dungeon"]).default("game"),
 });
 const dismissBody = z.object({ id: z.string().min(1).max(64) });
 
@@ -31,7 +33,7 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const parsed = inviteBody.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "bad-request" }, { status: 400 });
-  const ok = await sendGameInvite(session.user.id, parsed.data.userId, parsed.data.code, new Date());
+  const ok = await sendGameInvite(session.user.id, parsed.data.userId, parsed.data.code, new Date(), parsed.data.kind);
   return ok ? NextResponse.json({ ok: true }) : NextResponse.json({ error: "not-friends" }, { status: 403 });
 }
 

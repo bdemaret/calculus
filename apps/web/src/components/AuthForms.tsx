@@ -35,8 +35,11 @@ function useErrorText() {
 /** `?next=` de la page, lu côté serveur : `useSearchParams` ici ferait échouer le prérendu de `next build`. */
 type AuthFormProps = { next?: string | string[] };
 
-/** Page d'arrivée après connexion : `?next=/daily` ramène au calcul du jour pour y enregistrer son score. Aucune autre valeur n'est suivie. */
-const afterAuthPath = (next: AuthFormProps["next"]) => (next === "/daily" ? ("/daily" as const) : null);
+/**
+ * Page d'arrivée après connexion : `?next=/daily` ramène au calcul du jour pour y enregistrer son score,
+ * `?next=/dungeon` aux donjons (réservés aux comptes). Aucune autre valeur n'est suivie.
+ */
+const afterAuthPath = (next: AuthFormProps["next"]) => (next === "/daily" || next === "/dungeon" ? next : null);
 
 export function LoginForm({ next }: AuthFormProps) {
   const t = useTranslations("auth");

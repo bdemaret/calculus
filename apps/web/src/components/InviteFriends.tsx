@@ -1,13 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import type { FriendSummary } from "@calculus/db";
+import type { FriendSummary, GameInviteKind } from "@calculus/db";
 import { Link } from "@/i18n/navigation";
 import { fetchFriends, inviteFriend } from "@/lib/friends";
 import { Avatar } from "./PlayerChips";
 
-/** Encart du lobby : inviter ses amis à rejoindre ce code (joueurs connectés uniquement). */
-export function InviteFriends({ code, presentIds }: { code: string; presentIds: string[] }) {
+/** Encart du lobby (ou du donjon, `kind`) : inviter ses amis à rejoindre ce code (joueurs connectés uniquement). */
+export function InviteFriends({ code, presentIds, kind = "game" }: { code: string; presentIds: string[]; kind?: GameInviteKind }) {
   const t = useTranslations("friends");
   const [friends, setFriends] = useState<FriendSummary[] | null>(null);
   const [state, setState] = useState<Record<string, "sending" | "sent" | "error">>({});
@@ -26,7 +26,7 @@ export function InviteFriends({ code, presentIds }: { code: string; presentIds: 
 
   const send = async (id: string) => {
     setState((s) => ({ ...s, [id]: "sending" }));
-    const ok = await inviteFriend(id, code);
+    const ok = await inviteFriend(id, code, kind);
     setState((s) => ({ ...s, [id]: ok ? "sent" : "error" }));
   };
 

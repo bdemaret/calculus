@@ -13,6 +13,9 @@ const HIDDEN_POLL_MS = 60_000;
 /** Bandeaux affichés à la fois (les plus récents) ; les autres prennent la place de ceux qu'on ignore ou rejoint. */
 const MAX_SHOWN = 3;
 
+/** Page à ouvrir pour une invitation : le lobby, ou le donjon. */
+const inviteHref = (i: GameInviteSummary) => (i.kind === "dungeon" ? `/dungeon/${i.code}` : `/lobby/${i.code}`);
+
 /** Bandeau des invitations à une partie, affiché sur toutes les pages au joueur connecté. */
 export function InviteNotice() {
   const t = useTranslations("friends");
@@ -39,7 +42,7 @@ export function InviteNotice() {
   }, [refresh]);
 
   // Déjà dans le lobby de l'invitation : elle n'a plus lieu d'être.
-  const isHere = useCallback((i: GameInviteSummary) => pathname === `/lobby/${i.code}`, [pathname]);
+  const isHere = useCallback((i: GameInviteSummary) => pathname === inviteHref(i), [pathname]);
   useEffect(() => {
     const here = invites.filter(isHere);
     if (!here.length) return;
@@ -61,7 +64,13 @@ export function InviteNotice() {
     <div className="invite-notices" role="status">
       {shown.map((i) => (
         <div className="invite-notice" key={i.id}>
-          <span>{i.guildName ? t("noticeGuild", { name: i.fromName, guild: i.guildName }) : t("noticeText", { name: i.fromName })}</span>
+          <span>
+            {i.guildName
+              ? t("noticeGuild", { name: i.fromName, guild: i.guildName })
+              : i.kind === "dungeon"
+                ? t("noticeDungeon", { name: i.fromName })
+                : t("noticeText", { name: i.fromName })}
+          </span>
           <span className="actions">
             <button
               className="btn"
@@ -70,7 +79,7 @@ export function InviteNotice() {
                 drop(i.id);
                 // Quitte proprement le lobby en cours avant d'entrer dans le nouveau.
                 leaveLobby();
-                router.push(`/lobby/${i.code}`);
+                router.push(inviteHref(i));
               }}
             >
               {t("noticeJoin")}

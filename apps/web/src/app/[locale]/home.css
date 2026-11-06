@@ -28,3 +28,6 @@ a.daily-card { background: var(--hl); color: var(--on-hl); min-height: 0; }
   .daily-card .choice-sub { display: none; }
   .home .warmup { order: 3; padding: 40px 0 0; }
 }
+
+/* Troisième choix (donjons, comptes seulement) : toute la largeur sous les deux autres. */
+.home .choice-dungeon { grid-column: 1 / -1; min-height: 0; }

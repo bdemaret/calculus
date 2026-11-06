@@ -159,6 +159,8 @@ export const JOIN_ERRORS = {
   duplicate: 4410,
   full: 4413,
   notFound: 4404,
+  /** Salle réservée aux comptes (donjons) : un invité ne peut pas y entrer. */
+  accountRequired: 4403,
   /** Trop de demandes depuis cette adresse, ou serveur au plafond de salles / de connexions. */
   busy: 4429,
 } as const;

@@ -10,11 +10,14 @@ import {
   TITLE_IDS,
   countersDelta,
   defaultSettings,
+  dungeonFactsOf,
   evaluateAchievements,
+  evaluateDungeonAchievements,
   factsOf,
   progressOf,
   replaySolo,
   wornTitle,
+  type DungeonSummary,
   type FactsInput,
   type GameFacts,
   type GameSettings,
@@ -75,7 +78,8 @@ describe("catalogue", () => {
   it("n'a pas de doublon, et chaque succès a une condition", () => {
     expect(new Set(ACHIEVEMENT_IDS).size).toBe(ACHIEVEMENT_IDS.length);
     expect(new Set(TITLE_IDS).size).toBe(TITLE_IDS.length);
-    for (const a of ACHIEVEMENTS) expect(!!a.target !== !!a.check, a.id).toBe(true);
+    // Une seule condition : un compteur, un exploit de partie, ou un exploit d'expédition.
+    for (const a of ACHIEVEMENTS) expect([a.target, a.check, a.dungeonCheck].filter(Boolean).length, a.id).toBe(1);
   });
 
   it("relie chaque titre à un succès, et réciproquement", () => {
@@ -246,5 +250,102 @@ describe("faits d'une partie", () => {
     expect(factsOf(input(engine), "a")?.bestOpponentScore).toBe(0);
     expect(factsOf(input(engine), "b")?.maxDeficit).toBe(5);
     expect(factsOf(input(engine), "inconnu")).toBeNull();
+  });
+});
+
+describe("donjons", () => {
+  const summary = (over: Partial<DungeonSummary> = {}, player: Partial<DungeonSummary["players"][number]> = {}): DungeonSummary => ({
+    difficulty: 2,
+    outcome: "won",
+    lossReason: null,
+    roundsPlayed: 5,
+    score: 2000,
+    bossMaxHp: 13,
+    bossHp: 0,
+    enemiesDefeated: 4,
+    sealsBroken: 1,
+    players: [
+      {
+        id: "a",
+        name: "Ada",
+        lives: 2,
+        livesLost: 1,
+        enemiesDefeated: 2,
+        points: 900,
+        bossDamage: 7,
+        heartsGiven: 0,
+        heartsReceived: 0,
+        itemsFound: 1,
+        correct: 18,
+        answered: 20,
+        avgTimeMs: 2500,
+        gone: false,
+        ...player,
+      },
+      { id: "b", name: "Bob", lives: 3, livesLost: 0, enemiesDefeated: 2, points: 800, bossDamage: 6, heartsGiven: 0, heartsReceived: 0, itemsFound: 0, correct: 15, answered: 15, avgTimeMs: 3000 },
+    ],
+    ...over,
+  });
+  const earned = (s: DungeonSummary, counters: Record<string, number> = {}, owned: string[] = []) =>
+    evaluateDungeonAchievements(dungeonFactsOf(s, "a")!, counters, new Set(owned)).map((u) => u.achievementId);
+
+  it("les expéditions réussies : 1 (titre Aventurier), 10, 100 (titre Fléau des donjons)", () => {
+    expect(evaluateDungeonAchievements(dungeonFactsOf(summary(), "a")!, { "dungeon-wins": 1 }, new Set())).toContainEqual({
+      achievementId: "dungeon-wins-1",
+      titleId: "adventurer",
+    });
+    expect(earned(summary(), { "dungeon-wins": 9 }, ["dungeon-wins-1"])).not.toContain("dungeon-wins-10");
+    expect(earned(summary(), { "dungeon-wins": 10 }, ["dungeon-wins-1"])).toContain("dungeon-wins-10");
+    expect(earned(summary(), { "dungeon-wins": 100 }, ["dungeon-wins-1", "dungeon-wins-10"])).toContain("dungeon-wins-100");
+    expect(ACHIEVEMENTS.find((a) => a.id === "dungeon-wins-100")?.title).toBe("dungeon-scourge");
+  });
+
+  it("expédition parfaite : victoire, tous les calculs réussis, 10 au moins", () => {
+    expect(earned(summary({}, { correct: 20, answered: 20 }))).toContain("dungeon-perfect");
+    expect(earned(summary({}, { correct: 19, answered: 20 }))).not.toContain("dungeon-perfect");
+    expect(earned(summary({}, { correct: 9, answered: 9 }))).not.toContain("dungeon-perfect");
+    expect(earned(summary({ outcome: "lost", lossReason: "boss-timeout" }, { correct: 20, answered: 20 }))).not.toContain("dungeon-perfect");
+  });
+
+  it("succès caché : l'expédition échoue sans un seul ennemi vaincu", () => {
+    const lost = summary({ outcome: "lost", lossReason: "boss-not-reached", roundsPlayed: 2, enemiesDefeated: 0, bossMaxHp: null, bossHp: null });
+    expect(earned(lost)).toEqual(["dungeon-wiped"]);
+    expect(earned({ ...lost, enemiesDefeated: 1 })).not.toContain("dungeon-wiped");
+    expect(ACHIEVEMENTS.find((a) => a.id === "dungeon-wiped")?.secret).toBe(true);
+  });
+
+  it("légende, dernière vie, équipe de quatre, ange gardien", () => {
+    expect(earned(summary({ difficulty: 5 }))).toContain("dungeon-legend");
+    expect(earned(summary({ difficulty: 4 }))).not.toContain("dungeon-legend");
+    expect(earned(summary({}, { lives: 1 }))).toContain("dungeon-last-life");
+    const four = summary();
+    four.players.push({ ...four.players[1]!, id: "c" }, { ...four.players[1]!, id: "d" });
+    expect(earned(four)).toContain("dungeon-full-party");
+    expect(earned(summary())).not.toContain("dungeon-full-party");
+    expect(earned(summary(), { "dungeon-hearts": 10 })).toContain("dungeon-guardian-10");
+  });
+
+  it("parti avant la fin : aucun exploit", () => {
+    expect(earned(summary({ difficulty: 5 }, { gone: true, lives: 1, correct: 20, answered: 20 }))).toEqual([]);
+  });
+
+  it("une partie ordinaire ne débloque jamais un exploit de donjon", () => {
+    const dungeonOnly = ACHIEVEMENTS.filter((a) => a.dungeonCheck).map((a) => a.id);
+    expect(dungeonOnly.length).toBeGreaterThan(0);
+    for (const a of ACHIEVEMENTS.filter((a) => a.dungeonCheck)) {
+      expect(a.check).toBeUndefined();
+      expect(a.category).toBe("dungeon");
+      expect(a.online).toBe(true);
+    }
+  });
+});
+
+describe("donjons : joueur porté par l'équipe", () => {
+  it("une victoire sans une seule bonne réponse ne donne aucun exploit", () => {
+    const facts = { won: true, difficulty: 5, players: 4, enemiesDefeated: 6, gone: false, lives: 1, correct: 0, answered: 3, heartsGiven: 0 } as const;
+    expect(evaluateDungeonAchievements(facts, {}, new Set())).toEqual([]);
+    expect(evaluateDungeonAchievements({ ...facts, correct: 1 }, {}, new Set()).map((u) => u.achievementId)).toEqual(
+      expect.arrayContaining(["dungeon-legend", "dungeon-last-life", "dungeon-full-party"]),
+    );
   });
 });

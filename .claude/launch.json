@@ -4,8 +4,22 @@
     {
       "name": "web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@calculus/web", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "@calculus/web",
+        "dev"
+      ],
       "port": 3000
+    },
+    {
+      "name": "game-server",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@calculus/game-server",
+        "dev"
+      ],
+      "port": 2567
     }
   ]
 }

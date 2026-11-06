@@ -6,7 +6,7 @@ import type { AchievementStatus } from "@calculus/db";
 import { useRouter } from "@/i18n/navigation";
 import { AchievementBadge } from "@/components/AchievementBadge";
 
-const CATEGORIES: readonly AchievementCategory[] = ["journey", "mode", "game", "fun", "social"];
+const CATEGORIES: readonly AchievementCategory[] = ["journey", "mode", "game", "fun", "social", "dungeon"];
 
 export function AchievementsView({ achievements }: { achievements: AchievementStatus[] }) {
   const t = useTranslations("achievementsPage");

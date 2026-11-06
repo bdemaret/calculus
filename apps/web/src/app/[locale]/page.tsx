@@ -48,6 +48,15 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             <span className="choice-title">{t("home.playSolo")}</span>
             <span className="choice-sub">{t("home.playSoloSub")}</span>
           </Link>
+          {/* Les donjons sont réservés aux comptes : l'entrée n'apparaît qu'une fois connecté. */}
+          {session ? (
+            <Link className="choice choice-dungeon" href="/dungeon" style={{ textDecoration: "none", color: "inherit" }}>
+              <span className="choice-glyph" aria-hidden="true">⚔</span>
+              <span className="choice-kicker">{t("home.dungeonKicker")}</span>
+              <span className="choice-title">{t("home.dungeon")}</span>
+              <span className="choice-sub">{t("home.dungeonSub")}</span>
+            </Link>
+          ) : null}
         </section>
       </div>
       <PublicLobbies />

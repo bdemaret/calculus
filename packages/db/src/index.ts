@@ -18,7 +18,9 @@ import {
   dailyQuestion,
   dailyTimeLimitMs,
   describeRatingChange,
+  dungeonFactsOf,
   evaluateAchievements,
+  evaluateDungeonAchievements,
   factsOf,
   fallbackBomb,
   progressOf,
@@ -28,6 +30,7 @@ import {
   type AnswerRecord,
   type Counters,
   type Difficulty,
+  type DungeonSummary,
   type GameFacts,
   type GameId,
   type GameModeId,
@@ -317,14 +320,27 @@ export async function saveGame(input: SaveGameInput): Promise<SavedGame> {
   return { id: gameId, ratings, unlocks };
 }
 
-/** Compteurs des succès hors parties (amis, guilde, calcul du jour), relus à la source plutôt que stockés. */
+/** Compteurs des succès hors parties (amis, guilde, calcul du jour, donjons), relus à la source plutôt que stockés. */
 async function sourceCounters(db: Prisma.TransactionClient, userId: string): Promise<Counters> {
-  const [friends, member, dailyWins] = await Promise.all([
+  const [friends, member, dailyWins, dungeons, dungeonWins, hearts] = await Promise.all([
     db.friendship.count({ where: { status: "accepted", OR: [{ requesterId: userId }, { addresseeId: userId }] } }),
     db.guildMember.findUnique({ where: { userId }, select: { role: true } }),
     db.dailyRun.count({ where: { userId, won: true } }),
+    // Une expédition quittée avant la fin ne compte pas, ni une victoire sans une seule bonne réponse
+    // (portée par l'équipe) ; les cœurs donnés avant de partir, si.
+    db.dungeonRunPlayer.count({ where: { userId, left: false } }),
+    db.dungeonRunPlayer.count({ where: { userId, left: false, correct: { gt: 0 }, run: { outcome: "won" } } }),
+    db.dungeonRunPlayer.aggregate({ where: { userId }, _sum: { heartsGiven: true } }),
   ]);
-  return { friends, "guild-member": member ? 1 : 0, "guild-leader": member?.role === "leader" ? 1 : 0, "daily-wins": dailyWins };
+  return {
+    friends,
+    "guild-member": member ? 1 : 0,
+    "guild-leader": member?.role === "leader" ? 1 : 0,
+    "daily-wins": dailyWins,
+    dungeons,
+    "dungeon-wins": dungeonWins,
+    "dungeon-hearts": hearts._sum.heartsGiven ?? 0,
+  };
 }
 
 /** Succès hors parties que les compteurs de ce compte viennent d'atteindre. */
@@ -1163,13 +1179,16 @@ async function trimGameInvites(fromId: string, toIds: string[]): Promise<void> {
  * Invite un ami dans un lobby. Chaque lobby a sa propre invitation (inviter de nouveau au même lobby la renouvelle),
  * pour que plusieurs invitations du même ami restent visibles. Renvoie false si ce n'est pas un ami.
  */
-export async function sendGameInvite(fromId: string, toId: string, code: string, now: Date): Promise<boolean> {
+/** Type de salle visée par une invitation : lobby classique ou donjon. */
+export type GameInviteKind = "game" | "dungeon";
+
+export async function sendGameInvite(fromId: string, toId: string, code: string, now: Date, kind: GameInviteKind = "game"): Promise<boolean> {
   if (fromId === toId || !(await areFriends(fromId, toId))) return false;
   const expiresAt = new Date(now.getTime() + INVITE_TTL_MS);
   await prisma.gameInvite.upsert({
     where: { fromId_toId_code: { fromId, toId, code } },
-    create: { fromId, toId, code, createdAt: now, expiresAt },
-    update: { createdAt: now, expiresAt },
+    create: { fromId, toId, code, kind, createdAt: now, expiresAt },
+    update: { createdAt: now, expiresAt, kind },
   });
   await trimGameInvites(fromId, [toId]);
   return true;
@@ -1181,6 +1200,8 @@ export interface GameInviteSummary {
   fromName: string;
   /** Nom de la guilde quand c'est un lobby de guilde, null pour une invitation entre amis */
   guildName: string | null;
+  /** Lobby classique ou donjon : la page à ouvrir pour rejoindre */
+  kind: GameInviteKind;
   createdAt: string;
 }
 
@@ -1192,7 +1213,14 @@ export async function getGameInvites(userId: string, now: Date): Promise<GameInv
     orderBy: { createdAt: "desc" },
     include: { from: { select: { name: true } }, guild: { select: { name: true } } },
   });
-  return rows.map((r) => ({ id: r.id, code: r.code, fromName: r.from.name, guildName: r.guild?.name ?? null, createdAt: r.createdAt.toISOString() }));
+  return rows.map((r) => ({
+    id: r.id,
+    code: r.code,
+    fromName: r.from.name,
+    guildName: r.guild?.name ?? null,
+    kind: r.kind === "dungeon" ? "dungeon" : "game",
+    createdAt: r.createdAt.toISOString(),
+  }));
 }
 
 /** Supprime une invitation reçue (rejointe ou ignorée). */
@@ -1590,6 +1618,7 @@ export async function eraseUserGames(userId: string): Promise<void> {
   await prisma.$transaction([
     prisma.game.deleteMany({ where: { solo: true, players: { some: { userId } } } }),
     prisma.gamePlayer.updateMany({ where: { userId }, data: { displayName: "" } }),
+    prisma.dungeonRunPlayer.updateMany({ where: { userId }, data: { displayName: "" } }),
   ]);
 }
 
@@ -2373,3 +2402,111 @@ export async function deleteFeedback(id: string): Promise<boolean> {
   const { count } = await prisma.feedback.deleteMany({ where: { id } });
   return count > 0;
 }
+
+/* ------------------------------------------------------------------ */
+/* Donjons                                                              */
+/* ------------------------------------------------------------------ */
+
+export interface SaveDungeonRunInput {
+  code: string;
+  seed: string;
+  startedAt: Date;
+  endedAt: Date;
+  summary: DungeonSummary;
+}
+
+export interface SavedDungeonRun {
+  id: string;
+  /** Succès débloqués par l'expédition, par id de joueur (= id du compte). */
+  unlocks: Record<string, Unlock[]>;
+}
+
+/**
+ * Enregistre une expédition finie (hors `saveGame` : ni Elo, ni statistiques), puis les succès de donjon.
+ * Les joueurs sont des comptes (la salle refuse les invités) : `playerKey` est l'id du compte.
+ */
+export async function saveDungeonRun({ code, seed, startedAt, endedAt, summary }: SaveDungeonRunInput): Promise<SavedDungeonRun> {
+  const keys = summary.players.map((p) => p.id);
+  // Un compte supprimé pendant l'expédition n'a plus de ligne : sa part est gardée sans lien.
+  const existing = new Set((await prisma.user.findMany({ where: { id: { in: keys } }, select: { id: true } })).map((u) => u.id));
+  const run = await prisma.dungeonRun.create({
+    data: {
+      code,
+      seed,
+      difficulty: summary.difficulty,
+      playerCount: summary.players.length,
+      outcome: summary.outcome ?? "lost",
+      lossReason: summary.lossReason,
+      roundsPlayed: summary.roundsPlayed,
+      score: summary.score,
+      enemiesDefeated: summary.enemiesDefeated,
+      sealsBroken: summary.sealsBroken,
+      bossMaxHp: summary.bossMaxHp,
+      bossHp: summary.bossHp,
+      startedAt,
+      endedAt,
+      players: {
+        create: summary.players.map((p, position) => ({
+          userId: existing.has(p.id) ? p.id : null,
+          playerKey: p.id,
+          displayName: p.name,
+          position,
+          lives: p.lives,
+          livesLost: p.livesLost,
+          enemiesDefeated: p.enemiesDefeated,
+          points: p.points,
+          bossDamage: p.bossDamage,
+          heartsGiven: p.heartsGiven,
+          heartsReceived: p.heartsReceived,
+          itemsFound: p.itemsFound,
+          correct: p.correct,
+          answered: p.answered,
+          avgTimeMs: p.avgTimeMs,
+          left: p.gone ?? false,
+        })),
+      },
+    },
+    select: { id: true },
+  });
+  return { id: run.id, unlocks: await grantDungeonAchievements(summary, existing) };
+}
+
+/**
+ * Succès de donjon de chaque compte de l'expédition (déjà enregistrée : les compteurs relus la comptent).
+ * N'échoue jamais : un bug du catalogue perd un succès, pas l'expédition.
+ */
+async function grantDungeonAchievements(summary: DungeonSummary, accounts: ReadonlySet<string>): Promise<Record<string, Unlock[]>> {
+  const unlocks: Record<string, Unlock[]> = {};
+  for (const player of summary.players) {
+    if (!accounts.has(player.id)) continue;
+    try {
+      const facts = dungeonFactsOf(summary, player.id);
+      if (!facts) continue;
+      const earned = await prisma.$transaction(async (tx) => {
+        const [counters, owned] = await Promise.all([
+          sourceCounters(tx, player.id),
+          tx.userAchievement.findMany({ where: { userId: player.id }, select: { achievementId: true } }),
+        ]);
+        const found = evaluateDungeonAchievements(facts, counters, new Set(owned.map((o) => o.achievementId)));
+        await grantUnlocks(
+          tx,
+          found.map((unlock) => ({ userId: player.id, unlock, gameId: null })),
+        );
+        return found;
+      });
+      if (earned.length) unlocks[player.id] = earned;
+    } catch (err) {
+      console.error("[succès] donjon : échec de l'évaluation", err);
+    }
+  }
+  return unlocks;
+}
+
+/** Une expédition enregistrée, pour sa page de bilan. */
+export async function loadDungeonRun(id: string) {
+  return prisma.dungeonRun.findUnique({
+    where: { id },
+    include: { players: { orderBy: { position: "asc" } } },
+  });
+}
+export type DungeonRunRecord = NonNullable<Awaited<ReturnType<typeof loadDungeonRun>>>;

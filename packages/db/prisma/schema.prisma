@@ -54,6 +54,7 @@ model User {
   titles          UserTitle[]
   counters        UserCounter[]
   dailyRuns       DailyRun[]
+  dungeonRuns     DungeonRunPlayer[]
 
   @@map("user")
 }
@@ -267,6 +268,8 @@ model GameInvite {
   /// Guilde dont c'est le lobby (invitation envoyée à tous ses membres), null pour une invitation entre amis
   guildId   String?
   guild     Guild?   @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  /// Type de salle : `game` (lobby classique) ou `dungeon` (donjons), pour ouvrir la bonne page
+  kind      String   @default("game")
   createdAt DateTime @default(now())
   expiresAt DateTime
 
@@ -527,4 +530,68 @@ model DailyRun {
   @@index([date, finishedAt, correct, totalTimeMs])
   @@index([userId, won])
   @@map("daily_run")
+}
+
+/* ---------- Donjons (coopération) ---------- */
+
+/// Une expédition en donjon : hors parties, Elo et statistiques (`saveGame`)
+model DungeonRun {
+  id              String   @id @default(cuid())
+  /// Code du lobby
+  code            String
+  seed            String
+  difficulty      Int
+  playerCount     Int
+  /// `won` | `lost`
+  outcome         String
+  /// `no-enemy-defeated` | `team-down` | `boss-timeout`, null pour une victoire
+  lossReason      String?
+  /// Manches jouées (1 à 5, la 5e est le boss)
+  roundsPlayed    Int
+  score           Int
+  enemiesDefeated Int
+  /// Sceaux brisés (chacun affaiblit le boss), 0 pour les expéditions de la première version
+  sealsBroken     Int        @default(0)
+  /// PV du boss au départ et à la fin, null si l'équipe ne l'a pas atteint
+  bossMaxHp       Int?
+  bossHp          Int?
+  startedAt       DateTime
+  endedAt         DateTime
+  players         DungeonRunPlayer[]
+
+  @@index([endedAt])
+  @@map("dungeon_run")
+}
+
+/// Part d'un joueur dans une expédition
+model DungeonRunPlayer {
+  id              String     @id @default(cuid())
+  runId           String
+  run             DungeonRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  /// Null une fois le compte supprimé (les donjons sont réservés aux comptes)
+  userId          String?
+  user            User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Identifiant utilisé pendant l'expédition (id du compte)
+  playerKey       String
+  displayName     String
+  /// Ordre d'arrivée dans le lobby (couloir de départ)
+  position        Int
+  lives           Int
+  livesLost       Int
+  enemiesDefeated Int
+  points          Int
+  bossDamage      Int
+  heartsGiven     Int
+  heartsReceived  Int
+  /// Objets de butin trouvés (coffres, mimiques, ennemis redoutables)
+  itemsFound      Int        @default(0)
+  correct         Int
+  answered        Int
+  avgTimeMs       Int?
+  /// Parti avant la fin : ne compte pas dans les expéditions réussies (succès)
+  left            Boolean    @default(false)
+
+  @@unique([runId, playerKey])
+  @@index([userId])
+  @@map("dungeon_run_player")
 }

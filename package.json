@@ -16,7 +16,8 @@
     "typecheck": "turbo run typecheck",
     "db:up": "docker compose up -d db",
     "db:migrate": "pnpm --filter @calculus/db migrate",
-    "db:studio": "pnpm --filter @calculus/db studio"
+    "db:studio": "pnpm --filter @calculus/db studio",
+    "dungeon:bots": "pnpm --filter @calculus/game-server dungeon:bots"
   },
   "devDependencies": {
     "turbo": "^2.5.0",

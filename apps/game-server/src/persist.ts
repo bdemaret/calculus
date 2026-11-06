@@ -1,5 +1,5 @@
-import { clearLobbyInvites, saveGame } from "@calculus/db";
-import type { GameEngine, RatingChange, Unlock } from "@calculus/game-core";
+import { clearLobbyInvites, saveDungeonRun, saveGame } from "@calculus/db";
+import type { DungeonEngine, GameEngine, RatingChange, Unlock } from "@calculus/game-core";
 
 interface PersistInput {
   code: string;
@@ -40,6 +40,29 @@ export async function persistGame({
     return { ratings, unlocks };
   } catch (err) {
     console.error(`[partie] ${code} : échec de l'enregistrement`, err);
+    return null;
+  }
+}
+
+/**
+ * Enregistre une expédition finie, avec les succès qu'elle débloque (null si rien n'a été enregistré).
+ * Une erreur ici ne doit jamais interrompre le jeu.
+ */
+export async function persistDungeon({
+  code,
+  engine,
+  startedAt,
+}: {
+  code: string;
+  engine: DungeonEngine;
+  startedAt: Date;
+}): Promise<{ id: string; unlocks: Record<string, Unlock[]> } | null> {
+  try {
+    const saved = await saveDungeonRun({ code, seed: engine.seed, startedAt, endedAt: new Date(), summary: engine.summary() });
+    console.log(`[donjon] ${code} enregistré (${saved.id})`);
+    return saved;
+  } catch (err) {
+    console.error(`[donjon] ${code} : échec de l'enregistrement`, err);
     return null;
   }
 }

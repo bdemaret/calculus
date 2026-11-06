@@ -36,7 +36,8 @@
     "guild": "Guild",
     "guildInvites": "Guild, {count, plural, one {# pending invitation} other {# pending invitations}}",
     "learn": "Techniques",
-    "daily": "Daily calc"
+    "daily": "Daily calc",
+    "dungeon": "Dungeons"
   },
   "home": {
     "title": "Who’s the <hl>fastest</hl> at mental math?",
@@ -52,7 +53,10 @@
     "playOnlineSub": "Create a lobby or join your friends with a code.",
     "playSolo": "Play solo",
     "playSoloKicker": "5 levels",
-    "playSoloSub": "Five levels, from “7 + 4” to “125 × 8 − 36 ÷ 4”."
+    "playSoloSub": "Five levels, from “7 + 4” to “125 × 8 − 36 ÷ 4”.",
+    "dungeonKicker": "as a team",
+    "dungeon": "Dungeons",
+    "dungeonSub": "2 to 4 friends, five rounds to beat the boss together."
   },
   "modes": {
     "battle-royale": {
@@ -181,7 +185,8 @@
     "name-required": "Pick a nickname to play as a guest.",
     "busy": "Too many connections right now. Try again in a minute.",
     "generic": "Couldn’t join the lobby. Try again.",
-    "locked": "This lobby is full or a game is in progress."
+    "locked": "This lobby is full or a game is in progress.",
+    "account-required": "Dungeons are for signed-in players only."
   },
   "lobby": {
     "pageTitle": "Lobby {code}",
@@ -523,7 +528,8 @@
     "noticeJoin": "Join",
     "noticeIgnore": "Ignore",
     "noticeGuild": "{name} invites you to the “{guild}” guild lobby.",
-    "noticeMore": "{count, plural, one {# more invitation waiting} other {# more invitations waiting}}"
+    "noticeMore": "{count, plural, one {# more invitation waiting} other {# more invitations waiting}}",
+    "noticeDungeon": "{name} invites you to a dungeon."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -986,7 +992,11 @@
         "previous": "Newer",
         "next": "Older",
         "page": "page {page} of {pages}"
-      }
+      },
+      "dungeons": "Dungeons",
+      "dungeonRound": "round {round} / {total} · score {score}",
+      "dungeonBoss": "boss {hp} / {max} HP",
+      "lives": "{count, plural, =0 {down} one {# life} other {# lives}}"
     },
     "feedback": {
       "filter": "Filter feedback",
@@ -1488,6 +1498,42 @@
     "guild-lead": {
       "name": "In charge",
       "desc": "Lead a guild"
+    },
+    "dungeon-wins-1": {
+      "name": "First expedition",
+      "desc": "Defeat the boss of a dungeon"
+    },
+    "dungeon-wins-10": {
+      "name": "Pillar of the depths",
+      "desc": "Defeat the boss of 10 dungeons"
+    },
+    "dungeon-wins-100": {
+      "name": "A hundred descents",
+      "desc": "Defeat the boss of 100 dungeons"
+    },
+    "dungeon-perfect": {
+      "name": "Perfect expedition",
+      "desc": "Get every calculation right in a winning expedition (at least 10)"
+    },
+    "dungeon-legend": {
+      "name": "Deep in legend",
+      "desc": "Defeat a dungeon boss at Legend level"
+    },
+    "dungeon-last-life": {
+      "name": "By a hair",
+      "desc": "Defeat the boss with a single life left"
+    },
+    "dungeon-full-party": {
+      "name": "Full company",
+      "desc": "Defeat the boss as a team of four"
+    },
+    "dungeon-guardian-10": {
+      "name": "Guardian angel",
+      "desc": "Give 10 hearts to your allies in dungeons"
+    },
+    "dungeon-wiped": {
+      "name": "About turn",
+      "desc": "See the expedition fail without a single enemy defeated"
     }
   },
   "titles": {
@@ -1514,7 +1560,9 @@
     "night-owl": "Night owl",
     "on-the-wire": "Down to the wire",
     "dunce-cap": "Dunce cap",
-    "bad-luck": "Bad luck"
+    "bad-luck": "Bad luck",
+    "adventurer": "Adventurer",
+    "dungeon-scourge": "Scourge of the dungeons"
   },
   "achievementsPage": {
     "metaTitle": "My achievements",
@@ -1526,6 +1574,7 @@
     "game": "Games",
     "fun": "For fun",
     "social": "Social",
+    "dungeon": "Dungeons",
     "secret": "???",
     "secretDesc": "Secret achievement",
     "progress": "{value} / {target}",
@@ -1580,5 +1629,254 @@
     "previousDay": "← Previous day",
     "nextDay": "Next day →",
     "backToToday": "Back to the daily calc"
+  },
+  "dungeon": {
+    "title": "Dungeons",
+    "pageTitle": "Dungeon {code}",
+    "margin": "co-op",
+    "rules": {
+      "rounds": "A map of rooms over four floors: each round, everyone picks an open room. A cleared room opens the ones beyond it.",
+      "positioning": "You must open the boss room before the end of round 4, or the expedition is lost. Several of you in the same room means several chances.",
+      "perfect": "An enemy is a series of calculations to get entirely right (except the hydra and the horde, which have their own rules).",
+      "lives": "Three lives each. Chests and fearsome enemies drop loot: hearts, shields, keys, bombs…",
+      "boss": "Broken seals weaken the boss, which the whole team fights together in round 5, against the clock."
+    },
+    "createTitle": "Start an expedition",
+    "createText": "You pick the difficulty, then invite your friends or give them the code.",
+    "create": "Start an expedition",
+    "joinTitle": "Join an expedition",
+    "cannotJoin": "Can’t enter dungeon {code}",
+    "back": "Back to dungeons",
+    "lobbyMargin": "team",
+    "lobbyTitle": "Prepare the expedition",
+    "difficulty": "Difficulty",
+    "start": "Enter",
+    "notEnough": "You need at least {count} players to enter the dungeon.",
+    "hostHint": "You’re the host: pick the difficulty, then enter when the team is ready.",
+    "entering": "Entering the dungeon · {level}",
+    "roundOf": "Round {n} of {total}",
+    "bossRound": "The boss",
+    "score": "score",
+    "phase": {
+      "positioning": "Pick your opponents",
+      "combat": "Fight",
+      "loot": "Loot",
+      "round-result": "Round summary",
+      "boss": "Boss fight",
+      "finished": "End of the expedition"
+    },
+    "livesAria": "{count, plural, =0 {down} one {# life} other {# lives}}",
+    "down": "down",
+    "gone": "left",
+    "floor": "floor {n}",
+    "defeated": "defeated",
+    "inspectHint": "Hover or tap a room to see what it holds.",
+    "cardSeries": "{count} calculations, {time} each",
+    "cardVisible": "shown for {time}",
+    "cardPoints": "{points} points",
+    "pickHint": "Tap a lit room to go there: it’s reachable from a cleared room.",
+    "lockHint": "You can still change your mind, or lock your choice.",
+    "lock": "Lock",
+    "locked": "Choice locked. Waiting for the rest of the team.",
+    "downWatching": "You’re down: you’re watching your team. A heart will get you back up.",
+    "teamChoosing": "choosing…",
+    "teamPicked": "picked",
+    "teamLocked": "ready",
+    "fighting": "Facing: {enemy}",
+    "progress": "calculation {n} of {count}",
+    "seriesWon": "defeated!",
+    "seriesFailed": "failed",
+    "hiddenCalc": "? ? ?",
+    "mummyHint": "The mummy hid the calculation: answer from memory.",
+    "timeUp": "time’s up",
+    "failedAt": "failed at calculation {n} of {count}",
+    "lootKeep": "Keep it",
+    "lootGive": "Give it to {name}",
+    "lootHint": "If you don’t choose, you keep it (or it goes to the ally who needs it most if you have no room).",
+    "lootPending": "{name} is choosing who gets their heart…",
+    "lootKept": "{name} keeps: {item}.",
+    "lootGiven": "{name} gives {item} to {to}.",
+    "lootLost": "{item} was lost: nobody had room left.",
+    "boss": {
+      "name": "The boss",
+      "hp": "{hp} / {max} HP",
+      "hpAria": "Boss hit points",
+      "damage": "{count, plural, =0 {no hits} one {# hit} other {# hits}}",
+      "desc": "It waits at the top of the dungeon. The whole team fights it together, against the clock: each correct answer takes a HP, each mistake costs a life. Seals broken on the way weaken it."
+    },
+    "end": {
+      "won": "The boss is defeated!",
+      "lost": "The expedition failed",
+      "reason": {
+        "no-enemy-defeated": "No enemy was defeated during a round.",
+        "team-down": "The whole team is down.",
+        "boss-timeout": "The boss held out until time ran out.",
+        "boss-not-reached": "The boss room wasn’t reached in time."
+      },
+      "score": "team score",
+      "level": "difficulty",
+      "levelValue": "level {n}",
+      "rounds": "rounds",
+      "enemies": "enemies defeated",
+      "boss": "boss HP taken",
+      "mine": "Your share",
+      "points": "points",
+      "bossDamage": "hits on the boss",
+      "hearts": "hearts given / received",
+      "accuracy": "correct answers",
+      "avgTime": "average time",
+      "player": "player",
+      "livesLeft": "lives left",
+      "deleted": "deleted account",
+      "again": "Play again",
+      "hostHint": "Play again brings the whole team back to the waiting room.",
+      "waitHost": "Waiting for the host to start a new expedition.",
+      "reportTitle": "Expedition summary",
+      "playedOn": "Expedition of {date}",
+      "newExpedition": "Back to dungeons",
+      "seals": "seals broken",
+      "items": "items found",
+      "toDungeons": "Back to dungeons",
+      "toHome": "Back to main menu"
+    },
+    "enemies": {
+      "elf": {
+        "name": "Elf",
+        "desc": "Very simple calculations, but hardly any time for each."
+      },
+      "troll": {
+        "name": "Troll",
+        "desc": "Big simple calculations: three-digit additions and subtractions, with time to work them out."
+      },
+      "knight": {
+        "name": "Knight",
+        "desc": "A balanced opponent: calculations at the game’s level, with the usual time."
+      },
+      "mummy": {
+        "name": "Mummy",
+        "desc": "The calculation shows for one second only: remember it to answer."
+      },
+      "witch": {
+        "name": "Witch",
+        "desc": "She hides a number in the equation: find what’s missing."
+      },
+      "specter": {
+        "name": "Specter",
+        "desc": "It makes the operator vanish: plus, minus, times or divided? Answer with the right sign."
+      },
+      "cyclops": {
+        "name": "Cyclops",
+        "desc": "A single, huge calculation, with plenty of time. All or nothing."
+      },
+      "skeleton": {
+        "name": "Skeleton archer",
+        "desc": "Simple calculations, but every arrow flies faster than the last."
+      },
+      "hydra": {
+        "name": "Hydra",
+        "desc": "A mistake doesn’t fail you: two heads grow back (two more calculations). Finish before the clock runs out."
+      },
+      "goblins": {
+        "name": "Goblin horde",
+        "desc": "Lots of small calculations, shared by everyone fighting it: each correct answer takes down a goblin."
+      },
+      "dragon": {
+        "name": "Dragon",
+        "desc": "Powers and roots. It guards a shortcut: defeating it opens the boss room directly."
+      },
+      "mimic": {
+        "name": "Mimic",
+        "desc": "A chest… that bites. Defeated, it drops a rare item."
+      }
+    },
+    "leave": "Leave",
+    "items": {
+      "heart": {
+        "name": "Heart",
+        "desc": "One more life, for you or an ally (who gets back up if down)."
+      },
+      "shield": {
+        "name": "Shield",
+        "desc": "Your next failure costs no life. Works on its own."
+      },
+      "hourglass": {
+        "name": "Hourglass",
+        "desc": "50% more time on your next series."
+      },
+      "second-chance": {
+        "name": "Second chance",
+        "desc": "Your first mistake in your next series is forgiven."
+      },
+      "key": {
+        "name": "Key",
+        "desc": "Pass an open room without fighting (no points, loot or seal)."
+      },
+      "bomb": {
+        "name": "Bomb",
+        "desc": "Against the boss: takes 3 hit points at once."
+      },
+      "phoenix": {
+        "name": "Phoenix feather",
+        "desc": "If you drop to 0 lives, you get back up with 1. Works on its own."
+      },
+      "banner": {
+        "name": "Banner",
+        "desc": "One more life for the whole team."
+      },
+      "purse": {
+        "name": "Gold purse",
+        "desc": "250 points at the end of the expedition, while it’s in a bag."
+      },
+      "map": {
+        "name": "Map",
+        "desc": "Lifts the fog over the whole dungeon (mimics stay disguised)."
+      }
+    },
+    "kinds": {
+      "unknown": "Unknown room",
+      "unknownDesc": "Still hidden in the fog. Move forward to find out what’s inside.",
+      "enemy": "Enemy",
+      "enemyDesc": "An enemy awaits here; get closer to see which one.",
+      "seal": "Seal",
+      "sealDesc": "Breaking this seal weakens the boss (−20% hit points).",
+      "sealShadowDesc": "A seal guarded by an enemy: breaking it weakens the boss.",
+      "chest": "Chest",
+      "chestDesc": "A loot item, no fight. Going there takes your round… and some chests bite.",
+      "bossDoor": "leads to the boss room"
+    },
+    "goal": "Goal: open the boss room",
+    "goalReached": "The boss room is open!",
+    "seals": "{broken} / {total} seals",
+    "sealsHint": "Each broken seal takes 20% of the boss’s hit points.",
+    "keyMode": "Tap the open room to unlock with the key.",
+    "chestTaken": "You took the chest: your loot awaits at the end of the round.",
+    "hordeLeft": "{n} goblins left out of {count}",
+    "hydraLeft": "{n} heads left",
+    "cardHorde": "{count} goblins to share in {time}",
+    "cardHydra": "{count} heads to start, {time} to cut them all",
+    "cardLoot": "drops an item",
+    "bag": {
+      "title": "Your bag",
+      "empty": "empty",
+      "use": "Use",
+      "cancel": "Cancel",
+      "passive": "works on its own",
+      "give": "→ {name}",
+      "drop": "Drop",
+      "buffHourglass": "Hourglass active",
+      "buffSecondChance": "Second chance active"
+    },
+    "lootFound": "{room} left you: {item}. Who gets it?",
+    "roundCleared": "{count, plural, =0 {No room cleared} one {# room cleared} other {# rooms cleared}} · +{points} points",
+    "sealsBrokenNews": "{count, plural, one {A seal broke: the boss weakens.} other {# seals broke: the boss weakens.}}",
+    "chestOpened": "chest opened",
+    "bossWeakened": "{count, plural, one {Weakened by # broken seal} other {Weakened by # broken seals}}",
+    "book": {
+      "open": "Open the monster book",
+      "title": "The monster book",
+      "intro": "What awaits you in the corridors. The stars tell how strong each enemy is.",
+      "close": "Close",
+      "tier": "{count, plural, one {# star} other {# stars}}"
+    }
   }
 }
