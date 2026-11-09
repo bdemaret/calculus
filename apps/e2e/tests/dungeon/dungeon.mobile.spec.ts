@@ -25,6 +25,11 @@ test("sur téléphone, un décompte plein écran puis le calcul seul, visible sa
     await expect(intro).toBeVisible({ timeout: 25_000 });
     await expect(intro).toHaveText(/[123]/);
     await expect(page.getByTestId("calc-text")).toHaveCount(0);
+    // Rien de la page ne passe devant (pied de page compris) : le centre et le bas de l'écran sont au décompte.
+    const covered = await page.evaluate(() =>
+      [0.5, 0.75, 0.95].every((y) => !!document.elementFromPoint(window.innerWidth / 2, window.innerHeight * y)?.closest('[data-testid="dungeon-intro"]')),
+    );
+    expect(covered).toBe(true);
     await page.screenshot({ path: test.info().outputPath("intro.png") });
     const box = await intro.boundingBox();
     const viewport = page.viewportSize()!;

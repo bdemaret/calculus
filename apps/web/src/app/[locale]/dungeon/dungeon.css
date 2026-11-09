@@ -359,6 +359,8 @@
   background: radial-gradient(60% 45% at 50% 40%, rgba(226, 91, 49, .28), transparent 70%), var(--dg-night);
 }
 .dungeon-intro .enemy-art { width: min(160px, 38vw); height: min(160px, 38vw); animation: dg-breathe 2.6s ease-in-out infinite; }
+/* Le décor est un contexte d'empilement à part : pendant le décompte, il passe devant le reste de la page (liens du pied de page). */
+.dungeon-world:has(.dungeon-intro) { z-index: 60; }
 .dungeon-intro-name { margin: 0; font-family: var(--font-engraved); font-size: clamp(24px, 6vw, 36px); font-weight: 800; color: var(--dg-torch-hi); }
 .dungeon-intro .count { color: var(--dg-torch); text-shadow: 0 0 40px rgba(244, 169, 64, .45); }
 .dungeon-intro-hint { margin: 0; color: var(--dg-muted); font-style: italic; }
