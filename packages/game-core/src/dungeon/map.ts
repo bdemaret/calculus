@@ -15,6 +15,8 @@ export const DUNGEON_MAX_LIVES = 5;
 export const DUNGEON_POSITIONING_MS = 20_000;
 export const DUNGEON_LOOT_MS = 10_000;
 export const DUNGEON_RESULT_MS = 5_000;
+/** Décompte avant chaque combat et avant le boss : les chronos ne partent qu'après, le calcul n'est pas encore envoyé. */
+export const DUNGEON_INTRO_MS = 3_000;
 /** PV du boss par joueur au départ ; chaque sceau brisé lui en retire une part (jusqu'au plancher). */
 export const BOSS_HP_PER_PLAYER = 8;
 export const SEAL_WEAKEN = 0.2;

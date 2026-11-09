@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { Room } from "colyseus.js";
 import {
@@ -355,7 +355,8 @@ function DungeonGame({
     const key = `${game.phase}:${game.round}`;
     if (key === lastPhase.current) return;
     lastPhase.current = key;
-    if (game.phase === "positioning" || game.phase === "boss") sfx.go();
+    // Le boss a son propre signal, à la fin du décompte (FightScreen).
+    if (game.phase === "positioning") sfx.go();
     if (game.phase !== "positioning") setKeyMode(false);
   }, [game.phase, game.round]);
 
@@ -371,6 +372,12 @@ function DungeonGame({
         total: DUNGEON_FLOORS,
       })
     : t("dungeon.bossRound");
+
+  // Pendant sa propre série ou face au boss : le combat prend tout l'écran (ni carte, ni sac, ni équipe).
+  const inFight =
+    (game.phase === "combat" && meP?.fight?.status === "fighting" && !!myRoom?.enemy) ||
+    (game.phase === "boss" && !!meP?.standing && !!game.boss);
+  if (inFight && meP) return <FightScreen room={room} game={game} state={state} me={meP} target={myRoom} onLeave={onLeave} />;
 
   const onRoom = (key: string) => {
     if (keyMode) {
@@ -412,7 +419,7 @@ function DungeonGame({
         <TimerBar deadline={localDeadline} totalMs={phaseTotal} />
       ) : null}
 
-      {/* En combat, le calcul passe avant la carte : il doit rester sous les yeux (et au-dessus du pavé sur téléphone). */}
+      {/* Série finie (ou coffre) : son issue passe avant la carte, en attendant les alliés. */}
       {game.phase === "combat" ? <CombatStage room={room} game={game} state={state} me={me} target={myRoom} /> : null}
 
       {game.phase === "boss" ? (
@@ -455,6 +462,82 @@ function DungeonGame({
       {game.phase === "round-result" && game.lastRound ? <RoundResult game={game} roomOf={roomOf} nameOf={nameOf} me={me} /> : null}
 
       <TeamList game={game} me={me} roomOf={roomOf} />
+      <div className="actions">
+        <button className="link-btn" type="button" onClick={onLeave}>
+          {t("game.quit")}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Le combat en plein écran : un décompte 3-2-1 qui couvre tout (le serveur n'envoie le calcul qu'à sa fin,
+ * les chronos partent à ce moment-là), puis l'adversaire et le calcul seuls, en haut de l'écran.
+ */
+function FightScreen({
+  room,
+  game,
+  state,
+  me,
+  target,
+  onLeave,
+}: {
+  room: Room;
+  game: DungeonView;
+  state: DungeonState;
+  me: DungeonView["players"][number];
+  target: RoomV | null;
+  onLeave: () => void;
+}) {
+  const t = useTranslations();
+  const introEnds = game.introEndsAt !== null ? game.introEndsAt - state.clockOffset : null;
+  const now = useNow(introEnds !== null, 100);
+  // Jusqu'à la vue suivante du serveur, le décompte reste sur 1 : le calcul arrive avec elle.
+  const left = introEnds !== null ? Math.max(1, Math.ceil((introEnds - now) / 1000)) : 0;
+  const counting = useRef(false);
+  const boss = game.phase === "boss";
+  const enemy = boss ? "boss" : target?.enemy;
+
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+  useEffect(() => {
+    if (left > 0) {
+      counting.current = true;
+      sfx.tick();
+    } else if (counting.current) {
+      counting.current = false;
+      sfx.go();
+    }
+  }, [left]);
+
+  return (
+    <section className="game dungeon-game dungeon-fight" data-testid="dungeon-game" data-phase={game.phase}>
+      {left > 0 && enemy ? (
+        <div className="dungeon-intro" data-testid="dungeon-intro" role="status">
+          <EnemyArt enemy={enemy} />
+          <p className="dungeon-intro-name">{boss ? t("dungeon.boss.name") : t(`dungeon.enemies.${enemy}.name`)}</p>
+          <span className="count" key={left}>
+            {left}
+          </span>
+          <p className="dungeon-intro-hint">{boss ? t("dungeon.introBoss") : t("dungeon.intro")}</p>
+        </div>
+      ) : null}
+      <header className="dungeon-hud">
+        <span className="dungeon-round">
+          {boss
+            ? t("dungeon.bossRound")
+            : t("dungeon.roundOf", { n: Math.min(game.round + 1, DUNGEON_FLOORS), total: DUNGEON_FLOORS })}
+        </span>
+        <Lives lives={me.lives} />
+      </header>
+      {state.reconnecting ? <p className="status">{t("lobby.reconnecting")}</p> : null}
+      {boss ? (
+        <BossStage room={room} game={game} state={state} me={me.id} />
+      ) : (
+        <CombatStage room={room} game={game} state={state} me={me.id} target={target} />
+      )}
       <div className="actions">
         <button className="link-btn" type="button" onClick={onLeave}>
           {t("game.quit")}
@@ -1119,7 +1202,6 @@ function BossStage({ room, game, state, me }: { room: Room; game: DungeonView; s
         ))}
       </div>
       <p className="dungeon-boss-name">{t("boss.name")}</p>
-      {game.sealsBroken > 0 ? <p className="dungeon-seal-news">{t("bossWeakened", { count: game.sealsBroken })}</p> : null}
       <div
         className="dungeon-hp"
         role="meter"
@@ -1138,6 +1220,15 @@ function BossStage({ room, game, state, me }: { room: Room; game: DungeonView; s
       ) : (
         <p className="dungeon-aside">{t("downWatching")}</p>
       )}
+      {/* Le sac est caché pendant le boss : la bombe, seul objet utile ici, garde son bouton. */}
+      {meP?.standing && game.question && meP.bag.includes("bomb") ? (
+        <div className="actions">
+          <button className="btn" type="button" onClick={() => room.send("use-item", { item: "bomb" })}>
+            <ItemIcon item="bomb" /> {t("useBomb")}
+          </button>
+        </div>
+      ) : null}
+      {game.sealsBroken > 0 ? <p className="dungeon-seal-news">{t("bossWeakened", { count: game.sealsBroken })}</p> : null}
       {/* Part de chacun dans les coups portés, à la couleur de sa place. */}
       <div className="dungeon-damage-bar" aria-hidden="true">
         {game.players.map((p, seat) => (

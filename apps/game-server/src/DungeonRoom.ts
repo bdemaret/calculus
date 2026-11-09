@@ -3,6 +3,7 @@ import { Room, ServerError, type AuthContext, type Client, type Delayed } from "
 import {
   BASIC_OPERATIONS,
   ITEM_IDS,
+  DUNGEON_INTRO_MS,
   DUNGEON_MAX_PLAYERS,
   DUNGEON_MIN_PLAYERS,
   DungeonEngine,
@@ -318,7 +319,7 @@ export class DungeonRoom extends Room {
     for (const [id, m] of this.members) if (!m.connected) this.members.delete(id);
     const players = [...this.members.values()].map((m) => ({ id: m.id, name: m.name }));
     // Graine imprévisible (`node:crypto`) : qui la devine connaît toutes les séries de l'expédition.
-    this.engine = new DungeonEngine(this.settings, players, randomBytes(16).toString("base64url"), { graceMs: LATENCY_GRACE_MS });
+    this.engine = new DungeonEngine(this.settings, players, randomBytes(16).toString("base64url"), { graceMs: LATENCY_GRACE_MS, introMs: DUNGEON_INTRO_MS });
     this.gameNumber += 1;
     this.summary = null;
     this.runId = null;

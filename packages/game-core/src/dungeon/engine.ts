@@ -214,6 +214,8 @@ export interface DungeonView {
   }[];
   /** Hordes en cours : la série commune de chaque salle. */
   pools: { roomKey: string; total: number; remaining: number; startedAt: number; endsAt: number; status: FightStatus }[];
+  /** Fin du décompte avant le combat ou le boss (heure du serveur), null hors décompte : aucun calcul n'est montré avant. */
+  introEndsAt: number | null;
   /**
    * Le calcul en cours de ce joueur. `text` vide une fois l'énoncé d'une momie caché. `deadline` : fin du temps
    * (du calcul, de la série ou de la horde), null face au boss ; `timerMs` : durée de cette fenêtre.
@@ -271,6 +273,8 @@ export interface DungeonSummary {
 export interface DungeonEngineOptions {
   /** Tolérance ajoutée à chaque échéance (latence réseau), en ms. */
   graceMs?: number;
+  /** Décompte avant chaque combat et avant le boss, en ms (0 par défaut ; le serveur passe `DUNGEON_INTRO_MS`). */
+  introMs?: number;
 }
 
 const answerText = (a: DungeonAnswer): string => ("value" in a ? String(a.value) : OPERATION_SYMBOL[a.op]);
@@ -285,6 +289,9 @@ export class DungeonEngine {
   readonly difficulty: Difficulty;
   readonly map: DungeonMap;
   readonly graceMs: number;
+  readonly introMs: number;
+  /** Fin du décompte en cours (combat ou boss), null une fois les calculs lancés. */
+  introEndsAt: number | null = null;
   phase: DungeonPhase = "positioning";
   round = 0;
   phaseEndsAt: number | null = null;
@@ -318,6 +325,7 @@ export class DungeonEngine {
   ) {
     this.difficulty = settings.difficulty;
     this.graceMs = options.graceMs ?? 0;
+    this.introMs = Math.max(0, options.introMs ?? 0);
     this.players = players.map((p) => ({
       id: p.id,
       name: p.name,
@@ -411,6 +419,8 @@ export class DungeonEngine {
    */
   closePositioning(now: number): void {
     if (this.phase !== "positioning") return;
+    // Les séries commencent après le décompte : leurs chronos partent de `start`.
+    const start = now + this.introMs;
     const open = this.accessible();
     for (const p of this.standing()) {
       if (this.picks.has(p.id)) continue;
@@ -452,7 +462,7 @@ export class DungeonEngine {
       const profile = ENEMIES[room.enemy].profile(this.difficulty, room.floor - 1);
       const form = profile.form ?? "solo";
       if (form === "shared" && !this.pools.has(room.key)) {
-        this.pools.set(room.key, { roomKey: room.key, total: profile.count, remaining: profile.count, startedAt: now, endsAt: now + (profile.totalMs ?? 30_000), status: "fighting" });
+        this.pools.set(room.key, { roomKey: room.key, total: profile.count, remaining: profile.count, startedAt: start, endsAt: start + (profile.totalMs ?? 30_000), status: "fighting" });
       }
       this.fights.set(p.id, {
         playerId: p.id,
@@ -463,8 +473,8 @@ export class DungeonEngine {
         index: 0,
         attempt: 0,
         question: this.enemyQuestion(room, p.id, 0, 0),
-        startedAt: now,
-        seriesStartedAt: now,
+        startedAt: start,
+        seriesStartedAt: start,
         status: "fighting",
         finishedAt: null,
         failure: null,
@@ -474,6 +484,7 @@ export class DungeonEngine {
     }
     this.phase = "combat";
     this.phaseEndsAt = null;
+    this.introEndsAt = this.introMs > 0 ? start : null;
     if (this.combatOver) this.closeCombat(now);
   }
 
@@ -500,6 +511,8 @@ export class DungeonEngine {
     if ("value" in answer && !Number.isFinite(answer.value)) return refused;
     const p = this.player(playerId);
     if (!p) return refused;
+    // Pendant le décompte, aucun calcul n'a été montré : rien n'est accepté.
+    if (this.introEndsAt !== null) return refused;
     if (this.phase === "combat") return this.submitFight(p, answer, now) ?? refused;
     if (this.phase === "boss" && "value" in answer) return this.submitBoss(p, answer.value, now) ?? refused;
     return refused;
@@ -631,6 +644,7 @@ export class DungeonEngine {
    * fin de phase, temps de la série la plus pressée, ou chrono du boss.
    */
   nextDeadline(): number | null {
+    if (this.introEndsAt !== null) return this.introEndsAt;
     if (this.phase === "combat") {
       const deadlines = [...this.fights.values()].filter((f) => f.status === "fighting").map((f) => this.deadlineOf(f) + this.graceMs);
       return deadlines.length > 0 ? Math.min(...deadlines) : null;
@@ -641,6 +655,12 @@ export class DungeonEngine {
 
   /** Applique les échéances passées : séries hors délai ratées, boss hors délai. Renvoie vrai si quelque chose a changé. */
   expire(now: number): boolean {
+    // Fin du décompte : les calculs partent (le serveur rediffuse la vue avec l'énoncé).
+    if (this.introEndsAt !== null) {
+      if (now < this.introEndsAt) return false;
+      this.introEndsAt = null;
+      return true;
+    }
     if (this.phase === "combat") {
       let changed = false;
       for (const f of this.fights.values()) {
@@ -663,6 +683,7 @@ export class DungeonEngine {
   /** Fin d'une manche d'exploration : salles réussies, vies perdues, butin, chemin du boss. Null si des séries sont encore en cours. */
   closeCombat(now: number): DungeonRoundOutcome | null {
     if (!this.combatOver) return null;
+    this.introEndsAt = null;
     const fights = [...this.fights.values()];
     const cleared: string[] = [];
     let points = 0;
@@ -891,13 +912,15 @@ export class DungeonEngine {
     const ratio = Math.max(SEAL_FLOOR_RATIO, 1 - SEAL_WEAKEN * this.sealsBroken);
     const maxHp = Math.max(1, Math.round(BOSS_HP_PER_PLAYER * players * ratio));
     const durationMs = Math.round((maxHp / Math.max(1, players)) * LEVELS[this.difficulty].defaultTime * 1000 * BOSS_TIME_FACTOR);
-    this.boss = { hp: maxHp, maxHp, startedAt: now, endsAt: now + durationMs };
+    const start = now + this.introMs;
+    this.boss = { hp: maxHp, maxHp, startedAt: start, endsAt: start + durationMs };
     this.phase = "boss";
     this.phaseEndsAt = this.boss.endsAt;
     this.bossFights = new Map();
     for (const p of this.standing()) {
-      this.bossFights.set(p.id, { playerId: p.id, index: 0, question: bossQuestion(this.seed, this.difficulty, p.id, 0), startedAt: now, down: false });
+      this.bossFights.set(p.id, { playerId: p.id, index: 0, question: bossQuestion(this.seed, this.difficulty, p.id, 0), startedAt: start, down: false });
     }
+    this.introEndsAt = this.introMs > 0 ? start : null;
     if (this.bossFights.size === 0) this.finish("lost", "team-down");
   }
 
@@ -929,6 +952,7 @@ export class DungeonEngine {
     this.score += PURSE_POINTS * this.players.reduce((sum, p) => sum + p.bag.filter((i) => i === "purse").length, 0);
     this.phase = "finished";
     this.phaseEndsAt = null;
+    this.introEndsAt = null;
   }
 
   /** Une vie perdue : le bouclier l'arrête ; la plume de phénix relève à 1 vie. */
@@ -1039,6 +1063,7 @@ export class DungeonEngine {
       revealed: this.revealed,
       players,
       pools: showFights ? [...this.pools.values()].map((pool) => ({ ...pool })) : [],
+      introEndsAt: this.introEndsAt,
       question: this.questionView(viewerId, now),
       boss: this.boss ? { ...this.boss } : null,
       loot: this.loot.map((l) => ({ ...l })),
@@ -1050,6 +1075,8 @@ export class DungeonEngine {
   }
 
   private questionView(viewerId: string, now: number): DungeonView["question"] {
+    // Décompte : l'énoncé ne part pas avant le départ des chronos.
+    if (this.introEndsAt !== null) return null;
     if (this.phase === "combat") {
       const f = this.fights.get(viewerId);
       if (!f || f.status !== "fighting" || !f.question || !f.profile) return null;

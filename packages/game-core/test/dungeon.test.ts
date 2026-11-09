@@ -222,6 +222,55 @@ describe("donjon : exploration", () => {
     expect(g.view("", t).players.map((p) => p.lives)).toEqual([DUNGEON_START_LIVES - 1, DUNGEON_START_LIVES]);
   });
 
+  it("décompte avant le combat et le boss : ni calcul montré, ni réponse acceptée, chronos décalés", () => {
+    const intro = 3_000;
+    const g = new DungeonEngine({ difficulty: 1 }, players(2), "intro", { introMs: intro });
+    g.start(0);
+    let now = 0;
+    for (let round = 0; round < DUNGEON_FLOORS && g.phase === "positioning"; round++) {
+      const key = bestRoom(g).key;
+      for (const p of g.view("", now).players) if (p.standing) g.pick(p.id, key);
+      g.closePositioning(now);
+      expect(g.view("p0", now).introEndsAt).toBe(now + intro);
+      expect(g.view("p0", now).question).toBeNull();
+      expect(g.nextDeadline()).toBe(now + intro);
+      expect(g.submit("p0", { value: 0 }, now + 10).accepted).toBe(false);
+      expect(g.expire(now + intro - 1)).toBe(false);
+      expect(g.expire(now + intro)).toBe(true);
+      const v = g.view("p0", now + intro);
+      expect(v.introEndsAt).toBeNull();
+      expect(v.question!.startedAt).toBe(now + intro);
+      let t = now + intro;
+      for (const p of g.view("", t).players) if (p.standing) t = Math.max(t, clearSeries(g, p.id, now + intro));
+      g.closeCombat(t);
+      g.closeLoot(t);
+      g.advance(t);
+      now = t + 1;
+      if (g.bossReached) break;
+    }
+    while (g.phase === "positioning") {
+      for (const p of g.view("", now).players) if (p.standing) g.pick(p.id, g.accessible()[0]!.key);
+      g.closePositioning(now);
+      g.expire(now + intro);
+      let t = now + intro;
+      for (const p of g.view("", t).players) if (p.fight?.status === "fighting") t = Math.max(t, clearSeries(g, p.id, now + intro));
+      g.closeCombat(t);
+      g.closeLoot(t);
+      g.advance(t);
+      now = t + 1;
+    }
+    expect(g.phase).toBe("boss");
+    const start = now - 1;
+    const v = g.view("p0", start);
+    expect(v.question).toBeNull();
+    expect(v.boss!.startedAt).toBe(start + intro);
+    expect(g.submit("p0", { value: 0 }, start + 5).accepted).toBe(false);
+    expect(g.nextDeadline()).toBe(start + intro);
+    expect(g.expire(start + intro)).toBe(true);
+    expect(g.view("p0", start + intro).question).not.toBeNull();
+    expect(g.nextDeadline()).toBe(v.boss!.endsAt + g.graceMs);
+  });
+
   it("perd dès que le boss ne peut plus être atteint à temps", () => {
     const g = engine();
     let rounds = 0;

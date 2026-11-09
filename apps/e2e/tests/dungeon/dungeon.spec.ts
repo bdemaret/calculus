@@ -63,10 +63,11 @@ async function playExpedition(page: Page, move: "right" | "wrong" = "right") {
   for (let step = 0; step < 300; step++) {
     await next.first().waitFor({ timeout: 40_000 });
     if (await summary.isVisible()) return;
+    // Clics bornés : un bouton peut disparaître entre la vérification et le clic (vue suivante du serveur).
     if (await ready.isVisible()) await answerCurrent(page, move).catch(() => {});
-    else if (await keep.isVisible()) await keep.click().catch(() => {});
-    else if (await lockReady.isVisible()) await lockReady.click().catch(() => {});
-    else if (await pickable.first().isVisible()) await pickable.first().click().catch(() => {});
+    else if (await keep.isVisible()) await keep.click({ timeout: 2_000 }).catch(() => {});
+    else if (await lockReady.isVisible()) await lockReady.click({ timeout: 2_000 }).catch(() => {});
+    else if (await pickable.first().isVisible()) await pickable.first().click({ timeout: 2_000 }).catch(() => {});
   }
   throw new Error("expédition sans fin");
 }

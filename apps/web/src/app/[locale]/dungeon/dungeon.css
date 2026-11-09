@@ -351,6 +351,18 @@
 
 /* Le combat. */
 .dungeon-panel { display: grid; gap: 12px; }
+
+/* Combat en plein écran : décompte qui couvre tout, puis l'adversaire et le calcul seuls. */
+.dungeon-intro {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 24px 16px;
+  text-align: center;
+  background: radial-gradient(60% 45% at 50% 40%, rgba(226, 91, 49, .28), transparent 70%), var(--dg-night);
+}
+.dungeon-intro .enemy-art { width: min(160px, 38vw); height: min(160px, 38vw); animation: dg-breathe 2.6s ease-in-out infinite; }
+.dungeon-intro-name { margin: 0; font-family: var(--font-engraved); font-size: clamp(24px, 6vw, 36px); font-weight: 800; color: var(--dg-torch-hi); }
+.dungeon-intro .count { color: var(--dg-torch); text-shadow: 0 0 40px rgba(244, 169, 64, .45); }
+.dungeon-intro-hint { margin: 0; color: var(--dg-muted); font-style: italic; }
+.dungeon-fight .dungeon-hud .dungeon-lives { margin-left: auto; }
 .dungeon-aside { color: var(--dg-muted); font-style: italic; }
 .dungeon-combat { padding: 16px; border-radius: 16px; border: 1.5px solid var(--dg-edge); background: radial-gradient(70% 90% at 15% 50%, rgba(244, 169, 64, .1), transparent 70%), rgba(0, 0, 0, .25); }
 .dungeon-duel { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 16px; align-items: center; }
@@ -470,6 +482,9 @@
   .dungeon-duel { grid-template-columns: 72px minmax(0, 1fr); }
   .dungeon-duel .enemy-art { width: 72px; height: 72px; }
   .dungeon-duel-name { font-size: 20px; }
+  .dungeon-fight .dungeon-boss-stage { width: min(150px, 40vw); }
+  .dungeon-fight .dungeon-boss-name { font-size: 20px; }
+  .dungeon-fight .dungeon-hp { height: 18px; }
   .dungeon-end-hero .enemy-art { width: 80px; height: 80px; }
   .dungeon-table { display: block; overflow-x: auto; }
 }

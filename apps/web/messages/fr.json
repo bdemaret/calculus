@@ -1882,6 +1882,9 @@
       "intro": "Ce qui vous attend dans les couloirs. Les étoiles disent la force de chaque ennemi.",
       "close": "Fermer",
       "tier": "{count, plural, one {# étoile} other {# étoiles}}"
-    }
+    },
+    "intro": "Prépare-toi…",
+    "introBoss": "Le boss se réveille…",
+    "useBomb": "Lancer la bombe"
   }
 }

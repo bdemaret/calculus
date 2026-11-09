@@ -1885,6 +1885,9 @@
       "intro": "What awaits you in the corridors. The stars tell how strong each enemy is.",
       "close": "Close",
       "tier": "{count, plural, one {# star} other {# stars}}"
-    }
+    },
+    "intro": "Get ready…",
+    "introBoss": "The boss awakens…",
+    "useBomb": "Throw the bomb"
   }
 }
