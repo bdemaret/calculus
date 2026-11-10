@@ -253,8 +253,11 @@ export class GameEngine {
       return null;
     }
     // Les joueurs concernés qui n'ont pas répondu comptent comme une erreur
-    // (sauf en course de vitesse simultanée, où un autre a pu trouver avant eux).
-    const missedCounts = this.rules.eliminates || this.settings.turnStyle === "turns";
+    // Seule exception : en course de vitesse simultanée, quand un autre a trouvé avant eux,
+    // la manche s'est arrêtée sans qu'ils aient eu tout leur temps. Si personne n'a trouvé
+    // (toujours le cas d'un temps écoulé en solo), ne pas répondre est bien un échec.
+    const missedCounts =
+      this.rules.eliminates || this.settings.turnStyle === "turns" || !round.answers.some((a) => a.correct);
     if (missedCounts) {
       const concerned =
         this.settings.turnStyle === "turns"

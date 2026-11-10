@@ -98,6 +98,34 @@ describe("rejeu d'une partie solo", () => {
     });
   }
 
+  it("un calcul sans réponse compte comme une erreur dans les statistiques", () => {
+    const settings = { ...defaultSettings(2, "speed-race"), rounds: 3 };
+    const { engine, log } = playInBrowser(settings, "oubli", ["right", "timeout", "right"], 1_500);
+    const me = engine.player(ME.id)!;
+    expect(me).toMatchObject({ answered: 3, correct: 2, bestStreak: 1 });
+    const missed = engine.history[1]!.answers;
+    expect(missed).toEqual([{ playerId: ME.id, value: null, text: null, correct: false, timeMs: engine.history[1]!.timeLimitMs }]);
+    // Le journal garde « pas de réponse », et le rejeu du serveur compte la même erreur.
+    expect(log[1]!.answer).toBeNull();
+    expect(replaySolo(settings, ME, "oubli", log).player(ME.id)).toMatchObject({ answered: 3, correct: 2 });
+  });
+
+  it("en ligne, en course de vitesse : ne pas répondre n'est une erreur que si personne n'a trouvé", () => {
+    const settings = { ...defaultSettings(2, "speed-race"), rounds: 2 };
+    const other = { id: "autre", name: "Autre" };
+    const engine = new GameEngine(settings, [ME, other], "course");
+    // Manche 1 : l'autre trouve le premier, la manche s'arrête : rien n'est reproché à ME.
+    const first = engine.startRound(0)!;
+    engine.submit(other.id, rightAnswer(engine, first.question), 500);
+    engine.closeRound();
+    expect(engine.player(ME.id)!.answered).toBe(0);
+    // Manche 2 : le temps s'écoule sans bonne réponse : une erreur pour chacun.
+    engine.startRound(10_000);
+    engine.closeRound();
+    expect(engine.player(ME.id)).toMatchObject({ answered: 1, correct: 0 });
+    expect(engine.player(other.id)).toMatchObject({ answered: 2, correct: 1 });
+  });
+
   it("une réponse fausse reste fausse, quoi que prétende le navigateur", () => {
     const settings = { ...defaultSettings(2, "speed-race"), rounds: 3 };
     const { engine, log } = playInBrowser(settings, "triche", ["wrong", "wrong", "wrong"], 10_000);
