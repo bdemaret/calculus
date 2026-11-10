@@ -79,12 +79,14 @@ function drive(room: any, id: string, name: string, host: boolean) {
       }, rand(2000, 5000));
     }
     if (g.phase === "loot") {
-      const mine = g.loot.find((l) => l.holderId === id && l.givenTo === null && !l.lost);
-      if (mine && once(`loot:${round}`)) {
+      // Un coffre donne plusieurs objets : un à la fois, à chaque vue où il en reste.
+      const pending = g.loot.filter((l) => l.holderId === id && l.givenTo === null && !l.lost);
+      const mine = pending[0];
+      if (mine && once(`loot:${round}:${pending.length}`)) {
         const fits = (p: (typeof g.players)[number]) => !p.gone && (mine.item === "heart" ? p.lives < DUNGEON_MAX_LIVES : p.bag.length < BAG_SIZE);
         const need = (p: (typeof g.players)[number]) => (mine.item === "heart" ? p.lives : p.bag.length);
         const target = [...g.players].filter(fits).sort((a, b) => need(a) - need(b))[0];
-        if (target) setTimeout(() => room.send("give-loot", { to: target.id }), rand(1500, 3000));
+        if (target) setTimeout(() => room.send("give-loot", { to: target.id, item: mine.item }), rand(1500, 3000));
       }
     }
     const q = g.question;

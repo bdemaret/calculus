@@ -103,9 +103,10 @@ export class DungeonBot {
       }
     }
     if (g.phase === "loot") {
-      const mine = g.loot.find((l) => l.holderId === this.playerId && l.givenTo === null && !l.lost);
-      const fits = mine && (mine.item === "heart" ? (me?.lives ?? 0) < DUNGEON_MAX_LIVES : (me?.bag.length ?? 0) < BAG_SIZE);
-      if (mine && fits && this.once(`loot:${round}`)) this.colyseus.send("give-loot", { to: this.playerId });
+      // Un coffre donne plusieurs objets : un par vue, tant qu'il en reste un qui tient (cœur : une vie à gagner ; sinon une place au sac).
+      const pending = g.loot.filter((l) => l.holderId === this.playerId && l.givenTo === null && !l.lost);
+      const mine = pending.find((l) => (l.item === "heart" ? (me?.lives ?? 0) < DUNGEON_MAX_LIVES : (me?.bag.length ?? 0) < BAG_SIZE));
+      if (mine && this.once(`loot:${round}:${pending.length}`)) this.colyseus.send("give-loot", { to: this.playerId, item: mine.item });
     }
     const q = g.question;
     // Le calcul se lit à la réception : une momie le cache ensuite (texte vide). Une tête d'hydre repoussée change le texte.

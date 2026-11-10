@@ -4,6 +4,8 @@ import { useLocale, useTranslations } from "next-intl";
 import type { Room } from "colyseus.js";
 import {
   BAG_SIZE,
+  CHEST_ITEMS,
+  CHEST_POINTS,
   DIFFICULTIES,
   DUNGEON_FLOORS,
   ITEM_USE,
@@ -26,7 +28,7 @@ import { InviteFriends } from "@/components/InviteFriends";
 import { Margin, MarginNote } from "@/components/Margin";
 import { PlayerTitle } from "@/components/PlayerTitle";
 import { TimerBar } from "@/components/TimerBar";
-import { ChestIcon, EnemyArt, Heart, ItemIcon, SealIcon, SwordsIcon } from "../DungeonArt";
+import { BagIcon, ChestIcon, EnemyArt, Heart, ItemIcon, SealIcon, SwordsIcon } from "../DungeonArt";
 import { answerFromInput } from "@/lib/answer";
 import {
   JoinError,
@@ -358,7 +360,26 @@ function DungeonGame({
     // Le boss a son propre signal, à la fin du décompte (FightScreen).
     if (game.phase === "positioning") sfx.go();
     if (game.phase !== "positioning") setKeyMode(false);
+    // Chaque phase commence en haut de l'écran : le butin, le bilan et le sac y sont (on avait pu défiler jusqu'à la carte).
+    window.scrollTo(0, 0);
   }, [game.phase, game.round]);
+
+  // Le sac au début du combat : ce qui s'y ajoute ensuite (butin, objet passé par un allié) est marqué « nouveau »
+  // jusqu'au combat suivant. Le butin passe vite : sans cette marque, on ne voit pas ce qu'on vient de recevoir.
+  const bagKey = (meP?.bag ?? []).join(",");
+  const combatBag = useRef<{ round: number; bag: string[] }>({ round: -1, bag: [] });
+  useEffect(() => {
+    if (game.phase === "combat" && combatBag.current.round !== game.round) {
+      combatBag.current = { round: game.round, bag: bagKey ? bagKey.split(",") : [] };
+    }
+  }, [game.phase, game.round, bagKey]);
+  const before = [...combatBag.current.bag];
+  const fresh = (meP?.bag ?? []).map((item) => {
+    const at = before.indexOf(item);
+    if (at < 0) return true;
+    before.splice(at, 1);
+    return false;
+  });
 
   // Fiche montrée sous la carte : la salle survolée, sinon celle qu'on affronte ou qu'on a choisie.
   const myRoom = roomOf(meP?.fight?.roomKey ?? meP?.pick);
@@ -419,8 +440,15 @@ function DungeonGame({
         <TimerBar deadline={localDeadline} totalMs={phaseTotal} />
       ) : null}
 
+      {/* Le sac garde toujours la même place, juste sous le bandeau : on le voit et on s'en sert sans défiler. */}
+      {meP && !meP.gone && game.phase !== "boss" ? <BagBar room={room} game={game} me={meP} fresh={fresh} keyMode={keyMode} setKeyMode={setKeyMode} /> : null}
+
       {/* Série finie (ou coffre) : son issue passe avant la carte, en attendant les alliés. */}
       {game.phase === "combat" ? <CombatStage room={room} game={game} state={state} me={me} target={myRoom} /> : null}
+
+      {/* Le butin et le bilan passent aussi avant la carte. */}
+      {game.phase === "loot" ? <LootStage room={room} game={game} me={me} roomOf={roomOf} /> : null}
+      {game.phase === "round-result" && game.lastRound ? <RoundResult game={game} roomOf={roomOf} nameOf={nameOf} me={me} /> : null}
 
       {game.phase === "boss" ? (
         <BossStage room={room} game={game} state={state} me={me} />
@@ -457,9 +485,6 @@ function DungeonGame({
         </div>
       ) : null}
 
-      {meP && !meP.gone ? <BagBar room={room} game={game} me={meP} keyMode={keyMode} setKeyMode={setKeyMode} /> : null}
-      {game.phase === "loot" ? <LootStage room={room} game={game} me={me} roomOf={roomOf} /> : null}
-      {game.phase === "round-result" && game.lastRound ? <RoundResult game={game} roomOf={roomOf} nameOf={nameOf} me={me} /> : null}
 
       <TeamList game={game} me={me} roomOf={roomOf} />
       <div className="actions">
@@ -773,16 +798,17 @@ function RoomCard({ room }: { room: RoomV }) {
   const locale = useLocale();
   const name = useRoomName();
   const known = room.visibility === "known";
+  const chest = { count: CHEST_ITEMS, points: CHEST_POINTS };
   const desc =
     room.visibility === "hidden"
       ? t("kinds.unknownDesc")
       : room.kind === "chest"
-        ? t("kinds.chestDesc")
+        ? t("kinds.chestDesc", chest)
         : !known
           ? t(room.kind === "seal" ? "kinds.sealShadowDesc" : "kinds.enemyDesc")
           : room.enemy
             ? t(`enemies.${room.enemy}.desc`)
-            : t("kinds.chestDesc");
+            : t("kinds.chestDesc", chest);
   return (
     <div className="dungeon-card" data-kind={room.kind ?? "unknown"}>
       <RoomFace room={room} />
@@ -962,123 +988,184 @@ function Progress({ done, count, status }: { done: number; count: number; status
   );
 }
 
-/** Le sac : deux objets ; on les utilise, on les passe à un allié ou on les jette. */
+/**
+ * Le sac, toujours sous les yeux (au-dessus de la carte) : ses places côte à côte, même sur téléphone.
+ * Toucher un objet ouvre sa fiche : ce qu'il fait, l'utiliser, le passer à un allié ou le jeter.
+ */
 function BagBar({
   room,
   game,
   me,
+  fresh,
   keyMode,
   setKeyMode,
 }: {
   room: Room;
   game: DungeonView;
   me: DungeonView["players"][number];
+  /** Par place : objet reçu depuis le début du dernier combat. */
+  fresh: boolean[];
   keyMode: boolean;
   setKeyMode: (on: boolean) => void;
 }) {
   const t = useTranslations("dungeon");
+  const [open, setOpen] = useState<number | null>(null);
   const allies = game.players.filter((p) => p.id !== me.id && !p.gone && p.bag.length < BAG_SIZE);
   const positioning = game.phase === "positioning";
-  const canUse = (item: ItemId) =>
-    (ITEM_USE[item] === "positioning" && positioning) || (ITEM_USE[item] === "boss" && game.phase === "boss");
+  // Le moteur accepte de passer un objet au positionnement et pendant le butin (pour faire de la place).
+  const canGive = positioning || game.phase === "loot";
+  const canUse = (item: ItemId) => ITEM_USE[item] === "positioning" && positioning;
+  const item = open !== null ? me.bag[open] : undefined;
+  const full = me.bag.length >= BAG_SIZE;
   return (
-    <div className="dungeon-bag" data-testid="dungeon-bag">
+    <div className="dungeon-bag" data-testid="dungeon-bag" data-full={full}>
       <p className="dungeon-bag-title">
+        <BagIcon />
         {t("bag.title")}
+        <span className="dungeon-bag-count" aria-label={t("bag.countAria", { count: me.bag.length, max: BAG_SIZE })}>
+          {me.bag.length}/{BAG_SIZE}
+        </span>
         {me.buffs.hourglass ? <span className="dungeon-buff">{t("bag.buffHourglass")}</span> : null}
         {me.buffs.secondChance ? <span className="dungeon-buff">{t("bag.buffSecondChance")}</span> : null}
       </p>
       <ul className="dungeon-bag-slots">
         {Array.from({ length: BAG_SIZE }, (_, i) => {
-          const item = me.bag[i];
-          if (!item)
+          const held = me.bag[i];
+          if (!held)
             return (
               <li key={`empty${i}`} className="empty">
                 {t("bag.empty")}
               </li>
             );
           return (
-            <li key={`${item}${i}`} className="filled">
-              <ItemIcon item={item} />
-              <span className="dungeon-bag-text">
-                <strong>{t(`items.${item}.name`)}</strong>
-                <span>{t(`items.${item}.desc`)}</span>
-              </span>
-              <span className="dungeon-bag-actions">
-                {canUse(item) ? (
-                  item === "key" ? (
-                    <button className="btn" type="button" onClick={() => setKeyMode(!keyMode)}>
-                      {keyMode ? t("bag.cancel") : t("bag.use")}
-                    </button>
-                  ) : (
-                    <button className="btn" type="button" onClick={() => room.send("use-item", { item })}>
-                      {t("bag.use")}
-                    </button>
-                  )
-                ) : ITEM_USE[item] === "passive" ? (
-                  <span className="note">{t("bag.passive")}</span>
-                ) : null}
-                {positioning
-                  ? allies.map((a) => (
-                      <button key={a.id} className="link-btn" type="button" onClick={() => room.send("give-item", { item, to: a.id })}>
-                        {t("bag.give", { name: a.name })}
-                      </button>
-                    ))
-                  : null}
-                <button className="link-btn" type="button" onClick={() => room.send("drop-item", { item })}>
-                  {t("bag.drop")}
-                </button>
-              </span>
+            <li key={`${held}${i}`}>
+              <button
+                type="button"
+                className={`dungeon-bag-slot${fresh[i] ? " fresh" : ""}`}
+                data-testid="dungeon-bag-slot"
+                data-item={held}
+                aria-expanded={open === i}
+                onClick={() => setOpen(open === i ? null : i)}
+              >
+                <ItemIcon item={held} />
+                <span>{t(`items.${held}.name`)}</span>
+                {fresh[i] ? <span className="dungeon-bag-new">{t("bag.new")}</span> : null}
+              </button>
             </li>
           );
         })}
       </ul>
+      {item ? (
+        <div className="dungeon-bag-detail">
+          <p>
+            <strong>{t(`items.${item}.name`)}</strong> · {t(`items.${item}.desc`)}
+          </p>
+          <div className="dungeon-bag-actions">
+            {canUse(item) ? (
+              item === "key" ? (
+                <button className="btn" type="button" onClick={() => setKeyMode(!keyMode)}>
+                  {keyMode ? t("bag.cancel") : t("bag.use")}
+                </button>
+              ) : (
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => {
+                    room.send("use-item", { item });
+                    setOpen(null);
+                  }}
+                >
+                  {t("bag.use")}
+                </button>
+              )
+            ) : (
+              <span className="note">{t(`bag.when.${ITEM_USE[item]}`)}</span>
+            )}
+            {canGive
+              ? allies.map((a) => (
+                  <button
+                    key={a.id}
+                    className="btn ghost"
+                    type="button"
+                    onClick={() => {
+                      room.send("give-item", { item, to: a.id });
+                      setOpen(null);
+                    }}
+                  >
+                    {t("bag.give", { name: a.name })}
+                  </button>
+                ))
+              : null}
+            <button
+              className="link-btn"
+              type="button"
+              onClick={() => {
+                room.send("drop-item", { item });
+                setOpen(null);
+              }}
+            >
+              {t("bag.drop")}
+            </button>
+          </div>
+        </div>
+      ) : me.bag.length ? (
+        <p className="note dungeon-bag-hint">{t("bag.hint")}</p>
+      ) : null}
     </div>
   );
 }
 
+/** Le butin de la manche : chaque objet trouvé avec ses boutons (un coffre en donne plusieurs), puis ce que font les alliés. */
 function LootStage({ room, game, me, roomOf }: { room: Room; game: DungeonView; me: string | null; roomOf: (k: string) => RoomV | null }) {
   const t = useTranslations("dungeon");
-  const mine = game.loot.find((l) => l.holderId === me && l.givenTo === null && !l.lost);
+  const mine = game.loot.filter((l) => l.holderId === me && l.givenTo === null && !l.lost);
+  const meP = game.players.find((p) => p.id === me);
   const nameOf = (id: string) => game.players.find((p) => p.id === id)?.name ?? "?";
   const name = useRoomName();
   const fits = (p: DungeonView["players"][number], item: ItemId) =>
     !p.gone && (item === "heart" ? p.lives < DUNGEON_MAX_LIVES : p.bag.length < BAG_SIZE);
+  const from = mine[0] ? roomOf(mine[0].roomKey) : null;
   return (
-    <div className="dungeon-panel dungeon-loot-panel">
-      {mine ? (
+    <div className="dungeon-panel dungeon-loot-panel" data-testid="dungeon-loot">
+      {mine.length ? (
         <>
-          <div className="dungeon-loot-item">
-            <ItemIcon item={mine.item} />
-          </div>
-          <p className="dungeon-loot-title">
-            {t("lootFound", {
-              item: t(`items.${mine.item}.name`),
-              room: roomOf(mine.roomKey) ? name(roomOf(mine.roomKey)!) : "?",
-            })}
-          </p>
-          <p>{t(`items.${mine.item}.desc`)}</p>
-          <div className="actions">
-            {game.players
-              .filter((p) => fits(p, mine.item))
-              .map((p) => (
-                <button
-                  key={p.id}
-                  className={p.id === me ? "btn" : "btn ghost"}
-                  type="button"
-                  onClick={() => room.send("give-loot", { to: p.id })}
-                >
-                  {p.id === me ? t("lootKeep") : t("lootGive", { name: p.name })}
-                  {mine.item === "heart" ? <Lives lives={p.lives} /> : null}
-                </button>
-              ))}
-          </div>
+          <p className="dungeon-loot-title">{t("lootFound", { room: from ? name(from) : "?", count: mine.length })}</p>
+          <ul className="dungeon-loot-items">
+            {mine.map((l) => (
+              <li key={l.item} className="dungeon-loot-item" data-item={l.item}>
+                <ItemIcon item={l.item} />
+                <p className="dungeon-loot-text">
+                  <strong>{t(`items.${l.item}.name`)}</strong>
+                  <span>{t(`items.${l.item}.desc`)}</span>
+                </p>
+                <div className="actions">
+                  {game.players
+                    .filter((p) => fits(p, l.item))
+                    .map((p) => (
+                      <button
+                        key={p.id}
+                        className={p.id === me ? "btn" : "btn ghost"}
+                        type="button"
+                        onClick={() => room.send("give-loot", { to: p.id, item: l.item })}
+                      >
+                        {p.id === me ? t("lootKeep") : t("lootGive", { name: p.name })}
+                        {l.item === "heart" ? <Lives lives={p.lives} /> : null}
+                      </button>
+                    ))}
+                  {/* Sac plein : rien à garder tant qu'on n'a pas fait de place (le sac est juste au-dessus). */}
+                  {l.item !== "heart" && meP && !fits(meP, l.item) ? <span className="note">{t("lootBagFull")}</span> : null}
+                </div>
+              </li>
+            ))}
+          </ul>
           <p className="note">{t("lootHint")}</p>
         </>
       ) : null}
+      {/* Ce que font les alliés, et ce qui est déjà réglé ; ses propres objets en attente sont au-dessus. */}
       <ul className="dungeon-loot">
-        {game.loot.map((l) => (
-          <li key={l.roomKey}>
+        {game.loot.map((l, i) =>
+          mine.includes(l) ? null : (
+          <li key={`${l.roomKey}:${i}`}>
             <ItemIcon item={l.item} />{" "}
             {l.givenTo
               ? l.givenTo === l.holderId
@@ -1093,9 +1180,10 @@ function LootStage({ room, game, me, roomOf }: { room: Room; game: DungeonView; 
                   })
               : l.lost
                 ? t("lootLost", { item: t(`items.${l.item}.name`) })
-                : t("lootPending", { name: nameOf(l.holderId) })}
+                : t("lootPending", { name: nameOf(l.holderId), item: t(`items.${l.item}.name`) })}
           </li>
-        ))}
+          ),
+        )}
       </ul>
     </div>
   );
@@ -1121,6 +1209,28 @@ function RoundResult({
       <p className="dungeon-banner">{t("roundCleared", { count: last.cleared.length, points: last.points })}</p>
       {last.sealsBroken ? <p className="dungeon-seal-news">{t("sealsBrokenNews", { count: last.sealsBroken })}</p> : null}
       {game.bossReached ? <p className="dungeon-seal-news">{t("goalReached")}</p> : null}
+      {/* Le butin de la manche : la phase de butin se clôt dès que tout est donné, on le retrouve ici. */}
+      {game.loot.length ? (
+        <div className="dungeon-round-loot" data-testid="dungeon-round-loot">
+          <p className="dungeon-round-loot-title">{t("roundLoot")}</p>
+          <ul className="dungeon-loot">
+            {game.loot.map((l, i) => {
+              const r = roomOf(l.roomKey);
+              const item = t(`items.${l.item}.name`);
+              return (
+                <li key={`${l.roomKey}:${i}`}>
+                  <ItemIcon item={l.item} /> <strong>{r ? name(r) : "?"}</strong> ·{" "}
+                  {l.lost
+                    ? t("lootLost", { item })
+                    : l.givenTo && l.givenTo !== l.holderId
+                      ? t("lootGiven", { name: nameOf(l.holderId), to: nameOf(l.givenTo), item })
+                      : t("lootKept", { name: nameOf(l.holderId), item })}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
       <ul className="dungeon-results">
         {last.fights.map((f) => {
           const r = roomOf(f.roomKey);

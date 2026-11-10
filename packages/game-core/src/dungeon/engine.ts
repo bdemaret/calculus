@@ -8,6 +8,7 @@ import {
   BOSS_HP_PER_PLAYER,
   BOSS_POINTS,
   BOSS_TIME_FACTOR,
+  CHEST_POINTS,
   DUNGEON_FLOORS,
   DUNGEON_LOOT_MS,
   DUNGEON_MAX_LIVES,
@@ -707,10 +708,12 @@ export class DungeonEngine {
       }
       const holder = winners[0];
       if (room.loot && holder) {
-        const item = rollLoot(this.seed, room.key, room.kind === "chest" ? "chest" : "rare");
-        this.loot.push({ roomKey: room.key, item, holderId: holder.playerId, givenTo: null, lost: false });
+        // À la dernière manche d'exploration, plus de positionnement : le butin ne contient que ce qui sert encore.
+        const late = this.round >= DUNGEON_FLOORS - 1;
+        const items = rollLoot(this.seed, room.key, room.kind === "chest" ? "chest" : "rare", late);
+        for (const item of items) this.loot.push({ roomKey: room.key, item, holderId: holder.playerId, givenTo: null, lost: false });
         const p = this.player(holder.playerId);
-        if (p) p.itemsFound += 1;
+        if (p) p.itemsFound += items.length;
       }
     }
     for (const f of fights) {
@@ -756,10 +759,13 @@ export class DungeonEngine {
   /* Butin et sac                                                     */
   /* -------------------------------------------------------------- */
 
-  /** Donner l'objet trouvé à un joueur (soi-même ou un allié ; un cœur relève un allié à terre). */
-  giveLoot(fromId: string, toId: string): DungeonActionResult {
+  /**
+   * Donner un objet trouvé à un joueur (soi-même ou un allié ; un cœur relève un allié à terre).
+   * `item` choisit lequel quand on en a plusieurs à distribuer (un coffre en donne deux) ; sans lui, le premier.
+   */
+  giveLoot(fromId: string, toId: string, item?: ItemId): DungeonActionResult {
     if (this.phase !== "loot") return { ok: false, reason: "phase" };
-    const entry = this.loot.find((l) => l.holderId === fromId && l.givenTo === null && !l.lost);
+    const entry = this.loot.find((l) => l.holderId === fromId && l.givenTo === null && !l.lost && (item === undefined || l.item === item));
     if (!entry) return { ok: false, reason: "no-loot" };
     const to = this.player(toId);
     if (!to || to.gone) return { ok: false, reason: "unknown-player" };
@@ -1011,7 +1017,8 @@ export class DungeonEngine {
       questionKind: null,
     };
     if (visibility !== "known") return base;
-    if (disguised || !room.enemy) return { ...base, loot: true, points: 0 };
+    // Un coffre (ou une mimique encore déguisée, qui ne doit pas s'en distinguer).
+    if (disguised || !room.enemy) return { ...base, loot: true, points: CHEST_POINTS };
     const p = ENEMIES[room.enemy].profile(this.difficulty, room.floor - 1);
     return {
       ...base,

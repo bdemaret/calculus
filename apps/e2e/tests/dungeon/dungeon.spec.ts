@@ -57,7 +57,8 @@ async function playExpedition(page: Page, move: "right" | "wrong" = "right") {
   const lock = page.getByRole("button", { name: t("dungeon.lock") });
   const pickable = page.getByTestId("dungeon-cell").and(page.locator('[aria-disabled="false"]'));
   const ready = answerBox(page).and(page.locator(":enabled"));
-  const keep = page.getByRole("button", { name: new RegExp(`^${t("dungeon.lootKeep")}`) });
+  // Un coffre donne deux objets : un bouton « garder » par objet, on prend le premier.
+  const keep = page.getByRole("button", { name: new RegExp(`^${t("dungeon.lootKeep")}`) }).first();
   const lockReady = lock.and(page.locator(":enabled"));
   const next = summary.or(pickable.first()).or(lockReady).or(ready).or(keep);
   for (let step = 0; step < 300; step++) {

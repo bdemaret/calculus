@@ -1722,7 +1722,7 @@
       "rounds": "Une carte de salles sur quatre étages : à chaque manche, chacun choisit une salle accessible. Une salle réussie ouvre celles qui suivent.",
       "positioning": "Il faut ouvrir la salle du boss avant la fin de la 4e manche, sinon l’expédition est perdue. À plusieurs dans la même salle, vous avez plusieurs chances.",
       "perfect": "Un ennemi, c’est une série de calculs à réussir en entier (sauf l’hydre et la horde, qui ont leurs règles).",
-      "lives": "Trois vies chacun. Les coffres et les ennemis redoutables donnent du butin : cœurs, boucliers, clés, bombes…",
+      "lives": "Trois vies chacun. Les coffres sont rares mais valent le détour : deux objets et des points, sans combat. Les ennemis redoutables laissent aussi un objet.",
       "boss": "Les sceaux brisés affaiblissent le boss, qu’on affronte toute l’équipe ensemble à la 5e manche, contre la montre."
     },
     "createTitle": "Ouvrir une expédition",
@@ -1776,8 +1776,8 @@
     "failedAt": "échec au calcul {n} sur {count}",
     "lootKeep": "Le garder",
     "lootGive": "Le donner à {name}",
-    "lootHint": "Sans choix, tu le gardes (ou il va à l’allié qui en a le plus besoin si tu n’as plus de place).",
-    "lootPending": "{name} choisit à qui donner son cœur…",
+    "lootHint": "Sans choix, tu gardes ce qui tient dans ton sac ; le reste va à un allié.",
+    "lootPending": "{name} choisit à qui donner : {item}…",
     "lootKept": "{name} garde : {item}.",
     "lootGiven": "{name} donne {item} à {to}.",
     "lootLost": "{item} s’est perdu : plus personne n’avait de place.",
@@ -1909,7 +1909,7 @@
       },
       "purse": {
         "name": "Bourse d’or",
-        "desc": "250 points en fin d’expédition, tant qu’elle est dans un sac."
+        "desc": "500 points en fin d’expédition, tant qu’elle est dans un sac."
       },
       "map": {
         "name": "Carte",
@@ -1925,7 +1925,7 @@
       "sealDesc": "Briser ce sceau affaiblit le boss (−20 % de points de vie).",
       "sealShadowDesc": "Un sceau gardé par un ennemi : le briser affaiblit le boss.",
       "chest": "Coffre",
-      "chestDesc": "Un objet de butin, sans combat. Y aller te prend la manche… et certains coffres mordent.",
+      "chestDesc": "Un coffre rare : {count} objets et {points} points, sans combat. Y aller te prend la manche… et certains coffres mordent.",
       "bossDoor": "mène à la salle du boss"
     },
     "goal": "Objectif : ouvrir la salle du boss",
@@ -1944,13 +1944,21 @@
       "empty": "vide",
       "use": "Utiliser",
       "cancel": "Annuler",
-      "passive": "agit tout seul",
       "give": "→ {name}",
       "drop": "Jeter",
       "buffHourglass": "Sablier actif",
-      "buffSecondChance": "Seconde chance active"
+      "buffSecondChance": "Seconde chance active",
+      "hint": "Touche un objet pour l’utiliser, le donner ou le jeter.",
+      "countAria": "{count} sur {max} places prises",
+      "when": {
+        "passive": "agit tout seul",
+        "positioning": "s’utilise au moment de choisir une salle",
+        "boss": "s’utilise face au boss",
+        "instant": "s’utilise tout de suite"
+      },
+      "new": "nouveau"
     },
-    "lootFound": "{room} t’a laissé : {item}. À qui le donnes-tu ?",
+    "lootFound": "{count, plural, one {{room} : un objet. À qui le donnes-tu ?} other {{room} : # objets. À qui les donnes-tu ?}}",
     "roundCleared": "{count, plural, =0 {Aucune salle réussie} one {# salle réussie} other {# salles réussies}} · +{points} points",
     "sealsBrokenNews": "{count, plural, one {Un sceau brisé : le boss faiblit.} other {# sceaux brisés : le boss faiblit.}}",
     "chestOpened": "coffre ouvert",
@@ -1964,7 +1972,9 @@
     },
     "intro": "Prépare-toi…",
     "introBoss": "Le boss se réveille…",
-    "useBomb": "Lancer la bombe"
+    "useBomb": "Lancer la bombe",
+    "lootBagFull": "Ton sac est plein : jette ou donne un objet pour pouvoir garder celui-ci.",
+    "roundLoot": "Butin de la manche"
   },
   "banned": {
     "title": "Compte suspendu",

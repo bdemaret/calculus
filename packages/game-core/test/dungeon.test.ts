@@ -3,6 +3,8 @@ import {
   BAG_SIZE,
   BOMB_DAMAGE,
   BOSS_HP_PER_PLAYER,
+  CHEST_ITEMS,
+  CHEST_POINTS,
   DIFFICULTIES,
   DUNGEON_FLOORS,
   DUNGEON_MAX_LIVES,
@@ -13,6 +15,7 @@ import {
   FLOOR_POOLS,
   HOURGLASS_FACTOR,
   ITEM_IDS,
+  ITEM_USE,
   PURSE_POINTS,
   SEAL_FLOOR_RATIO,
   SEAL_WEAKEN,
@@ -149,8 +152,12 @@ describe("donjon : réglages et carte", () => {
         const seals = map.rooms.filter((r) => r.kind === "seal");
         expect(seals.length).toBeLessThanOrEqual(2);
         for (const s2 of seals) expect(stepsToBoss(map, s2, new Map())).toBeLessThan(Infinity);
-        // Il y a du butin quelque part.
-        expect(map.rooms.some((r) => r.kind === "chest" || r.kind === "mimic")).toBe(true);
+        // Peu de salles de butin (un cul-de-sac, un coffre au 4e ; deux à 4 joueurs), dont un vrai coffre au moins.
+        const lootRooms = map.rooms.filter((r) => r.kind === "chest" || r.kind === "mimic");
+        expect(lootRooms).toHaveLength(n >= 4 ? 3 : 2);
+        expect(lootRooms.some((r) => r.kind === "chest")).toBe(true);
+        expect(lootRooms.filter((r) => r.floor < DUNGEON_FLOORS)).toHaveLength(1);
+        for (const r of lootRooms) if (r.kind === "chest") expect(r.points).toBe(CHEST_POINTS);
       }
     }
   });
@@ -309,7 +316,7 @@ describe("donjon : exploration", () => {
     expect(g.outcome).toBe("won");
   });
 
-  it("un coffre se prend sans combat et donne un objet ; une mimique est un vrai combat", () => {
+  it("un coffre se prend sans combat, rapporte des points et deux objets différents", () => {
     for (let s = 0; s < 500; s++) {
       const g = engine(2, 1, `coffre${s}`);
       const chest = g.map.rooms.find((r) => r.kind === "chest" && r.floor === 2);
@@ -320,8 +327,18 @@ describe("donjon : exploration", () => {
       g.closePositioning(0);
       // Personne n'a de série : la manche se clôt aussitôt, avec le butin.
       expect(g.phase).toBe("loot");
-      expect(g.loot).toHaveLength(1);
-      expect(g.loot[0]).toMatchObject({ roomKey: chest.key, holderId: "p0", item: rollLoot(`coffre${s}`, chest.key, "chest") });
+      const items = rollLoot(`coffre${s}`, chest.key, "chest");
+      expect(items).toHaveLength(CHEST_ITEMS);
+      expect(g.loot.map((l) => l.item)).toEqual(items);
+      expect(g.loot.every((l) => l.roomKey === chest.key && l.holderId === "p0")).toBe(true);
+      expect(g.score).toBe(CHEST_POINTS);
+      // Le vainqueur choisit lequel donner à qui : le second à son allié, le premier pour lui.
+      expect(g.giveLoot("p0", "p1", items[1])).toEqual({ ok: true });
+      expect(g.lootDone).toBe(false);
+      expect(g.giveLoot("p0", "p0", items[1])).toEqual({ ok: false, reason: "no-loot" });
+      expect(g.giveLoot("p0", "p0")).toEqual({ ok: true });
+      expect(g.lootDone).toBe(true);
+      expect(g.summary().players[0]).toMatchObject({ itemsFound: CHEST_ITEMS, points: CHEST_POINTS });
       return;
     }
     throw new Error("aucune carte avec un coffre au 2e étage");
@@ -448,11 +465,34 @@ describe("donjon : butin et sac", () => {
   it("les tirages sont déterministes et ne donnent que des objets connus", () => {
     for (let i = 0; i < 200; i++) {
       for (const source of ["chest", "rare"] as const) {
-        const item = rollLoot("g", `${i}`, source);
-        expect(ITEM_IDS).toContain(item);
-        expect(rollLoot("g", `${i}`, source)).toBe(item);
+        for (const late of [false, true]) {
+          const items = rollLoot("g", `${i}`, source, late);
+          expect(items).toHaveLength(source === "chest" ? CHEST_ITEMS : 1);
+          expect(new Set(items).size).toBe(items.length);
+          for (const item of items) expect(ITEM_IDS).toContain(item);
+          expect(rollLoot("g", `${i}`, source, late)).toEqual(items);
+          // Dernière manche d'exploration : rien qui ne s'utilise qu'au positionnement.
+          if (late) for (const item of items) expect(ITEM_USE[item]).not.toBe("positioning");
+        }
       }
     }
+  });
+
+  it("le butin de la dernière manche d'exploration sert encore face au boss", () => {
+    for (let s = 0; s < 200; s++) {
+      const g = engine(2, 1, `tard${s}`);
+      const chest = g.map.rooms.find((r) => r.kind === "chest" && r.floor === DUNGEON_FLOORS);
+      if (!chest) continue;
+      let t = 0;
+      while (g.round < DUNGEON_FLOORS - 1 && !g.isOver) t = winRound(g, t);
+      if (g.isOver || !g.accessible().some((r) => r.key === chest.key)) continue;
+      g.pick("p0", chest.key);
+      g.pick("p1", chest.key);
+      g.closePositioning(t);
+      expect(g.loot.map((l) => l.item)).toEqual(rollLoot(`tard${s}`, chest.key, "chest", true));
+      return;
+    }
+    throw new Error("aucun coffre atteint à la dernière manche");
   });
 
   it("bouclier : le prochain échec ne coûte pas de vie ; plume de phénix : relève à 1 vie", () => {
@@ -534,15 +574,15 @@ describe("donjon : butin et sac", () => {
   it("le butin d'une salle va au plus rapide, qui le donne ; un cœur relève un allié à terre", () => {
     for (let s = 0; s < 500; s++) {
       const g = engine(2, 1, `soin${s}`);
-      const chest = g.map.rooms.find((r) => r.kind === "chest" && r.floor === 2 && rollLoot(`soin${s}`, r.key, "chest") === "heart");
+      const chest = g.map.rooms.find((r) => r.kind === "chest" && r.floor === 2 && rollLoot(`soin${s}`, r.key, "chest").includes("heart"));
       if (!chest) continue;
       openRoom(g, chest.key);
       inside(g).players[1]!.lives = 0;
       g.pick("p0", chest.key);
       g.closePositioning(0);
       expect(g.giveLoot("p1", "p1")).toEqual({ ok: false, reason: "no-loot" });
-      expect(g.giveLoot("p0", "p1")).toEqual({ ok: true });
-      expect(g.lootDone).toBe(true);
+      expect(g.giveLoot("p0", "p1", "heart")).toEqual({ ok: true });
+      expect(g.lootDone).toBe(false);
       expect(g.view("", 0).players[1]).toMatchObject({ lives: 1, standing: true });
       expect(g.summary().players[1]).toMatchObject({ heartsReceived: 1 });
       expect(DUNGEON_MAX_LIVES).toBeGreaterThan(DUNGEON_START_LIVES);

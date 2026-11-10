@@ -314,6 +314,20 @@ export function ChestIcon({ className }: { className?: string }) {
   );
 }
 
+/** Le sac à dos du joueur. */
+export function BagIcon({ className }: { className?: string }) {
+  return (
+    <svg className={`room-icon bag${className ? ` ${className}` : ""}`} viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      <path d="M36 26 Q36 8 50 8 Q64 8 64 26" fill="none" stroke="var(--dg-wood)" strokeWidth="7" strokeLinecap="round" />
+      <path d="M22 40 Q22 22 50 22 Q78 22 78 40 L82 82 Q82 94 70 94 L30 94 Q18 94 18 82 Z" fill="var(--dg-wood)" />
+      <path d="M22 40 Q50 58 78 40 L78 50 Q50 68 22 50 Z" fill="var(--dg-mimic-shade)" />
+      <rect x="34" y="62" width="32" height="22" rx="5" fill="var(--dg-mimic-shade)" />
+      <rect x="44" y="48" width="12" height="16" rx="3" fill="var(--dg-gold)" />
+      <circle cx="50" cy="56" r="2.5" fill="var(--dg-shadow)" />
+    </svg>
+  );
+}
+
 /** Un sceau : le briser affaiblit le boss. */
 export function SealIcon({ className }: { className?: string }) {
   return (

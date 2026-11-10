@@ -13,7 +13,7 @@ export const DUNGEON_START_LIVES = 3;
 export const DUNGEON_MAX_LIVES = 5;
 /** Temps pour se positionner, distribuer le butin, voir le bilan d'une manche (ms), lus par le serveur. */
 export const DUNGEON_POSITIONING_MS = 20_000;
-export const DUNGEON_LOOT_MS = 10_000;
+export const DUNGEON_LOOT_MS = 15_000;
 export const DUNGEON_RESULT_MS = 5_000;
 /** Décompte avant chaque combat et avant le boss : les chronos ne partent qu'après, le calcul n'est pas encore envoyé. */
 export const DUNGEON_INTRO_MS = 3_000;
@@ -23,6 +23,10 @@ export const SEAL_WEAKEN = 0.2;
 export const SEAL_FLOOR_RATIO = 0.3;
 /** Points d'un sceau brisé, en plus de ceux de son gardien. */
 export const SEAL_POINTS = 150;
+/** Points d'un coffre ouvert : autant qu'un bon combat, sans risque, mais il coûte le détour. */
+export const CHEST_POINTS = 300;
+/** Part des salles de butin qui sont en fait une mimique (il reste toujours au moins un vrai coffre). */
+export const MIMIC_CHANCE = 0.25;
 /**
  * Chrono du boss : temps par PV et par joueur, en part du temps par défaut du niveau (le temps maximal d'un calcul,
  * pas celui qu'on y met). À 0,4 : environ 4 s par calcul au niveau 2, donc il faut toute l'équipe ; un joueur seul
@@ -92,8 +96,8 @@ export function floorWidth(playerCount: number): number {
 /**
  * Carte d'une expédition, déterministe (graine + nombre de joueurs) :
  * - 4 étages ; l'étage 1 est ouvert dès le départ, chaque salle mène à 1 à 3 salles de l'étage suivant ;
- * - aux étages 2 et 3, une salle en cul-de-sac (un coffre, parfois une mimique) ;
- * - au 4e étage, 1 ou 2 portes du boss, les autres salles sont des coffres ;
+ * - peu de salles de butin (coffre, parfois une mimique), mais elles valent le détour : un cul-de-sac au 2e ou au 3e étage,
+ *   et au 4e étage un coffre (deux à 4 joueurs) à côté des 1 ou 2 portes du boss ; les autres salles du 4e sont des ennemis ;
  * - un Dragon au 3e étage mène directement au boss (raccourci) ;
  * - des sceaux sur les branches qui mènent au boss ; toutes les salles sont accessibles depuis l'entrée.
  */
@@ -122,12 +126,9 @@ export function buildDungeon(seed: string, playerCount: number): DungeonMap {
   }
   const at = (floor: number) => floors[floor - 1] ?? [];
 
-  // Culs-de-sac des étages 2 et 3 : des salles de butin qui ne mènent nulle part.
+  // Le cul-de-sac, au 2e ou au 3e étage : une salle de butin qui ne mène nulle part.
   const deadEnds = new Set<string>();
-  for (const floor of [2, 3]) {
-    const rooms = at(floor);
-    if (rooms.length >= 3) deadEnds.add(pick(rng, rooms).key);
-  }
+  deadEnds.add(pick(rng, at(rng() < 0.5 ? 2 : 3)).key);
 
   // Passages : chaque salle (sauf cul-de-sac) mène aux salles les plus proches de l'étage suivant.
   for (let floor = 1; floor < DUNGEON_FLOORS; floor++) {
@@ -158,12 +159,11 @@ export function buildDungeon(seed: string, playerCount: number): DungeonMap {
   const byKey = new Map(floors.flat().map((r) => [r.key, r]));
   const reachesBoss = (room: MapRoom): boolean => room.bossLink || room.links.some((k) => reachesBoss(byKey.get(k)!));
 
-  // Types : coffres (et mimiques) au bout des branches de butin, sceaux sur les branches du boss.
-  for (const room of floors.flat()) {
-    if (room.floor === 1 || room === dragonRoom || room.bossLink) continue;
-    const loot = deadEnds.has(room.key) || (room.floor === DUNGEON_FLOORS && !room.bossLink);
-    if (loot) room.kind = rng() < 0.25 ? "mimic" : "chest";
-  }
+  // Types : coffres (et mimiques) au cul-de-sac et à côté des portes du boss, sceaux sur les branches du boss.
+  const topChests = shuffle(rng, top.filter((r) => !r.bossLink)).slice(0, playerCount >= 4 ? 2 : 1);
+  const lootRooms = [...floors.flat().filter((r) => deadEnds.has(r.key)), ...topChests];
+  for (const room of lootRooms) room.kind = rng() < MIMIC_CHANCE ? "mimic" : "chest";
+  if (!lootRooms.some((r) => r.kind === "chest")) lootRooms[0]!.kind = "chest";
   const sealCandidates = floors.flat().filter((r) => r.kind === "enemy" && r !== dragonRoom && (r.floor === 2 || r.floor === 3) && reachesBoss(r));
   const seals = shuffle(rng, sealCandidates).slice(0, Math.min(2, sealCandidates.length));
   for (const s of seals) s.kind = "seal";
@@ -172,6 +172,7 @@ export function buildDungeon(seed: string, playerCount: number): DungeonMap {
   for (const room of floors.flat()) {
     if (room.kind === "chest") {
       room.loot = true;
+      room.points = CHEST_POINTS;
       continue;
     }
     const enemy: EnemyId = room === dragonRoom ? "dragon" : room.kind === "mimic" ? "mimic" : pick(rng, FLOOR_POOLS[room.floor - 1] ?? FLOOR_POOLS[0]!);

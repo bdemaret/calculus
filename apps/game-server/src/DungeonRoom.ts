@@ -55,8 +55,8 @@ const answerSchema = z.union([
   z.object({ index: z.number().int().min(0).max(1000), value: z.number().int().min(0).max(1_000_000) }).strict(),
   z.object({ index: z.number().int().min(0).max(1000), op: z.enum(BASIC_OPERATIONS as [BasicOperation, ...BasicOperation[]]) }).strict(),
 ]);
-const lootSchema = z.object({ to: z.string().min(1).max(100) }).strict();
 const itemSchema = z.enum(ITEM_IDS as [ItemId, ...ItemId[]]);
+const lootSchema = z.object({ to: z.string().min(1).max(100), item: itemSchema.optional() }).strict();
 const useItemSchema = z.object({ item: itemSchema, target: roomKeySchema.optional() }).strict();
 const giveItemSchema = z.object({ item: itemSchema, to: z.string().min(1).max(100) }).strict();
 const dropItemSchema = z.object({ item: itemSchema }).strict();
@@ -146,7 +146,7 @@ export class DungeonRoom extends Room {
     this.on("give-loot", (m, msg, client) => {
       const parsed = lootSchema.safeParse(msg);
       const engine = this.engine;
-      if (!parsed.success || !engine || !engine.giveLoot(m.id, parsed.data.to).ok) return this.refuse(client);
+      if (!parsed.success || !engine || !engine.giveLoot(m.id, parsed.data.to, parsed.data.item).ok) return this.refuse(client);
       if (engine.lootDone) this.step(() => engine.closeLoot(Date.now()));
       else this.broadcastSnapshot();
     });

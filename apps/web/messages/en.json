@@ -1725,7 +1725,7 @@
       "rounds": "A map of rooms over four floors: each round, everyone picks an open room. A cleared room opens the ones beyond it.",
       "positioning": "You must open the boss room before the end of round 4, or the expedition is lost. Several of you in the same room means several chances.",
       "perfect": "An enemy is a series of calculations to get entirely right (except the hydra and the horde, which have their own rules).",
-      "lives": "Three lives each. Chests and fearsome enemies drop loot: hearts, shields, keys, bombs…",
+      "lives": "Three lives each. Chests are rare but worth the detour: two items and points, no fight. Fearsome enemies drop an item too.",
       "boss": "Broken seals weaken the boss, which the whole team fights together in round 5, against the clock."
     },
     "createTitle": "Start an expedition",
@@ -1779,8 +1779,8 @@
     "failedAt": "failed at calculation {n} of {count}",
     "lootKeep": "Keep it",
     "lootGive": "Give it to {name}",
-    "lootHint": "If you don’t choose, you keep it (or it goes to the ally who needs it most if you have no room).",
-    "lootPending": "{name} is choosing who gets their heart…",
+    "lootHint": "If you don’t choose, you keep what fits in your bag; the rest goes to an ally.",
+    "lootPending": "{name} is choosing who gets: {item}…",
     "lootKept": "{name} keeps: {item}.",
     "lootGiven": "{name} gives {item} to {to}.",
     "lootLost": "{item} was lost: nobody had room left.",
@@ -1912,7 +1912,7 @@
       },
       "purse": {
         "name": "Gold purse",
-        "desc": "250 points at the end of the expedition, while it’s in a bag."
+        "desc": "500 points at the end of the expedition, while it’s in a bag."
       },
       "map": {
         "name": "Map",
@@ -1928,7 +1928,7 @@
       "sealDesc": "Breaking this seal weakens the boss (−20% hit points).",
       "sealShadowDesc": "A seal guarded by an enemy: breaking it weakens the boss.",
       "chest": "Chest",
-      "chestDesc": "A loot item, no fight. Going there takes your round… and some chests bite.",
+      "chestDesc": "A rare chest: {count} items and {points} points, no fight. Going there takes your round… and some chests bite.",
       "bossDoor": "leads to the boss room"
     },
     "goal": "Goal: open the boss room",
@@ -1947,13 +1947,21 @@
       "empty": "empty",
       "use": "Use",
       "cancel": "Cancel",
-      "passive": "works on its own",
       "give": "→ {name}",
       "drop": "Drop",
       "buffHourglass": "Hourglass active",
-      "buffSecondChance": "Second chance active"
+      "buffSecondChance": "Second chance active",
+      "hint": "Tap an item to use it, give it or drop it.",
+      "countAria": "{count} of {max} slots taken",
+      "when": {
+        "passive": "works on its own",
+        "positioning": "used when picking a room",
+        "boss": "used against the boss",
+        "instant": "used right away"
+      },
+      "new": "new"
     },
-    "lootFound": "{room} left you: {item}. Who gets it?",
+    "lootFound": "{count, plural, one {{room}: one item. Who gets it?} other {{room}: # items. Who gets them?}}",
     "roundCleared": "{count, plural, =0 {No room cleared} one {# room cleared} other {# rooms cleared}} · +{points} points",
     "sealsBrokenNews": "{count, plural, one {A seal broke: the boss weakens.} other {# seals broke: the boss weakens.}}",
     "chestOpened": "chest opened",
@@ -1967,7 +1975,9 @@
     },
     "intro": "Get ready…",
     "introBoss": "The boss awakens…",
-    "useBomb": "Throw the bomb"
+    "useBomb": "Throw the bomb",
+    "lootBagFull": "Your bag is full: drop or give an item to be able to keep this one.",
+    "roundLoot": "Loot this round"
   },
   "banned": {
     "title": "Account suspended",

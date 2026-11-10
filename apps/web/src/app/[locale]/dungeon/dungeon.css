@@ -90,7 +90,7 @@
   60% { transform: scale(1.08, .94); opacity: 1; }
 }
 
-.dungeon-world :is(h1, h2, h3, .h3, .dungeon-round, .dungeon-cell-name, .dungeon-card-title, .dungeon-duel-name, .dungeon-boss-name, .dungeon-boss-label, .dungeon-banner, .dungeon-bestiary-name, .dungeon-loot-title) {
+.dungeon-world :is(h1, h2, h3, .h3, .dungeon-round, .dungeon-cell-name, .dungeon-card-title, .dungeon-duel-name, .dungeon-boss-name, .dungeon-boss-label, .dungeon-banner, .dungeon-bestiary-name, .dungeon-loot-title, .dungeon-bag-slot) {
   font-family: var(--font-engraved);
   font-variation-settings: normal;
   letter-spacing: .02em;
@@ -313,23 +313,46 @@
 .dungeon-keymode { color: var(--dg-gold); font-weight: 700; }
 .dungeon-seal-news { margin: 0; color: var(--dg-flame); font-weight: 700; }
 
-/* Le sac. */
-.dungeon-bag { display: grid; gap: 8px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--dg-edge); background: rgba(0, 0, 0, .25); }
-.dungeon-bag-title { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: var(--font-engraved); color: var(--dg-torch); font-weight: 700; }
+/* Le sac : une ceinture dorée au-dessus de la carte, les places côte à côte ; la fiche de l'objet touché s'ouvre dessous. */
+.dungeon-bag {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px 14px; max-width: 860px; padding: 10px 12px;
+  border-radius: 14px; border: 1.5px solid rgba(242, 201, 76, .5);
+  background: linear-gradient(180deg, rgba(242, 201, 76, .1), rgba(0, 0, 0, .3));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 4px 0 var(--dg-shadow);
+}
+.dungeon-bag-title { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: var(--font-engraved); color: var(--dg-gold); font-weight: 700; }
+.dungeon-bag-title .room-icon { width: 30px; height: 30px; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .45)); }
+.dungeon-bag-count { padding: 0 8px; border-radius: 999px; background: rgba(0, 0, 0, .4); color: var(--dg-text); font-size: 13px; }
+.dungeon-bag[data-full="true"] .dungeon-bag-count { background: var(--dg-gold); color: var(--dg-parchment-ink); }
 .dungeon-buff { padding: 1px 8px; border-radius: 999px; background: rgba(111, 211, 154, .15); color: var(--dg-heal); font-family: var(--font-display); font-size: 13px; }
 .dungeon-bag-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; }
-.dungeon-bag-slots li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 10px; align-items: center; padding: 8px 10px; border-radius: 10px; border: 1px dashed var(--dg-edge); min-height: 56px; }
-.dungeon-bag-slots li.empty { place-items: center; grid-template-columns: 1fr; color: var(--dg-muted); font-style: italic; }
-.dungeon-bag-slots li.filled { border-style: solid; background: linear-gradient(180deg, var(--dg-stone-hi), var(--dg-stone)); }
-.dungeon-bag-text { display: grid; gap: 2px; font-size: 13px; color: var(--dg-muted); }
-.dungeon-bag-text strong { color: var(--dg-text); font-size: 15px; }
-.dungeon-bag-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.dungeon-bag-slots li { display: grid; min-height: 48px; }
+.dungeon-bag-slots li.empty { place-items: center; border-radius: 10px; border: 1px dashed var(--dg-edge); color: var(--dg-muted); font-style: italic; font-size: 14px; }
+.dungeon-bag-slot {
+  display: flex; align-items: center; gap: 8px; min-width: 0; padding: 5px 10px; border-radius: 10px; border: 1.5px solid var(--dg-edge);
+  background: linear-gradient(180deg, var(--dg-stone-hi), var(--dg-stone)); color: var(--dg-text); font: inherit; font-weight: 700; font-size: 15px; line-height: 1.2; text-align: left;
+  cursor: pointer; transition: border-color .15s, box-shadow .15s;
+}
+.dungeon-bag-slot:hover { border-color: var(--dg-gold); }
+.dungeon-bag-slot[aria-expanded="true"] { border-color: var(--dg-gold); box-shadow: 0 0 0 1px var(--dg-gold), 0 0 16px rgba(242, 201, 76, .35); }
+.dungeon-bag-slot .item-icon { width: 34px; height: 34px; flex: none; }
+/* Objet reçu depuis le dernier combat : une pastille et une lueur dorée, jusqu'au combat suivant. */
+.dungeon-bag-slot { position: relative; }
+.dungeon-bag-slot.fresh { border-color: var(--dg-gold); animation: dg-fresh 1.8s ease-in-out infinite; }
+.dungeon-bag-new { position: absolute; top: -9px; right: -4px; padding: 0 7px; border-radius: 999px; background: var(--dg-gold); color: var(--dg-parchment-ink); font-family: var(--font-display); font-size: 11px; font-weight: 800; line-height: 1.5; box-shadow: 0 2px 0 var(--dg-shadow); }
+@keyframes dg-fresh { 0%, 100% { box-shadow: 0 0 0 0 rgba(242, 201, 76, 0); } 50% { box-shadow: 0 0 16px 2px rgba(242, 201, 76, .45); } }
+.dungeon-round-loot { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(242, 201, 76, .45); background: rgba(242, 201, 76, .07); }
+.dungeon-round-loot-title { margin: 0; font-family: var(--font-engraved); font-weight: 700; color: var(--dg-gold); }
+.dungeon-bag-detail, .dungeon-bag-hint { grid-column: 1 / -1; margin: 0; }
+.dungeon-bag-detail { display: grid; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(0, 0, 0, .3); font-size: 14px; }
+.dungeon-bag-detail p { margin: 0; line-height: 1.35; }
+.dungeon-bag-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
 .dungeon-bag-actions .btn { padding: 4px 12px; font-size: 14px; }
 .item-icon { width: 40px; height: 40px; display: block; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .45)); }
 .dungeon-team-bag { display: inline-flex; gap: 2px; }
 .dungeon-team-bag .item-icon { width: 20px; height: 20px; }
 .dungeon-loot .item-icon { display: inline-block; width: 20px; height: 20px; vertical-align: -4px; }
-.dungeon-loot-item .item-icon { width: 64px; height: 64px; filter: drop-shadow(0 0 16px rgba(242, 201, 76, .55)); animation: dg-beat 1.4s ease-in-out infinite; }
+.dungeon-loot-item .item-icon { width: 52px; height: 52px; filter: drop-shadow(0 0 14px rgba(242, 201, 76, .55)); animation: dg-beat 1.4s ease-in-out infinite; }
 
 /* Fiche d'un ennemi : un parchemin. */
 .dungeon-card {
@@ -390,8 +413,17 @@
 @keyframes dg-taunt { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.12); filter: drop-shadow(0 0 14px rgba(232, 90, 90, .7)); } }
 @keyframes dg-fall { to { transform: translateY(12px) rotate(-12deg); opacity: .3; filter: grayscale(1); } }
 
-/* Le butin. */
-.dungeon-loot-panel { justify-items: start; }
+/* Le butin : en haut de l'écran pendant sa phase, un objet par fiche avec ses boutons. */
+.dungeon-loot-panel {
+  max-width: 860px; padding: 14px; border-radius: 16px; border: 1.5px solid rgba(242, 201, 76, .55);
+  background: radial-gradient(70% 90% at 50% 0%, rgba(242, 201, 76, .14), transparent 70%), rgba(0, 0, 0, .3);
+}
+.dungeon-loot-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; padding: 0; margin: 0; list-style: none; }
+.dungeon-loot-item { display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: center; gap: 8px 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--dg-edge); background: linear-gradient(180deg, var(--dg-stone-hi), var(--dg-stone)); }
+.dungeon-loot-text { display: grid; gap: 2px; margin: 0; font-size: 14px; line-height: 1.35; color: var(--dg-muted); }
+.dungeon-loot-text strong { color: var(--dg-text); font-size: 17px; }
+.dungeon-loot-item .actions { grid-column: 1 / -1; }
+.dungeon-loot-item .btn { padding: 6px 14px; font-size: 15px; }
 .dungeon-loot-heart { font-size: 54px; line-height: 1; animation: dg-beat 1.1s ease-in-out infinite; }
 .dungeon-loot-heart .dg-heart { filter: drop-shadow(0 0 16px rgba(232, 90, 90, .8)); }
 .dungeon-loot-title { font-size: 20px; font-weight: 700; color: var(--dg-torch-hi); margin: 0; }
@@ -401,7 +433,7 @@
 /* Bilan d'une manche. */
 .dungeon-banner { margin: 0; justify-self: start; padding: 6px 18px; font-weight: 800; font-size: 18px; color: var(--dg-parchment-ink); background: linear-gradient(180deg, var(--dg-torch-hi), var(--dg-torch)); clip-path: polygon(0 0, 100% 0, 96% 50%, 100% 100%, 0 100%, 4% 50%); }
 .dungeon-results li { display: flex; align-items: center; gap: 10px; }
-.dungeon-results .enemy-art { width: 36px; height: 36px; flex: none; }
+.dungeon-results :is(.enemy-art, .room-icon) { width: 36px; height: 36px; flex: none; }
 .dungeon-results li.won .enemy-art { filter: grayscale(1); opacity: .6; }
 
 /* Le boss. */
@@ -429,6 +461,7 @@
 
 /* L'équipe. */
 .dungeon-team, .dungeon-loot, .dungeon-results { display: grid; gap: 8px; padding: 0; margin: 0; list-style: none; }
+.dungeon-loot:empty { display: none; }
 .dungeon-team { padding: 12px 14px; border-radius: 12px; background: rgba(0, 0, 0, .25); border: 1px solid var(--dg-edge); }
 .dungeon-team li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .dungeon-team .nm { font-weight: 700; }
@@ -474,7 +507,18 @@
   .dungeon-boss-gate { width: 60px; height: 48px; }
   .dungeon-boss-room .enemy-art { width: 38px; height: 38px; }
   .dungeon-boss-label { font-size: 12px; }
-  .dungeon-bag-slots { grid-template-columns: minmax(0, 1fr); }
+  .dungeon-bag { grid-template-columns: minmax(0, 1fr); padding: 8px 10px; }
+  .dungeon-bag-slot { font-size: 14px; padding: 5px 8px; }
+  .dungeon-bag-slot .item-icon { width: 30px; height: 30px; }
+  .dungeon-loot-panel { padding: 10px; gap: 8px; }
+  .dungeon-loot-title { font-size: 17px; }
+  .dungeon-loot-item { grid-template-columns: 40px minmax(0, 1fr); gap: 6px 10px; padding: 8px 10px; }
+  .dungeon-loot-item .item-icon { width: 40px; height: 40px; }
+  .dungeon-loot-text { font-size: 13px; }
+  .dungeon-loot-text strong { font-size: 15px; }
+  .dungeon-loot-item .btn { padding: 4px 12px; font-size: 14px; }
+  .dungeon-loot-panel > .note { font-size: 13px; }
+  .dungeon-bag-slots li { min-height: 44px; }
   .dungeon-world { padding: 24px 12px 32px; border-radius: 14px; }
   .dungeon-hud { padding: 8px 12px; gap: 4px 12px; }
   .dungeon-round { font-size: 17px; }

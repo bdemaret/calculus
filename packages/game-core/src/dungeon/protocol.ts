@@ -73,8 +73,8 @@ export interface DungeonClientMessages {
   lock: Record<string, never>;
   /** Réponse au calcul numéro `index` de sa série (ou du boss) : un nombre, ou un opérateur (spectre). */
   answer: { index: number; value: number } | { index: number; op: BasicOperation };
-  /** Butin : donner l'objet trouvé (à soi ou à un allié). */
-  "give-loot": { to: string };
+  /** Butin : donner un objet trouvé (à soi ou à un allié) ; `item` dit lequel quand on en a plusieurs. */
+  "give-loot": { to: string; item?: ItemId };
   /** Sac : utiliser (la clé vise une salle), passer à un allié, jeter. */
   "use-item": { item: ItemId; target?: string };
   "give-item": { item: ItemId; to: string };

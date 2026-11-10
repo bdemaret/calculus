@@ -4,7 +4,7 @@ import { expect, test } from "../../fixtures/test";
 
 /*
  * Donjons sur téléphone : avant chaque combat, un décompte couvre l'écran (aucun calcul envoyé pendant ce temps),
- * puis le combat s'affiche seul, le calcul en haut, sans carte, ni sac, ni défilement.
+ * puis le combat s'affiche seul, le calcul en haut, sans carte, ni sac, ni défilement. Hors combat, le sac reste en haut de l'écran.
  */
 test("sur téléphone, un décompte plein écran puis le calcul seul, visible sans défiler", async ({ page, user }) => {
   void user;
@@ -17,6 +17,9 @@ test("sur téléphone, un décompte plein écran puis le calcul seul, visible sa
     await page.getByRole("button", { name: t("dungeon.start") }).click();
     const game = page.getByTestId("dungeon-game");
     await expect(game).toHaveAttribute("data-phase", "positioning", { timeout: 15_000 });
+    // Le sac est au-dessus de la carte : entier dans l'écran, sans défiler.
+    await expect(page.getByTestId("dungeon-bag")).toBeInViewport({ ratio: 1 });
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
     await page.getByTestId("dungeon-cell").and(page.locator('[aria-disabled="false"]')).first().click();
     await page.getByRole("button", { name: t("dungeon.lock") }).click();
 
