@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { prisma, settleDailyChallenges } from "@calculus/db";
-import { dailyDate, DAILY_ROUNDS } from "@calculus/game-core";
+import { dailyDate, DAILY_ROUNDS, shiftDailyDate } from "@calculus/game-core";
 import { t, tr } from "../../fixtures/i18n";
 import { expect, newUser, test, type TestUser } from "../../fixtures/test";
 import { AuthPages } from "../../pages/AuthPages";
@@ -76,6 +76,44 @@ test.describe("calcul du jour", () => {
     // Un second envoi ne compte pas pour le calcul suivant.
     const { run: again } = await (await post({ action: "answer", token: started.token, value: 0 })).json();
     expect(again.index).toBe(1);
+  });
+
+  test("une série de neuf jours est mise en avant sur l'accueil, puis prolongée : succès et titre du dixième jour", async ({ page, user }) => {
+    const { id: userId } = await prisma.user.findFirstOrThrow({ where: { email: user.email }, select: { id: true } });
+    const today = dailyDate(Date.now());
+    const days = Array.from({ length: 9 }, (_, i) => shiftDailyDate(today, -(i + 1)));
+    await prisma.dailyChallenge.createMany({ data: days.map((date) => ({ date, seed: "e2e", settledAt: new Date() })), skipDuplicates: true });
+    await prisma.dailyRun.createMany({ data: days.map((date) => ({ date, token: randomUUID(), userId, correct: 3, totalTimeMs: 30_000, index: 5, startedAt: new Date(), finishedAt: new Date() })) });
+
+    // Pas encore joué aujourd'hui : la carte dit ce qu'il y a à perdre.
+    await page.goto("/fr");
+    await expect(page.getByTestId("daily-streak")).toContainText("9");
+    await expect(page.getByText(t("daily.streakWarn"))).toBeVisible();
+    await page.getByRole("link", { name: name(t("daily.streakGo")) }).click();
+
+    const daily = new DailyPage(page);
+    await daily.play(["wrong", "wrong", "wrong", "wrong", "wrong"]);
+    await expect(page.getByTestId("daily-streak")).toContainText("10");
+    const unlocks = page.getByTestId("report-unlocks");
+    await expect(unlocks).toContainText(tr("achievements.daily-streak-5.name"));
+    await expect(unlocks).toContainText(tr("achievements.daily-streak-10.name"));
+    await expect(unlocks).toContainText(tr("titles.metronome"));
+    expect(await prisma.userTitle.count({ where: { userId, titleId: "metronome" } })).toBe(1);
+
+    await page.goto("/fr");
+    await expect(page.getByTestId("daily-streak")).toContainText("10");
+    await expect(page.getByText(t("daily.streakWarn"))).toHaveCount(0);
+  });
+
+  test("un jour manqué remet la série à zéro sur l'accueil", async ({ page, user }) => {
+    const { id: userId } = await prisma.user.findFirstOrThrow({ where: { email: user.email }, select: { id: true } });
+    const date = shiftDailyDate(dailyDate(Date.now()), -2);
+    await prisma.dailyChallenge.createMany({ data: { date, seed: "e2e", settledAt: new Date() }, skipDuplicates: true });
+    await prisma.dailyRun.create({ data: { date, token: randomUUID(), userId, correct: 3, totalTimeMs: 30_000, index: 5, startedAt: new Date(), finishedAt: new Date() } });
+
+    await page.goto("/fr");
+    await expect(page.getByRole("link", { name: name(t("daily.cardGo")) })).toBeVisible();
+    await expect(page.getByTestId("daily-streak")).toHaveCount(0);
   });
 
   test("le meilleur score d'un jour terminé reçoit le succès, visible sur son profil", async ({ page }) => {

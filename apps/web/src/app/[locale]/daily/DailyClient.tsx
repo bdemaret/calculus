@@ -5,6 +5,7 @@ import type { DailyAnswerView, DailyRunView } from "@calculus/db";
 import { DAILY_ROUNDS, detectTechnique } from "@calculus/game-core";
 import { Link, useRouter } from "@/i18n/navigation";
 import { CalcLine } from "@/components/CalcLine";
+import { UnlockedBlock } from "@/components/GameReportView";
 import { Check } from "@/components/Check";
 import { Margin, MarginNote } from "@/components/Margin";
 import { MathText } from "@/components/MathText";
@@ -117,6 +118,7 @@ export function DailyClient({ loggedIn, children }: Props) {
     setRun(r);
     setPhase("finished");
     if (r.correct === DAILY_ROUNDS) void celebrate();
+    else if (r.unlocks.length) sfx.unlock();
     router.refresh();
   }
 
@@ -306,6 +308,19 @@ function DailyResult({ run, board }: { run: DailyRunView; board: ReactNode }) {
           )}
         </div>
       </div>
+      {run.streak && run.streak.current > 0 ? (
+        <p className="daily-streak" data-testid="daily-streak">
+          <span className="daily-streak-flame" aria-hidden="true">🔥</span>
+          <span>
+            <strong>{t("daily.streakLabel", { count: run.streak.current })}</strong>
+            <span>
+              {t("daily.streakTomorrow")}
+              {run.streak.best > run.streak.current ? ` ${t("daily.streakBest", { count: run.streak.best })}` : ""}
+            </span>
+          </span>
+        </p>
+      ) : null}
+      {run.unlocks.length ? <UnlockedBlock unlocks={run.unlocks} /> : null}
       {run.saved ? (
         <p className="form-ok">{t("daily.saved")}</p>
       ) : (

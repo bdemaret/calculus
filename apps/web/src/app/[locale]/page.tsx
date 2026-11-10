@@ -1,6 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { getDailyResult, settleDailyChallenges } from "@calculus/db";
-import { dailyDate } from "@calculus/game-core";
+import { getDailyResult, getDailyStreak, settleDailyChallenges } from "@calculus/db";
+import { dailyDate, dailyEndsAt } from "@calculus/game-core";
 import { Link } from "@/i18n/navigation";
 import { getSession } from "@/lib/auth";
 import { DailyCard } from "@/components/DailyCard";
@@ -23,7 +23,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const now = new Date();
   // L'accueil reste affiché si la base répond mal : le calcul du jour apparaît alors comme à faire.
   await settleDailyChallenges(now).catch((e: unknown) => console.error("Calcul du jour : gagnants non désignés", e));
-  const result = session ? await getDailyResult(session.user.id, now).catch(() => null) : null;
+  const [result, streak] = session
+    ? await Promise.all([getDailyResult(session.user.id, now).catch(() => null), getDailyStreak(session.user.id, now).catch(() => null)])
+    : [null, null];
   return (
     <div className="home">
       <div className="home-main">
@@ -31,7 +33,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <h1 className="headline">{t.rich("home.title", { hl: (chunks) => <mark className="hl">{chunks}</mark> })}</h1>
           <p className="lede">{t("home.lede")}</p>
         </section>
-        <DailyCard today={dailyDate(now.getTime())} loggedIn={!!session} result={result} />
+        <DailyCard today={dailyDate(now.getTime())} loggedIn={!!session} result={result} streak={streak} now={now.getTime()} endsAt={dailyEndsAt(now.getTime())} />
         <section className="warmup" aria-labelledby="warmup-kicker">
           <HeroCalc />
         </section>

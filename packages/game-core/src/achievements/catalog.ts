@@ -113,6 +113,13 @@ export const ACHIEVEMENTS: readonly AchievementDefinition[] = [
   { id: "all-levels", category: "journey", tier: "gold", online: true, target: { every: DIFFICULTIES.map((d) => `wins:level:${d}`) } },
   // Chronométré par le serveur, comme une partie en ligne. Le compteur vient de `DailyRun.won`.
   { id: "daily-champion", category: "journey", tier: "gold", target: { counter: "daily-wins", value: 1 } },
+  // Jours de suite au calcul du jour. Le compteur est la plus longue série (`dailyStreak().best`), relue depuis `DailyRun`.
+  ...ladder("daily-streak", "daily-streak", "journey", [
+    [5, "bronze"],
+    [10, "silver", "metronome"],
+    [50, "gold"],
+    [100, "platinum"],
+  ]),
 
   /* ---------- Modes ---------- */
   ...ladder(
@@ -320,6 +327,7 @@ export const TITLES: readonly TitleDefinition[] = [
   { id: "top-of-class", rarity: "rare" },
   { id: "terror", rarity: "legendary" },
   { id: "calculator", rarity: "rare" },
+  { id: "metronome", rarity: "rare" },
   { id: "living-legend", rarity: "epic" },
   { id: "all-rounder", rarity: "common" },
   { id: "polymath", rarity: "epic" },

@@ -1397,6 +1397,22 @@
       "name": "Champion du jour",
       "desc": "Faire le meilleur score d’un calcul du jour"
     },
+    "daily-streak-5": {
+      "name": "Bonne habitude",
+      "desc": "Faire le calcul du jour 5 jours de suite"
+    },
+    "daily-streak-10": {
+      "name": "Rendez-vous quotidien",
+      "desc": "Faire le calcul du jour 10 jours de suite"
+    },
+    "daily-streak-50": {
+      "name": "Rituel quotidien",
+      "desc": "Faire le calcul du jour 50 jours de suite"
+    },
+    "daily-streak-100": {
+      "name": "Cent jours sans faillir",
+      "desc": "Faire le calcul du jour 100 jours de suite"
+    },
     "br-wins-10": {
       "name": "Survie",
       "desc": "Gagner 10 battles royales classées"
@@ -1597,6 +1613,7 @@
     "top-of-class": "Tête de classe",
     "terror": "Terreur des tableaux",
     "calculator": "Machine à calculer",
+    "metronome": "Métronome",
     "living-legend": "Légende vivante",
     "all-rounder": "Touche-à-tout",
     "polymath": "Polymathe",
@@ -1652,6 +1669,19 @@
     "doneRank": "{rank, plural, =1 {1er} other {#ᵉ}} du jour",
     "seeBoard": "Voir le classement",
     "saveScore": "Enregistrer mon score",
+    "streakKicker": "{count, plural, =1 {série de 1 jour} other {série de # jours}} en jeu",
+    "streakWarn": "Joue avant minuit pour ne pas perdre ta série.",
+    "streakLeftHours": "Plus que {hours} h {minutes} min",
+    "streakLeftMinutes": "Plus que {minutes} min",
+    "streakGo": "Continuer ma série →",
+    "streakLabel": "Série : {count, plural, =1 {1 jour} other {# jours}} de suite",
+    "streakDone": "Série : {count, plural, =1 {1 jour} other {# jours}}",
+    "streakTomorrow": "Reviens demain pour la prolonger.",
+    "streakBest": "Record : {count, plural, =1 {1 jour} other {# jours}}",
+    "streakWeek": "Tes 7 derniers jours",
+    "streakDayDone": "{day} : fait",
+    "streakDayMissed": "{day} : manqué",
+    "streakDayToday": "{day} : à faire aujourd’hui",
     "lede": "{rounds} calculs, de Facile à Légende, les mêmes pour tous les joueurs aujourd’hui. Tu n’as qu’un essai. On compte d’abord les bons calculs, puis le temps total.",
     "rule": "Seul le temps de réponse compte, pas les corrections.",
     "start": "Commencer",
@@ -1665,7 +1695,7 @@
     "wouldRank": "Avec un compte, tu serais {rank, plural, =1 {1er} other {#ᵉ}} du jour.",
     "saved": "Score enregistré.",
     "saveTitle": "Ton score n’est pas encore enregistré",
-    "saveText": "Connecte-toi ou inscris-toi maintenant pour entrer au classement du jour.",
+    "saveText": "Connecte-toi ou inscris-toi maintenant pour entrer au classement du jour et commencer ta série.",
     "signup": "Créer un compte",
     "login": "Se connecter",
     "detail": "Détail des calculs",

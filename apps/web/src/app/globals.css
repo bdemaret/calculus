@@ -90,7 +90,7 @@ button, input { font: inherit; color: inherit; }
   main :is(h1, h2, h3, h4, p, li, .lede, .hint, .note, .tag, .calc),
   .site-footer a, .margin-note, .brand-name
 ):not(:is(.choice, .technique-card, .lobby-card, .panel, .mode-card, .stats, .ranking, .review-list, .rv,
-  .games, .profile-card, .invite-notice, .lobby-banner, .friend-list, .daily-save, .daily-done, .danger-zone, .lobby-dock, .keypad, .btn, .seg, .chip, .achievement, .dungeon-world,
+  .games, .profile-card, .invite-notice, .lobby-banner, .friend-list, .daily-save, .daily-done, .daily-streak, .danger-zone, .lobby-dock, .keypad, .btn, .seg, .chip, .achievement, .dungeon-world,
   h1, h2, h3, h4, p, li) *) {
   --lh-box: var(--lh, round(up, calc(var(--leading, 1.4) * 1em), var(--sub)));
   line-height: var(--lh-box);

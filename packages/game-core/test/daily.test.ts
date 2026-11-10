@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DAILY_BAN_MS, DAILY_REVIEW_MS, DAILY_ROUNDS, checkDailyBot, compareDailyScores, dailyDate, dailyDifficulty, dailyQuestion, dailyTimeLimitMs, evaluateText, isDailyDate, shiftDailyDate } from "../src";
+import { DAILY_BAN_MS, DAILY_REVIEW_MS, DAILY_ROUNDS, DAILY_STREAK_WEEK, checkDailyBot, compareDailyScores, dailyDate, dailyEndsAt, dailyStreak, longestDailyStreak, dailyDifficulty, dailyQuestion, dailyTimeLimitMs, evaluateText, isDailyDate, shiftDailyDate } from "../src";
 
 describe("calcul du jour", () => {
   it("change de jour à minuit, heure de Paris, été comme hiver", () => {
@@ -83,5 +83,50 @@ describe("calcul du jour", () => {
       expect(checkDailyBot(run(2000, 2100, 2050, 2200)).verdict).toBe("ok");
       expect(checkDailyBot([...run(2000, 2100, 2050, 2200), { correct: false, timeMs: 2300 }]).verdict).toBe("ok");
     });
+  });
+});
+
+describe("série du calcul du jour", () => {
+  it("compte les jours de suite, hier compris tant qu'aujourd'hui n'est pas joué", () => {
+    const days = ["2026-11-06", "2026-11-07", "2026-11-08"];
+    // Joué aujourd'hui : la série inclut aujourd'hui.
+    expect(dailyStreak(days, "2026-11-08")).toMatchObject({ current: 3, best: 3, playedToday: true });
+    // Pas encore joué : la série d'hier tient jusqu'à minuit.
+    expect(dailyStreak(days, "2026-11-09")).toMatchObject({ current: 3, best: 3, playedToday: false });
+    // Un jour manqué : série perdue, le record reste.
+    expect(dailyStreak(days, "2026-11-10")).toMatchObject({ current: 0, best: 3, playedToday: false });
+    expect(dailyStreak([], "2026-11-10")).toMatchObject({ current: 0, best: 0, playedToday: false });
+  });
+
+  it("garde la plus longue série, dans le désordre, avec des doublons et à cheval sur deux mois", () => {
+    const days = ["2026-11-02", "2026-10-30", "2026-11-01", "2026-10-31", "2026-10-31", "2026-11-05", "2026-11-06"];
+    expect(dailyStreak(days, "2026-11-06")).toMatchObject({ current: 2, best: 4 });
+    expect(longestDailyStreak(days)).toBe(4);
+    expect(longestDailyStreak([])).toBe(0);
+  });
+
+  it("montre les sept derniers jours, aujourd'hui en dernier", () => {
+    const { week } = dailyStreak(["2026-11-04", "2026-11-08", "2026-11-09"], "2026-11-10");
+    expect(week).toHaveLength(DAILY_STREAK_WEEK);
+    expect(week).toEqual([true, false, false, false, true, true, false]);
+  });
+
+  it("finit le jour à minuit, heure de Paris, changements d'heure compris", () => {
+    // Hiver : minuit à Paris = 23 h UTC.
+    expect(dailyEndsAt(Date.UTC(2026, 10, 10, 12, 0, 0))).toBe(Date.UTC(2026, 10, 10, 23, 0, 0));
+    expect(dailyEndsAt(Date.UTC(2026, 10, 10, 23, 0, 0))).toBe(Date.UTC(2026, 10, 11, 23, 0, 0));
+    expect(dailyEndsAt(Date.UTC(2026, 10, 10, 22, 59, 59, 500))).toBe(Date.UTC(2026, 10, 10, 23, 0, 0));
+    // Été : 22 h UTC.
+    expect(dailyEndsAt(Date.UTC(2026, 6, 1, 8, 30, 0))).toBe(Date.UTC(2026, 6, 1, 22, 0, 0));
+    // 29 mars 2026 : jour de 23 h (début à 23 h UTC la veille, fin à 22 h UTC).
+    expect(dailyEndsAt(Date.UTC(2026, 2, 28, 23, 30, 0))).toBe(Date.UTC(2026, 2, 29, 22, 0, 0));
+    // 25 octobre 2026 : jour de 25 h (début à 22 h UTC la veille, fin à 23 h UTC).
+    expect(dailyEndsAt(Date.UTC(2026, 9, 24, 22, 30, 0))).toBe(Date.UTC(2026, 9, 25, 23, 0, 0));
+    for (let h = 0; h < 24 * 400; h += 7) {
+      const now = Date.UTC(2026, 0, 1) + h * 3_600_000 + 1234;
+      const end = dailyEndsAt(now);
+      expect(dailyDate(end - 1)).toBe(dailyDate(now));
+      expect(dailyDate(end)).not.toBe(dailyDate(now));
+    }
   });
 });

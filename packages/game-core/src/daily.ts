@@ -55,6 +55,61 @@ export interface DailyScore {
 /** Ordre du classement : le plus de bons calculs, puis le temps total le plus court. Négatif si `a` passe devant `b`. */
 export const compareDailyScores = (a: DailyScore, b: DailyScore): number => b.correct - a.correct || a.totalTimeMs - b.totalTimeMs;
 
+/* ---------- Série ---------- */
+
+/** Jours montrés sur l'accueil : les six derniers et aujourd'hui. */
+export const DAILY_STREAK_WEEK = 7;
+
+/** Série de jours consécutifs où un compte a fini le calcul du jour. */
+export interface DailyStreak {
+  /** Série en cours : elle tient encore si le dernier jour joué est hier, et tombe à 0 après un jour manqué. */
+  current: number;
+  /** Plus longue série jamais faite : c'est elle qui débloque les succès, perdre sa série ne les retire pas. */
+  best: number;
+  playedToday: boolean;
+  /** Les `DAILY_STREAK_WEEK` derniers jours, aujourd'hui en dernier : vrai si le calcul a été fini ce jour-là. */
+  week: boolean[];
+}
+
+/** Plus longue suite de jours consécutifs parmi `dates` (dans n'importe quel ordre) : le compteur des succès de série, qui ne dépend pas du jour courant. */
+export function longestDailyStreak(dates: readonly string[]): number {
+  let best = 0;
+  let run = 0;
+  let previous: string | null = null;
+  for (const date of [...new Set(dates)].sort()) {
+    run = previous !== null && shiftDailyDate(previous, 1) === date ? run + 1 : 1;
+    best = Math.max(best, run);
+    previous = date;
+  }
+  return best;
+}
+
+/** Série d'un compte à partir des jours (« 2026-11-01 », dans n'importe quel ordre) où il a fini son essai. */
+export function dailyStreak(dates: readonly string[], today: string): DailyStreak {
+  const played = new Set(dates);
+  const best = longestDailyStreak(dates);
+  const playedToday = played.has(today);
+  let current = 0;
+  for (let day = playedToday ? today : shiftDailyDate(today, -1); played.has(day); day = shiftDailyDate(day, -1)) current += 1;
+  const week = Array.from({ length: DAILY_STREAK_WEEK }, (_, i) => played.has(shiftDailyDate(today, i + 1 - DAILY_STREAK_WEEK)));
+  return { current, best, playedToday, week };
+}
+
+/** Heure, en ms depuis minuit, à Paris. */
+function parisTimeOfDay(now: number): number {
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: DAILY_TIME_ZONE, hourCycle: "h23", hour: "numeric", minute: "numeric", second: "numeric" }).formatToParts(now);
+  const read = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  return ((read("hour") * 60 + read("minute")) * 60 + read("second")) * 1000 + (((now % 1000) + 1000) % 1000);
+}
+
+/** Instant (ms) du prochain minuit à Paris : la fin du jour en cours, après laquelle une série non prolongée est perdue. */
+export function dailyEndsAt(now: number): number {
+  const guess = now + DAY_MS - parisTimeOfDay(now);
+  // Les jours de changement d'heure durent 23 ou 25 h : on retombe à 1 h ou 23 h, jamais à minuit.
+  const off = parisTimeOfDay(guess);
+  return off < DAY_MS / 2 ? guess - off : guess + DAY_MS - off;
+}
+
 /* ---------- Anti-bot ---------- */
 
 /**

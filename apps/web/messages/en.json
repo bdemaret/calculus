@@ -1400,6 +1400,22 @@
       "name": "Daily champion",
       "desc": "Get the best score of a daily calc"
     },
+    "daily-streak-5": {
+      "name": "Good habit",
+      "desc": "Do the daily calc 5 days in a row"
+    },
+    "daily-streak-10": {
+      "name": "Standing appointment",
+      "desc": "Do the daily calc 10 days in a row"
+    },
+    "daily-streak-50": {
+      "name": "Daily ritual",
+      "desc": "Do the daily calc 50 days in a row"
+    },
+    "daily-streak-100": {
+      "name": "A hundred days strong",
+      "desc": "Do the daily calc 100 days in a row"
+    },
     "br-wins-10": {
       "name": "Survivor",
       "desc": "Win 10 ranked battle royales"
@@ -1600,6 +1616,7 @@
     "top-of-class": "Top of the class",
     "terror": "Terror of the blackboard",
     "calculator": "Human calculator",
+    "metronome": "Metronome",
     "living-legend": "Living legend",
     "all-rounder": "All-rounder",
     "polymath": "Polymath",
@@ -1655,6 +1672,19 @@
     "doneRank": "#{rank} today",
     "seeBoard": "See the leaderboard",
     "saveScore": "Save my score",
+    "streakKicker": "{count, plural, =1 {1-day streak} other {#-day streak}} on the line",
+    "streakWarn": "Play before midnight to keep your streak.",
+    "streakLeftHours": "Only {hours} h {minutes} min left",
+    "streakLeftMinutes": "Only {minutes} min left",
+    "streakGo": "Keep my streak going →",
+    "streakLabel": "Streak: {count, plural, =1 {1 day} other {# days}} in a row",
+    "streakDone": "Streak: {count, plural, =1 {1 day} other {# days}}",
+    "streakTomorrow": "Come back tomorrow to extend it.",
+    "streakBest": "Best: {count, plural, =1 {1 day} other {# days}}",
+    "streakWeek": "Your last 7 days",
+    "streakDayDone": "{day}: done",
+    "streakDayMissed": "{day}: missed",
+    "streakDayToday": "{day}: to do today",
     "lede": "{rounds} calculations, from Easy to Legend, the same for every player today. You only get one attempt. Correct answers count first, then total time.",
     "rule": "Only answering time counts, not corrections.",
     "start": "Start",
@@ -1668,7 +1698,7 @@
     "wouldRank": "With an account, you’d be #{rank} today.",
     "saved": "Score saved.",
     "saveTitle": "Your score isn’t saved yet",
-    "saveText": "Log in or sign up now to enter today’s leaderboard.",
+    "saveText": "Log in or sign up now to enter today’s leaderboard and start your streak.",
     "signup": "Create an account",
     "login": "Log in",
     "detail": "Calculation details",

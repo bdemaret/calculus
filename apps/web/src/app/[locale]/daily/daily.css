@@ -6,3 +6,7 @@
 .daily-save p { margin: 0; }
 .daily-days { display: flex; justify-content: space-between; gap: 16px; }
 .daily-level { font-family: var(--font-hand); font-size: 24px; font-weight: 700; color: var(--margin-red); }
+.daily-streak { display: flex; align-items: center; gap: 16px; margin: 0; padding: 14px 16px; border-radius: var(--radius-card); background: var(--hl); color: var(--on-hl); border: 2px solid var(--ink-deep); box-shadow: var(--sticker); }
+.daily-streak > span:last-child { display: grid; }
+.daily-streak strong { font-size: 20px; }
+.daily-streak-flame { font-size: 32px; line-height: 1; }
