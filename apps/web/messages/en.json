@@ -897,6 +897,15 @@
     "noticeOpen": "See what’s new",
     "noticeDismiss": "Dismiss",
     "notes": {
+      "v1_4_0": [
+        "Daily calc: every day played in a row extends your streak, shown on the home page with your last seven days and the time left before midnight.",
+        "Achievements: four new achievements for 5, 10, 50 and 100 days in a row on the daily calc, and a title to unlock, “Metronome”.",
+        "Dungeons: a full-screen countdown comes before each fight and the boss, then the fight shows on its own, with the calculation at the top of the screen.",
+        "Dungeons: chests are rarer but give two items and points, and the winner chooses who gets each item.",
+        "Dungeons: your bag stays visible in every phase, and tapping an item opens its card to use it, give it or drop it.",
+        "Daily calc: times impossible for a human are now detected, and cheating accounts are removed from the leaderboard and from online play.",
+        "Stats: a calculation left unanswered now counts as a mistake in your accuracy."
+      ],
       "v1_3_0": [
         "Dungeons: set off on an expedition with 2 to 4 players, by invitation or with a code, across a map of rooms on four floors, then face the boss together.",
         "Dungeons: twelve enemies to defeat with your calculations, chests (beware of mimics), a two-item bag, lives, and the chance to revive a fallen ally.",

@@ -894,6 +894,15 @@
     "noticeOpen": "Voir les nouveautés",
     "noticeDismiss": "Fermer",
     "notes": {
+      "v1_4_0": [
+        "Calcul du jour : chaque jour joué d’affilée allonge ta série, affichée sur l’accueil avec tes sept derniers jours et le temps qu’il te reste avant minuit.",
+        "Succès : quatre nouveaux succès pour 5, 10, 50 et 100 jours d’affilée au calcul du jour, et un titre à débloquer, « Métronome ».",
+        "Donjons : un décompte plein écran précède chaque combat et le boss, puis le combat s’affiche seul, le calcul en haut de l’écran.",
+        "Donjons : les coffres sont plus rares mais rapportent deux objets et des points, et le vainqueur choisit à qui va chaque objet.",
+        "Donjons : ton sac reste visible à toutes les phases, et toucher un objet ouvre sa fiche pour l’utiliser, le donner ou le jeter.",
+        "Calcul du jour : les temps impossibles pour un humain sont désormais détectés, et les comptes qui trichent sortent du classement et du jeu en ligne.",
+        "Statistiques : un calcul laissé sans réponse compte désormais comme une erreur dans ton taux de réussite."
+      ],
       "v1_3_0": [
         "Donjons : pars en expédition de 2 à 4 joueurs, sur invitation ou avec un code, à travers une carte de salles sur quatre étages, puis affrontez le boss ensemble.",
         "Donjons : douze ennemis à vaincre à coups de calculs, des coffres (méfie-toi des mimiques), un sac de deux objets, des vies et la possibilité de relever un allié tombé.",
