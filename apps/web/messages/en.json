@@ -186,7 +186,8 @@
     "busy": "Too many connections right now. Try again in a minute.",
     "generic": "Couldn’t join the lobby. Try again.",
     "locked": "This lobby is full or a game is in progress.",
-    "account-required": "Dungeons are for signed-in players only."
+    "account-required": "Dungeons are for signed-in players only.",
+    "banned": "Your account is suspended and can no longer play online. If this is a mistake, tell us through the feedback page."
   },
   "lobby": {
     "pageTitle": "Lobby {code}",
@@ -655,7 +656,8 @@
               "Your friends: requests sent and received, friendships, game invitations.",
               "Your guild: the guild you belong to, your role (leader or member), when you joined, invitations, crest, and the time of your last visit to the site (to show members whether you are online).",
               "Your feedback: the message sent from “Send feedback”, its type, the page it came from and, if you are not signed in, the email you choose to leave.",
-              "Technical data: the IP address and browser linked to each sign-in, and your IP address to limit repeated attempts (abuse protection)."
+              "Technical data: the IP address and browser linked to each sign-in, and your IP address to limit repeated attempts (abuse protection).",
+              "Anti-cheating: in the daily challenge, your response times are analysed automatically. Times impossible for a human suspend the account from online play (daily challenge, lobbies, dungeons); a doubtful run is only reported to the site’s team. The report keeps the calculations, your answers and their times for as long as your account exists. You can contest a suspension through “Send feedback”: a person then reviews your case."
             ],
             "Without an account, you play as a guest: nothing is saved in solo games, except the daily calc, whose attempt (answers and times, no name) is kept for two days at most so you can save it to an account. Online, your guest name is saved with the game if other players have an account.",
             "Theme, sound and some settings are kept in your browser (local storage) and are never sent to us."
@@ -939,7 +941,8 @@
       "games": "Online games",
       "feedback": "Feedback",
       "users": "Accounts",
-      "solo": "Solo games"
+      "solo": "Solo games",
+      "bans": "Bans"
     },
     "overview": {
       "users": "accounts",
@@ -1046,7 +1049,11 @@
       "noGames": "This player has not played any saved game yet.",
       "previous": "Previous",
       "next": "Next",
-      "page": "page {page} of {pages}"
+      "page": "page {page} of {pages}",
+      "status": "Status",
+      "active": "Active",
+      "banned": "Banned",
+      "reports": "Anti-bot reports"
     },
     "solo": {
       "live": "in progress",
@@ -1076,6 +1083,48 @@
         "quit": "Quit",
         "abandoned": "No signal"
       }
+    },
+    "bans": {
+      "suspectsTitle": "To review",
+      "suspectsCount": "{count, plural, =0 {No reports} one {# report} other {# reports}}",
+      "suspectsEmpty": "No reports to review.",
+      "suspectsNote": "Doubtful runs, with no penalty: the account plays normally unless you ban it. Only a time under {ban} ms bans automatically.",
+      "bannedTitle": "Banned accounts",
+      "bannedCount": "{count, plural, =0 {No banned accounts} one {# banned account} other {# banned accounts}}",
+      "bannedEmpty": "No banned accounts.",
+      "reason": {
+        "bot-daily": "Anti-bot, daily challenge",
+        "manual": "Administrator decision"
+      },
+      "rule": {
+        "too-fast": "Impossible time",
+        "fast-for-level": "Fast for its level",
+        "flat-times": "Times too regular"
+      },
+      "verdict": {
+        "bot": "Bot",
+        "suspect": "Doubtful"
+      },
+      "dailyOf": "Daily challenge of {date}",
+      "bannedOn": "Banned on {date}",
+      "noReport": "No reports for this account.",
+      "level": "Level",
+      "calculation": "Calculation",
+      "answer": "Answer",
+      "time": "Time",
+      "threshold": "Level threshold",
+      "ms": "{value} ms",
+      "timeUp": "time up",
+      "evidence": "Answers of the reported run",
+      "ban": "Ban",
+      "unban": "Unban",
+      "dismiss": "Dismiss",
+      "banConfirm": "Ban {name}? The account loses access to lobbies, dungeons and the daily challenge.",
+      "unbanConfirm": "Unban {name}? Their daily runs return to the leaderboard.",
+      "error": "The action failed. Try again.",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "page {page} of {pages}"
     }
   },
   "guild": {
@@ -1889,5 +1938,12 @@
     "intro": "Get ready…",
     "introBoss": "The boss awakens…",
     "useBomb": "Throw the bomb"
+  },
+  "banned": {
+    "title": "Account suspended",
+    "text": "This account is suspended: the daily challenge, online lobbies and dungeons are closed to it. Solo play stays open.",
+    "appeal": "Think this is a mistake? Write to us and a person will review your case.",
+    "contact": "Contest the suspension",
+    "solo": "Play solo"
   }
 }

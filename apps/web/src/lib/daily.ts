@@ -21,6 +21,9 @@ export function rememberDaily(run: DailyRunView) {
   local.set(STORAGE_KEY, { date, token, finished, saved, correct, totalTimeMs } satisfies StoredDaily);
 }
 
+/** Le compte est banni : le calcul du jour lui est fermé. */
+export class DailyBannedError extends Error {}
+
 type DailyRequest = { action: "state" | "start" | "next" } | { action: "answer"; value: number | null };
 
 /** Une action sur l'essai du jour ; le serveur rend l'essai à jour, null s'il n'y en a pas encore. */
@@ -30,6 +33,7 @@ export async function callDaily(request: DailyRequest): Promise<DailyRunView | n
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ ...request, token: readDaily()?.token ?? null }),
   });
+  if (res.status === 403) throw new DailyBannedError("Calcul du jour : compte banni");
   if (!res.ok) throw new Error(`Calcul du jour : réponse ${res.status}`);
   const { run } = (await res.json()) as { run: DailyRunView | null };
   if (run) rememberDaily(run);

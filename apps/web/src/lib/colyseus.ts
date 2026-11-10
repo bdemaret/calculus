@@ -50,7 +50,7 @@ export async function fetchPublicLobbies(signal?: AbortSignal): Promise<PublicLo
   return (await res.json()) as PublicLobbyList;
 }
 
-export type JoinErrorCode = "locked" | "account-required" | "bad-token" | "in-progress" | "duplicate" | "full" | "not-found" | "server-down" | "name-required" | "busy" | "generic";
+export type JoinErrorCode = "locked" | "account-required" | "banned" | "bad-token" | "in-progress" | "duplicate" | "full" | "not-found" | "server-down" | "name-required" | "busy" | "generic";
 
 export class JoinError extends Error {
   constructor(public code: JoinErrorCode) {
@@ -75,6 +75,8 @@ export function toJoinError(err: unknown): JoinError {
       return new JoinError("busy");
     case JOIN_ERRORS.accountRequired:
       return new JoinError("account-required");
+    case JOIN_ERRORS.banned:
+      return new JoinError("banned");
   }
   if (/locked/i.test(msg)) return new JoinError("locked");
   if (/not found|introuvable|invalid/i.test(msg)) return new JoinError("not-found");
@@ -92,6 +94,7 @@ export async function fetchToken(name: string): Promise<string> {
   });
   if (res.status === 400) throw new JoinError("name-required");
   if (res.status === 429) throw new JoinError("busy");
+  if (res.status === 403) throw new JoinError("banned");
   if (!res.ok) throw new JoinError("generic");
   const data = (await res.json()) as { token: string };
   return data.token;

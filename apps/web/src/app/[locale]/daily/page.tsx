@@ -1,9 +1,10 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { getDailyBoard, settleDailyChallenges } from "@calculus/db";
+import { getBan, getDailyBoard, settleDailyChallenges } from "@calculus/db";
 import { dailyDate, isDailyDate } from "@calculus/game-core";
 import { Link } from "@/i18n/navigation";
 import { getSession } from "@/lib/auth";
 import { publicPage } from "@/lib/seo";
+import { BannedNotice } from "@/components/BannedNotice";
 import { DailyBoardView } from "./DailyBoardView";
 import { DailyClient } from "./DailyClient";
 import "./daily.css";
@@ -33,6 +34,8 @@ export default async function DailyPage({
   const { date: asked } = await searchParams;
   const date = typeof asked === "string" && isDailyDate(asked) && asked < today ? asked : today;
   const viewerId = session?.user.id ?? null;
+  // Compte banni : pas d'essai. `DailyClient` relit cette page quand le serveur vient de bannir le compte en plein essai.
+  if (viewerId && date === today && (await getBan(viewerId))) return <BannedNotice />;
   const board = <DailyBoardView board={await getDailyBoard(date, viewerId ?? undefined)} today={today} viewerId={viewerId} />;
   if (date === today) return <DailyClient loggedIn={!!session}>{board}</DailyClient>;
   return (

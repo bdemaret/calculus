@@ -163,6 +163,8 @@ export const JOIN_ERRORS = {
   accountRequired: 4403,
   /** Trop de demandes depuis cette adresse, ou serveur au plafond de salles / de connexions. */
   busy: 4429,
+  /** Compte banni (anti-bot ou administrateur) : plus aucune salle en ligne. */
+  banned: 4423,
 } as const;
 
 export const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";

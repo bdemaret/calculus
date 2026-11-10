@@ -11,6 +11,7 @@ import {
   NO_TITLE,
   PLACEMENT_GAMES,
   buildReport,
+  checkDailyBot,
   closestAnswers,
   computeRatingChanges,
   countersDelta,
@@ -28,6 +29,7 @@ import {
   type AchievementCategory,
   type AchievementTier,
   type AnswerRecord,
+  type BotRule,
   type Counters,
   type Difficulty,
   type DungeonSummary,
@@ -1696,7 +1698,8 @@ export interface DailyBoard {
 
 type DailyRunRow = Prisma.DailyRunGetPayload<{ include: { challenge: true } }>;
 
-const rankedRuns = (date: string) => ({ date, userId: { not: null }, finishedAt: { not: null } });
+/** Essais classés d'un jour : finis, rattachés à un compte, et pas à un compte banni. */
+const rankedRuns = (date: string) => ({ date, userId: { not: null }, finishedAt: { not: null }, user: { bannedAt: null } });
 
 /** Un essai reste jouable le jour même, puis `DAILY_LATE_MS` après minuit. */
 const runIsOpen = (date: string, now: Date) => date >= dailyDate(now.getTime() - DAILY_LATE_MS);
@@ -1774,7 +1777,29 @@ async function closeDailyQuestion(run: DailyRunRow, value: number | null, now: D
       finishedAt: index >= DAILY_ROUNDS ? now : null,
     },
   });
-  return prisma.dailyRun.findUniqueOrThrow({ where: { id: run.id }, include: { challenge: true } });
+  const closed = await prisma.dailyRun.findUniqueOrThrow({ where: { id: run.id }, include: { challenge: true } });
+  if (closed.userId) await reviewDailyRun(closed, closed.userId, now);
+  return closed;
+}
+
+/**
+ * Anti-bot : juge l'essai d'un compte après chaque calcul. Un temps impossible bannit aussitôt ; un essai douteux est signalé
+ * une fois fini. Sans effet la seconde fois (un signalement par compte et par jour). Ne fait jamais échouer la réponse du joueur.
+ */
+async function reviewDailyRun(run: DailyRunRow, userId: string, now: Date): Promise<void> {
+  try {
+    const rows = run.answers as unknown as DailyAnswerRow[];
+    const { verdict, rules } = checkDailyBot(rows);
+    if (verdict === "ok" || (verdict === "suspect" && !run.finishedAt)) return;
+    const detail = rows.map((a, index) => ({ text: dailyQuestion(run.challenge.seed, index).text, ...a }));
+    await prisma.botReport.createMany({
+      data: { userId, source: "daily", ref: run.date, verdict, rules, detail: detail as unknown as Prisma.InputJsonValue },
+      skipDuplicates: true,
+    });
+    if (verdict === "bot") await banUser(userId, "bot-daily", now);
+  } catch (e) {
+    console.error("Anti-bot : essai du jour non jugé", e);
+  }
 }
 
 /** Un calcul laissé sans réponse (page fermée) compte comme temps écoulé dès que son temps est passé. */
@@ -1790,14 +1815,20 @@ function findDailyRun(date: string, userId: string | null, token: string | null)
   return prisma.dailyRun.findFirst({ where: { date, token, userId: null }, include: { challenge: true } });
 }
 
-/** Rattache l'essai d'un invité au compte qui vient de se connecter, sauf si ce compte a déjà joué ce jour-là ou si le jour est clos. */
+/** Rattache l'essai d'un invité au compte qui vient de se connecter, sauf si ce compte a déjà joué ce jour-là, si le jour est clos ou si l'essai est celui d'un bot. */
 async function claimDailyRun(userId: string, token: string): Promise<void> {
   const run = await prisma.dailyRun.findUnique({ where: { token }, include: { challenge: true } });
   if (!run || run.userId !== null || run.challenge.settledAt) return;
-  await prisma.dailyRun.update({ where: { id: run.id }, data: { userId } }).catch((e: unknown) => {
-    // Le compte a déjà un essai ce jour-là : c'est celui-là qui compte.
-    if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")) throw e;
-  });
+  // Un essai d'invité aux temps impossibles n'entre jamais au classement : s'inscrire après coup ne le blanchit pas.
+  if (checkDailyBot(run.answers as unknown as DailyAnswerRow[]).verdict === "bot") return;
+  const claimed = await prisma.dailyRun
+    .update({ where: { id: run.id }, data: { userId }, include: { challenge: true } })
+    .catch((e: unknown) => {
+      // Le compte a déjà un essai ce jour-là : c'est celui-là qui compte.
+      if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")) throw e;
+      return null;
+    });
+  if (claimed) await reviewDailyRun(claimed, userId, new Date());
 }
 
 /**
@@ -2321,6 +2352,7 @@ export interface AdminUserDetail {
   lastSeenAt: string | null;
   friends: number;
   feedbacks: number;
+  ban: Ban | null;
 }
 
 export async function getAdminUser(id: string): Promise<AdminUserDetail | null> {
@@ -2332,6 +2364,8 @@ export async function getAdminUser(id: string): Promise<AdminUserDetail | null> 
       email: true,
       emailVerified: true,
       createdAt: true,
+      bannedAt: true,
+      banReason: true,
       sessions: { orderBy: { updatedAt: "desc" }, take: 1, select: { updatedAt: true } },
       _count: { select: { feedbacks: true } },
     },
@@ -2349,6 +2383,7 @@ export async function getAdminUser(id: string): Promise<AdminUserDetail | null> 
     lastSeenAt: u.sessions[0]?.updatedAt.toISOString() ?? null,
     friends,
     feedbacks: u._count.feedbacks,
+    ban: toBan(u),
   };
 }
 
@@ -2401,6 +2436,136 @@ export async function setFeedbackResolved(id: string, resolved: boolean): Promis
 export async function deleteFeedback(id: string): Promise<boolean> {
   const { count } = await prisma.feedback.deleteMany({ where: { id } });
   return count > 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Bans et anti-bot                                                     */
+/* ------------------------------------------------------------------ */
+
+/** Raison d'un ban : détection automatique au calcul du jour, ou décision d'un administrateur. */
+export type BanReason = "bot-daily" | "manual";
+
+export interface Ban {
+  bannedAt: string;
+  reason: BanReason;
+}
+
+const toBan = (u: { bannedAt: Date | null; banReason: string | null }): Ban | null =>
+  u.bannedAt ? { bannedAt: u.bannedAt.toISOString(), reason: u.banReason === "bot-daily" ? "bot-daily" : "manual" } : null;
+
+/** Ban du compte, null s'il n'est pas banni (ou n'existe plus). Lu à chaque entrée en ligne : jeton de jeu, salle, calcul du jour. */
+export async function getBan(userId: string): Promise<Ban | null> {
+  const u = await prisma.user.findUnique({ where: { id: userId }, select: { bannedAt: true, banReason: true } });
+  return u ? toBan(u) : null;
+}
+
+/** Bannit un compte ; false s'il n'existe pas ou l'est déjà (la première raison est gardée). */
+export async function banUser(userId: string, reason: BanReason, now: Date): Promise<boolean> {
+  const { count } = await prisma.user.updateMany({ where: { id: userId, bannedAt: null }, data: { bannedAt: now, banReason: reason } });
+  return count > 0;
+}
+
+/** Lève le ban d'un compte et classe ses signalements : ses essais du jour reviennent au classement. False s'il n'était pas banni. */
+export async function unbanUser(userId: string, now: Date): Promise<boolean> {
+  const [{ count }] = await prisma.$transaction([
+    prisma.user.updateMany({ where: { id: userId, bannedAt: { not: null } }, data: { bannedAt: null, banReason: null } }),
+    prisma.botReport.updateMany({ where: { userId, reviewedAt: null }, data: { reviewedAt: now } }),
+  ]);
+  return count > 0;
+}
+
+/** Une réponse de la preuve d'un signalement. */
+export interface BotReportAnswer {
+  text: string;
+  value: number | null;
+  correct: boolean;
+  timeMs: number;
+}
+
+export interface AdminBotReport {
+  id: string;
+  source: string;
+  /** Jour du calcul du jour concerné */
+  ref: string;
+  verdict: "bot" | "suspect";
+  rules: BotRule[];
+  answers: BotReportAnswer[];
+  createdAt: string;
+  reviewed: boolean;
+}
+
+export interface AdminBannedUser {
+  id: string;
+  name: string;
+  email: string;
+  ban: Ban;
+  /** Signalements du compte, du plus récent au plus ancien : la preuve d'un ban automatique */
+  reports: AdminBotReport[];
+}
+
+export interface AdminSuspect {
+  user: { id: string; name: string; email: string };
+  report: AdminBotReport;
+}
+
+type BotReportRow = Prisma.BotReportGetPayload<object>;
+
+const toBotReport = (r: BotReportRow): AdminBotReport => ({
+  id: r.id,
+  source: r.source,
+  ref: r.ref,
+  verdict: r.verdict === "bot" ? "bot" : "suspect",
+  rules: r.rules as BotRule[],
+  answers: r.detail as unknown as BotReportAnswer[],
+  createdAt: r.createdAt.toISOString(),
+  reviewed: r.reviewedAt !== null,
+});
+
+/** Panel admin : comptes bannis, du ban le plus récent au plus ancien, avec leurs signalements. */
+export async function listBannedUsers(page: number): Promise<{ users: AdminBannedUser[]; total: number }> {
+  const where: Prisma.UserWhereInput = { bannedAt: { not: null } };
+  const [rows, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      orderBy: { bannedAt: "desc" },
+      skip: page * ADMIN_PAGE_SIZE,
+      take: ADMIN_PAGE_SIZE,
+      select: { id: true, name: true, email: true, bannedAt: true, banReason: true, botReports: { orderBy: { createdAt: "desc" }, take: 5 } },
+    }),
+    prisma.user.count({ where }),
+  ]);
+  return {
+    total,
+    users: rows.map((u) => ({ id: u.id, name: u.name, email: u.email, ban: toBan(u)!, reports: u.botReports.map(toBotReport) })),
+  };
+}
+
+/** Panel admin : signalements douteux pas encore examinés, de comptes non bannis, du plus récent au plus ancien. */
+export async function listSuspectReports(page: number): Promise<{ items: AdminSuspect[]; total: number }> {
+  const where: Prisma.BotReportWhereInput = { reviewedAt: null, user: { bannedAt: null } };
+  const [rows, total] = await Promise.all([
+    prisma.botReport.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: page * ADMIN_PAGE_SIZE,
+      take: ADMIN_PAGE_SIZE,
+      include: { user: { select: { id: true, name: true, email: true } } },
+    }),
+    prisma.botReport.count({ where }),
+  ]);
+  return { total, items: rows.map((r) => ({ user: r.user, report: toBotReport(r) })) };
+}
+
+/** Classe un signalement sans sanction ; false s'il n'existe pas. */
+export async function dismissBotReport(id: string, now: Date): Promise<boolean> {
+  const { count } = await prisma.botReport.updateMany({ where: { id }, data: { reviewedAt: now } });
+  return count > 0;
+}
+
+/** Signalements d'un compte, pour sa fiche du panel. */
+export async function getBotReports(userId: string): Promise<AdminBotReport[]> {
+  const rows = await prisma.botReport.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 20 });
+  return rows.map(toBotReport);
 }
 
 /* ------------------------------------------------------------------ */

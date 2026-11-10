@@ -32,6 +32,10 @@ model User {
   showTips      Boolean   @default(true)
   /// Titre choisi, affiché sous le pseudo. Hors de `additionalFields` : le client ne doit pas pouvoir l'écrire
   titleId       String?
+  /// Compte banni (anti-bot ou décision d'un administrateur) : plus de lobby, de donjon ni de calcul du jour. Hors de `additionalFields`
+  bannedAt      DateTime?
+  /// Raison du ban : `bot-daily` (détection automatique au calcul du jour) ou `manual`
+  banReason     String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
@@ -55,6 +59,7 @@ model User {
   counters        UserCounter[]
   dailyRuns       DailyRun[]
   dungeonRuns     DungeonRunPlayer[]
+  botReports      BotReport[]
 
   @@map("user")
 }
@@ -530,6 +535,30 @@ model DailyRun {
   @@index([date, finishedAt, correct, totalTimeMs])
   @@index([userId, won])
   @@map("daily_run")
+}
+
+/// Signalement de l'anti-bot : une ligne par compte et par essai jugé impossible (ban automatique) ou douteux (à examiner dans le panel)
+model BotReport {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Où le signalement est né : `daily` pour l'instant
+  source     String
+  /// Ce qui a été jugé, pour ne pas le signaler deux fois : le jour du calcul du jour
+  ref        String
+  /// `bot` : temps humainement impossible, compte banni aussitôt ; `suspect` : à examiner, sans sanction
+  verdict    String
+  /// Règles déclenchées (`BotRule` de game-core)
+  rules      String[]
+  /// Preuve figée au moment du signalement : tableau de `{ text, value, correct, timeMs }`
+  detail     Json
+  createdAt  DateTime  @default(now())
+  /// Examiné par un administrateur (classé, banni ou débanni)
+  reviewedAt DateTime?
+
+  @@unique([userId, source, ref])
+  @@index([reviewedAt, createdAt])
+  @@map("bot_report")
 }
 
 /* ---------- Donjons (coopération) ---------- */

@@ -11,7 +11,7 @@ import { MathText } from "@/components/MathText";
 import { RoundCorrection } from "@/components/RoundCorrection";
 import { TimerBar } from "@/components/TimerBar";
 import { revealSeparator } from "@/lib/answer";
-import { callDaily } from "@/lib/daily";
+import { DailyBannedError, callDaily } from "@/lib/daily";
 import { formatSeconds } from "@/lib/format";
 import { celebrate, sfx } from "@/lib/sound";
 import { useShowTips } from "@/lib/tips";
@@ -57,6 +57,12 @@ export function DailyClient({ loggedIn, children }: Props) {
     else setPhase("intro");
   }
 
+  /** Demande refusée : un compte banni (parfois par la réponse qu'il vient d'envoyer) relit la page, qui affiche le message de ban. */
+  function fail(e: unknown) {
+    setPhase("error");
+    if (e instanceof DailyBannedError) router.refresh();
+  }
+
   function openQuestion(r: DailyRunView) {
     setRun(r);
     setValue("");
@@ -71,7 +77,7 @@ export function DailyClient({ loggedIn, children }: Props) {
         show(r);
         if (r?.saved) router.refresh();
       })
-      .catch(() => setPhase("error"));
+      .catch(fail);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function start() {
@@ -79,8 +85,8 @@ export function DailyClient({ loggedIn, children }: Props) {
       setRun(await callDaily({ action: "start" }));
       setPhase("countdown");
       countdown(3);
-    } catch {
-      setPhase("error");
+    } catch (e) {
+      fail(e);
     }
   }
 
@@ -102,8 +108,8 @@ export function DailyClient({ loggedIn, children }: Props) {
       if (r?.question) openQuestion(r);
       else if (r) finish(r);
       else setPhase("error");
-    } catch {
-      setPhase("error");
+    } catch (e) {
+      fail(e);
     }
   }
 
@@ -132,8 +138,8 @@ export function DailyClient({ loggedIn, children }: Props) {
         sfx.ko();
         setPhase("review");
       }
-    } catch {
-      setPhase("error");
+    } catch (e) {
+      fail(e);
     }
   }
 

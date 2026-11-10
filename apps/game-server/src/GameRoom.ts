@@ -27,7 +27,7 @@ import {
 import { z } from "zod";
 import { verifyGameToken, type GameIdentity } from "./token";
 import { MAX_GAME_ROOMS, checkMatchmake } from "./limits";
-import { clearInvites, persistGame } from "./persist";
+import { clearInvites, isBanned, persistGame } from "./persist";
 import { activeCodes, generateCode, liveDungeons } from "./codes";
 import { PUBLIC_LOBBY_KEY, publicLobbies } from "./publicLobbies";
 
@@ -196,6 +196,7 @@ export class GameRoom extends Room {
     checkMatchmake(context);
     const identity = await verifyGameToken(options?.token);
     if (!identity) throw new ServerError(JOIN_ERRORS.badToken, "bad-token");
+    if (!identity.guest && (await isBanned(identity.id))) throw new ServerError(JOIN_ERRORS.banned, "banned");
     return identity;
   }
 

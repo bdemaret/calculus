@@ -23,7 +23,7 @@ import {
 import { z } from "zod";
 import { verifyGameToken, type GameIdentity } from "./token";
 import { MAX_GAME_ROOMS, checkMatchmake } from "./limits";
-import { clearInvites, persistDungeon } from "./persist";
+import { clearInvites, isBanned, persistDungeon } from "./persist";
 import { activeCodes, generateCode, liveDungeons } from "./codes";
 import { liveRooms } from "./GameRoom";
 
@@ -190,6 +190,7 @@ export class DungeonRoom extends Room {
     const identity = await verifyGameToken(options?.token);
     if (!identity) throw new ServerError(JOIN_ERRORS.badToken, "bad-token");
     if (identity.guest || identity.id.startsWith("guest_")) throw new ServerError(JOIN_ERRORS.accountRequired, "account-required");
+    if (await isBanned(identity.id)) throw new ServerError(JOIN_ERRORS.banned, "banned");
     return identity;
   }
 

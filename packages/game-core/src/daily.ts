@@ -54,3 +54,48 @@ export interface DailyScore {
 
 /** Ordre du classement : le plus de bons calculs, puis le temps total le plus court. Négatif si `a` passe devant `b`. */
 export const compareDailyScores = (a: DailyScore, b: DailyScore): number => b.correct - a.correct || a.totalTimeMs - b.totalTimeMs;
+
+/* ---------- Anti-bot ---------- */
+
+/**
+ * Temps en ms sous lequel une bonne réponse est physiquement impossible, quel que soit le calcul : voir l'énoncé, taper, valider,
+ * aller-retour réseau compris (le serveur mesure de l'envoi du calcul à l'arrivée de la réponse). Seule cause de ban automatique.
+ * Le même à tous les niveaux : « 90 ÷ 10 » en Difficile se lit aussi vite qu'un calcul Facile.
+ */
+export const DAILY_BAN_MS = 400;
+/**
+ * Temps en ms sous lequel une bonne réponse au calcul n° `index` est rapide pour son niveau (de Facile à Légende) : signalée, jamais sanctionnée.
+ * Le niveau ne dit pas la difficulté d'un calcul précis, c'est à l'administrateur de juger en le lisant.
+ */
+export const DAILY_REVIEW_MS = [DAILY_BAN_MS, 600, 800, 800, 800] as const;
+/** Écart en ms, entre le calcul le plus lent et le plus rapide d'un sans-faute, sous lequel les temps sont trop réguliers : un humain met bien plus longtemps en Légende qu'en Facile. */
+export const DAILY_FLAT_SPREAD_MS = 400;
+
+/** Règle déclenchée par l'anti-bot : `too-fast` bannit, les autres signalent seulement. */
+export type BotRule = "too-fast" | "fast-for-level" | "flat-times";
+/** `bot` : temps impossible, ban automatique ; `suspect` : à examiner par un administrateur, sans sanction. */
+export type BotVerdict = "ok" | "suspect" | "bot";
+
+export interface BotCheck {
+  verdict: BotVerdict;
+  rules: BotRule[];
+}
+
+/**
+ * Juge les réponses d'un essai, dans l'ordre des calculs. Seules les bonnes réponses comptent : une faute de frappe est rapide,
+ * un bot répond juste. Un bot qui attend avant de répondre n'est pas banni ; c'est le signalement et la relecture qui le rattrapent.
+ */
+export function checkDailyBot(answers: readonly { correct: boolean; timeMs: number }[]): BotCheck {
+  const rules = new Set<BotRule>();
+  answers.forEach((a, index) => {
+    const review = DAILY_REVIEW_MS[index];
+    if (!a.correct || review === undefined) return;
+    if (a.timeMs < DAILY_BAN_MS) rules.add("too-fast");
+    else if (a.timeMs < review) rules.add("fast-for-level");
+  });
+  if (answers.length >= DAILY_ROUNDS && answers.every((a) => a.correct)) {
+    const times = answers.map((a) => a.timeMs);
+    if (Math.max(...times) - Math.min(...times) < DAILY_FLAT_SPREAD_MS) rules.add("flat-times");
+  }
+  return { verdict: rules.has("too-fast") ? "bot" : rules.size ? "suspect" : "ok", rules: [...rules] };
+}

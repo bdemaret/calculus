@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
-import { getAdminUser, getDashboard } from "@calculus/db";
+import { getAdminUser, getBotReports, getDashboard } from "@calculus/db";
 import { Link } from "@/i18n/navigation";
-import { requireAdmin } from "@/lib/admin";
+import { isAdminUser, requireAdmin } from "@/lib/admin";
 import { DashboardView } from "../../../dashboard/DashboardView";
+import { BanActions } from "../../bans/BanActions";
+import { ReportEvidence } from "../../bans/ReportEvidence";
 
-/** Fiche d'un compte : informations du compte, puis son tableau de bord tel qu'il le voit. */
+/** Fiche d'un compte : informations du compte, ban et signalements de l'anti-bot, puis son tableau de bord tel qu'il le voit. */
 export default async function AdminUserPage({ params }: { params: Promise<{ locale: string; id: string }> }) {
   const { locale, id } = await params;
   setRequestLocale(locale);
@@ -13,7 +15,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ loca
   if (id.length > 64) notFound();
   const user = await getAdminUser(id);
   if (!user) notFound();
-  const [t, format, data] = await Promise.all([getTranslations("admin.users"), getFormatter(), getDashboard(id)]);
+  const [t, tb, format, data, reports] = await Promise.all([getTranslations("admin.users"), getTranslations("admin.bans"), getFormatter(), getDashboard(id), getBotReports(id)]);
   const date = (iso: string) => format.dateTime(new Date(iso), { dateStyle: "long", timeStyle: "short" });
 
   return (
@@ -52,7 +54,20 @@ export default async function AdminUserPage({ params }: { params: Promise<{ loca
           <dt>{t("id")}</dt>
           <dd className="admin-id">{user.id}</dd>
         </div>
+        <div>
+          <dt>{t("status")}</dt>
+          <dd data-testid="ban-status">{user.ban ? `${t("banned")} · ${tb(`reason.${user.ban.reason}`)} · ${date(user.ban.bannedAt)}` : t("active")}</dd>
+        </div>
       </dl>
+      {isAdminUser(user.id) ? null : <BanActions userId={user.id} name={user.name} banned={!!user.ban} />}
+      {reports.length ? (
+        <div className="panel stack">
+          <h3>{t("reports")}</h3>
+          {reports.map((r) => (
+            <ReportEvidence key={r.id} report={r} />
+          ))}
+        </div>
+      ) : null}
       {data.stats.gamesPlayed ? <DashboardView data={data} name={user.name} /> : <p className="muted">{t("noGames")}</p>}
     </div>
   );

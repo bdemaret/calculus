@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { answerDailyQuestion, getDailyRun, nextDailyQuestion, startDailyRun } from "@calculus/db";
+import { answerDailyQuestion, getBan, getDailyRun, nextDailyQuestion, startDailyRun } from "@calculus/db";
 import { getSession } from "@/lib/auth";
 import { rateLimited, requestIp } from "@/lib/rateLimit";
 
@@ -21,7 +21,7 @@ const GUEST_STARTS_PER_HOUR = 30;
 /**
  * Calcul du jour, invités compris : le serveur pose les calculs un par un et tient le chrono.
  * La réponse d'un calcul ne part qu'une fois ce calcul joué, et aucun temps ne vient du navigateur,
- * puisque le score entre au classement.
+ * puisque le score entre au classement. Un compte banni reçoit 403 `banned`.
  */
 export async function POST(req: Request) {
   const parsed = body.safeParse(await req.json().catch(() => null));
@@ -30,6 +30,9 @@ export async function POST(req: Request) {
   const userId = session?.user.id ?? null;
   const who = userId ? `user:${userId}` : `ip:${requestIp(req)}`;
   if (await rateLimited(`daily:${who}`, REQUESTS_PER_HOUR, HOUR_MS)) return NextResponse.json({ error: "rate-limited" }, { status: 429 });
+
+  // Compte banni : ni essai, ni score. La page affiche alors le message de ban.
+  if (userId && (await getBan(userId))) return NextResponse.json({ error: "banned" }, { status: 403 });
 
   const data = parsed.data;
   // L'horloge est prise ici, à l'arrivée de la demande : c'est elle qui mesure le temps de réponse.
@@ -42,5 +45,7 @@ export async function POST(req: Request) {
   }
   const run = data.action === "answer" ? await answerDailyQuestion(userId, data.token, data.value, now) : await nextDailyQuestion(userId, data.token, now);
   if (!run) return NextResponse.json({ error: "not-found" }, { status: 404 });
+  // L'anti-bot juge chaque réponse : celle-ci peut venir de bannir le compte.
+  if (userId && data.action === "answer" && (await getBan(userId))) return NextResponse.json({ error: "banned" }, { status: 403 });
   return NextResponse.json({ run });
 }

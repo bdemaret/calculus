@@ -186,7 +186,8 @@
     "busy": "Trop de connexions en ce moment. Réessaie dans une minute.",
     "generic": "Impossible de rejoindre le lobby. Réessaie.",
     "locked": "Ce lobby est complet ou une partie y est en cours.",
-    "account-required": "Les donjons sont réservés aux joueurs connectés."
+    "account-required": "Les donjons sont réservés aux joueurs connectés.",
+    "banned": "Ton compte est suspendu : le jeu en ligne lui est fermé. Si c’est une erreur, écris-nous depuis la page « Faire un retour »."
   },
   "lobby": {
     "pageTitle": "Lobby {code}",
@@ -654,7 +655,8 @@
               "Tes amis : demandes envoyées et reçues, liens d’amitié, invitations à une partie.",
               "Ta guilde : guilde dont tu fais partie, rôle (chef ou membre), date d’arrivée, invitations, blason, et l’heure de ta dernière visite sur le site (pour montrer aux membres si tu es en ligne).",
               "Tes retours : le message envoyé depuis « Faire un retour », son type, la page d’où il vient et, si tu n’es pas connecté, l’e-mail que tu choisis de laisser.",
-              "Données techniques : l’adresse IP et le navigateur associés à chaque connexion, et ton adresse IP pour limiter les tentatives répétées (protection contre les abus)."
+              "Données techniques : l’adresse IP et le navigateur associés à chaque connexion, et ton adresse IP pour limiter les tentatives répétées (protection contre les abus).",
+              "Lutte contre la triche : au calcul du jour, tes temps de réponse sont analysés automatiquement. Des temps impossibles pour un humain suspendent le compte du jeu en ligne (calcul du jour, lobbys, donjons) ; un essai douteux est seulement signalé à l’équipe du site. Le signalement garde les calculs, tes réponses et leurs temps, tant que ton compte existe. Tu peux contester une suspension depuis « Faire un retour » : une personne relit alors ton cas."
             ],
             "Sans compte, tu joues en invité : rien n’est enregistré en solo, sauf le calcul du jour, dont l’essai (réponses et temps, sans pseudo) est gardé au plus deux jours pour que tu puisses l’enregistrer sur un compte. En ligne, ton pseudo d’invité est enregistré avec la partie si d’autres joueurs ont un compte.",
             "Le thème, le son et certains réglages sont gardés dans ton navigateur (stockage local) et ne nous sont jamais envoyés."
@@ -936,7 +938,8 @@
       "games": "Parties en ligne",
       "feedback": "Retours",
       "users": "Comptes",
-      "solo": "Parties solo"
+      "solo": "Parties solo",
+      "bans": "Bans"
     },
     "overview": {
       "users": "inscrits",
@@ -1043,7 +1046,11 @@
       "noGames": "Ce joueur n’a encore joué aucune partie enregistrée.",
       "previous": "Précédents",
       "next": "Suivants",
-      "page": "page {page} sur {pages}"
+      "page": "page {page} sur {pages}",
+      "status": "État",
+      "active": "Actif",
+      "banned": "Banni",
+      "reports": "Signalements de l’anti-bot"
     },
     "solo": {
       "live": "en cours",
@@ -1073,6 +1080,48 @@
         "quit": "Quittée",
         "abandoned": "Sans nouvelles"
       }
+    },
+    "bans": {
+      "suspectsTitle": "À examiner",
+      "suspectsCount": "{count, plural, =0 {Aucun signalement} one {# signalement} other {# signalements}}",
+      "suspectsEmpty": "Aucun signalement à examiner.",
+      "suspectsNote": "Essais douteux, sans sanction : le compte joue normalement tant que tu ne le bannis pas. Seul un temps sous {ban} ms bannit tout seul.",
+      "bannedTitle": "Comptes bannis",
+      "bannedCount": "{count, plural, =0 {Aucun compte banni} one {# compte banni} other {# comptes bannis}}",
+      "bannedEmpty": "Aucun compte banni.",
+      "reason": {
+        "bot-daily": "Anti-bot, calcul du jour",
+        "manual": "Décision d’un administrateur"
+      },
+      "rule": {
+        "too-fast": "Temps impossible",
+        "fast-for-level": "Rapide pour son niveau",
+        "flat-times": "Temps trop réguliers"
+      },
+      "verdict": {
+        "bot": "Bot",
+        "suspect": "Douteux"
+      },
+      "dailyOf": "Calcul du jour du {date}",
+      "bannedOn": "Banni le {date}",
+      "noReport": "Aucun signalement pour ce compte.",
+      "level": "Niveau",
+      "calculation": "Calcul",
+      "answer": "Réponse",
+      "time": "Temps",
+      "threshold": "Seuil du niveau",
+      "ms": "{value} ms",
+      "timeUp": "temps écoulé",
+      "evidence": "Réponses de l’essai signalé",
+      "ban": "Bannir",
+      "unban": "Débannir",
+      "dismiss": "Classer sans suite",
+      "banConfirm": "Bannir {name} ? Le compte perd l’accès aux lobbys, aux donjons et au calcul du jour.",
+      "unbanConfirm": "Débannir {name} ? Ses essais du jour reviennent au classement.",
+      "error": "L’action a échoué. Réessaie.",
+      "previous": "Précédents",
+      "next": "Suivants",
+      "page": "page {page} sur {pages}"
     }
   },
   "guild": {
@@ -1886,5 +1935,12 @@
     "intro": "Prépare-toi…",
     "introBoss": "Le boss se réveille…",
     "useBomb": "Lancer la bombe"
+  },
+  "banned": {
+    "title": "Compte suspendu",
+    "text": "Ce compte est suspendu : le calcul du jour, les lobbys en ligne et les donjons lui sont fermés. Le solo reste ouvert.",
+    "appeal": "Tu penses que c’est une erreur ? Écris-nous, une personne relira ton cas.",
+    "contact": "Contester la suspension",
+    "solo": "Jouer en solo"
   }
 }

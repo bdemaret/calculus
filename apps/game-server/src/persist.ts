@@ -1,4 +1,4 @@
-import { clearLobbyInvites, saveDungeonRun, saveGame } from "@calculus/db";
+import { clearLobbyInvites, getBan, saveDungeonRun, saveGame } from "@calculus/db";
 import type { DungeonEngine, GameEngine, RatingChange, Unlock } from "@calculus/game-core";
 
 interface PersistInput {
@@ -73,4 +73,17 @@ export async function persistDungeon({
  */
 export function clearInvites(code: string): void {
   clearLobbyInvites(code).catch((err) => console.error(`[invitations] ${code} : échec du nettoyage`, err));
+}
+
+/**
+ * Vrai si le compte est banni : vérifié à chaque entrée dans une salle, car un jeton émis avant le ban reste valable 2 h.
+ * Base injoignable : on laisse entrer, comme pour l'enregistrement des parties, plutôt que de fermer le jeu à tout le monde.
+ */
+export async function isBanned(userId: string): Promise<boolean> {
+  try {
+    return (await getBan(userId)) !== null;
+  } catch (err) {
+    console.error("[ban] vérification impossible :", err);
+    return false;
+  }
 }

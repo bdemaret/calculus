@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { SignJWT } from "jose";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { getTitles } from "@calculus/db";
+import { getBan, getTitles } from "@calculus/db";
 import { getSession } from "@/lib/auth";
 import { cleanName } from "@/lib/names";
 import { rateLimited, requestIp } from "@/lib/rateLimit";
@@ -33,6 +33,8 @@ export async function POST(req: Request) {
     ? await rateLimited(`game-token:user:${session.user.id}`, TOKENS_PER_USER_PER_MINUTE, MINUTE_MS)
     : await rateLimited(`game-token:ip:${requestIp(req)}`, GUEST_TOKENS_PER_IP_PER_MINUTE, MINUTE_MS);
   if (limited) return NextResponse.json({ error: "rate-limited" }, { status: 429 });
+  // Compte banni : pas de jeton, donc ni lobby ni donjon. Le serveur de jeu revérifie, un jeton déjà émis vaut 2 h.
+  if (session && (await getBan(session.user.id))) return NextResponse.json({ error: "banned" }, { status: 403 });
 
   const payload = session
     ? { name: cleanName(session.user.name) || "Joueur", guest: false, title: (await getTitles(session.user.id)).current }
