@@ -1717,7 +1717,7 @@
     "totalTime": "Total time: {time}",
     "rankOf": "Today’s rank: {rank} of {total}",
     "wouldRank": "With an account, you’d be #{rank} today.",
-    "share": "Share my score",
+    "share": "Copy the message",
     "shareCopied": "Copied! Send it to your friends 😉",
     "sharePreview": "Preview of the message to share",
     "shareTitle": "🧮 Daily calculation · {date}",

@@ -305,25 +305,15 @@ function shareText(run: DailyRunView, t: ReturnType<typeof useTranslations>, loc
   return lines.join("\n");
 }
 
-/** Aperçu du message et bouton de partage : feuille de partage du téléphone, sinon copie dans le presse-papiers. */
+/** Aperçu du message à partager, avec un petit bouton de copie dans son coin. */
 function ShareScore({ run }: { run: DailyRunView }) {
   const t = useTranslations();
   const locale = useLocale();
-  const touch = useTouch();
   const [copied, setCopied] = useState(false);
   // Cette vue n'apparaît qu'après la lecture de l'essai côté client : `window` est disponible.
   const text = shareText(run, t, locale);
 
-  const share = async () => {
-    if (touch && typeof navigator.share === "function") {
-      try {
-        await navigator.share({ text });
-        return;
-      } catch (e) {
-        // Partage annulé par le joueur : rien à faire. Autre échec : on se rabat sur la copie.
-        if (e instanceof DOMException && e.name === "AbortError") return;
-      }
-    }
+  const copy = async () => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -339,14 +329,26 @@ function ShareScore({ run }: { run: DailyRunView }) {
       <p className="daily-share-preview" aria-label={t("daily.sharePreview")} data-testid="daily-share-preview">
         {text}
       </p>
-      <div className="actions">
-        <button className="btn" type="button" onClick={share} data-testid="daily-share">
-          {t("daily.share")}
-        </button>
-        <span role="status" aria-live="polite">
-          {copied ? t("daily.shareCopied") : ""}
-        </span>
-      </div>
+      <button
+        className="icon-btn daily-share-copy"
+        type="button"
+        onClick={copy}
+        title={t("daily.share")}
+        aria-label={t("daily.share")}
+        data-testid="daily-share"
+      >
+        {copied ? (
+          <Check />
+        ) : (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="9" y="9" width="12" height="12" rx="2" />
+            <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+          </svg>
+        )}
+      </button>
+      <span className="daily-share-status" role="status" aria-live="polite">
+        {copied ? t("daily.shareCopied") : ""}
+      </span>
     </div>
   );
 }

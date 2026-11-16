@@ -11,7 +11,9 @@
 .daily-streak strong { font-size: 20px; }
 .daily-streak-flame { font-size: 32px; line-height: 1; }
 
-/* Partage du score : aperçu en bulle de message, tel qu'il sera collé dans une conversation. */
-.daily-share { display: grid; gap: 20px; justify-items: start; }
-.daily-share-preview { margin: 0; max-width: 100%; padding: 14px 18px; white-space: pre-line; overflow-wrap: anywhere; line-height: 1.5; background: var(--surface); color: var(--text); border: 2px solid var(--ink-deep); border-radius: 18px 18px 18px 4px; box-shadow: var(--sticker); }
-.daily-share .actions { align-items: center; }
+/* Partage du score : aperçu en bulle de message, tel qu'il sera collé dans une conversation, bouton de copie dans le coin. */
+.daily-share { position: relative; display: grid; gap: 12px; justify-items: start; width: fit-content; max-width: 100%; }
+.daily-share-preview { margin: 0; max-width: 100%; padding: 14px 56px 14px 18px; white-space: pre-line; overflow-wrap: anywhere; line-height: 1.5; background: var(--surface); color: var(--text); border: 2px solid var(--ink-deep); border-radius: 18px 18px 18px 4px; box-shadow: var(--sticker); }
+.daily-share-copy { position: absolute; top: 8px; right: 8px; padding: 0; background: var(--surface); }
+.daily-share-copy .check { color: var(--ok); }
+.daily-share-status { min-height: 1.4em; color: var(--ok); font-size: 15px; }
