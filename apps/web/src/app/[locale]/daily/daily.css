@@ -10,3 +10,8 @@
 .daily-streak > span:last-child { display: grid; }
 .daily-streak strong { font-size: 20px; }
 .daily-streak-flame { font-size: 32px; line-height: 1; }
+
+/* Partage du score : aperçu en bulle de message, tel qu'il sera collé dans une conversation. */
+.daily-share { display: grid; gap: 20px; justify-items: start; }
+.daily-share-preview { margin: 0; max-width: 100%; padding: 14px 18px; white-space: pre-line; overflow-wrap: anywhere; line-height: 1.5; background: var(--surface); color: var(--text); border: 2px solid var(--ink-deep); border-radius: 18px 18px 18px 4px; box-shadow: var(--sticker); }
+.daily-share .actions { align-items: center; }

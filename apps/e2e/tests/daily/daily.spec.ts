@@ -21,6 +21,17 @@ test.describe("calcul du jour", () => {
     await expect(page.getByText(t("daily.saved"))).toBeVisible();
     await expect(page.locator("#daily-board tr.me")).toContainText(user.name);
 
+    // Partage : l'aperçu montre le message (une case par calcul, le lien du jour), le bouton le copie tel quel.
+    const preview = page.getByTestId("daily-share-preview");
+    await expect(preview).toContainText(`🟩🟥🟩🟩🟩  4/${DAILY_ROUNDS}`);
+    await expect(preview).toContainText("/fr/daily");
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.getByTestId("daily-share").click();
+    await expect(page.getByText(t("daily.shareCopied"))).toBeVisible();
+    const shared = await page.evaluate(() => navigator.clipboard.readText());
+    expect(shared).toMatch(/^🧮 Calcul du jour · \d+ \S+\n\n🟩🟥🟩🟩🟩 {2}4\/5\n⏱️ \d+,\d s\n🏆 \d+ᵉ? ?\S* sur \d+\n\nTu fais mieux \? 👉 http:\/\/\S+\/fr\/daily$/u);
+    await expect(preview).toHaveText(shared);
+
     // Rechargée, la page montre le résultat : pas de deuxième essai.
     await daily.goto();
     await expect(daily.score).toHaveText(`4/${DAILY_ROUNDS}`);

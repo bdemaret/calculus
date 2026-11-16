@@ -283,6 +283,74 @@ export function DailyClient({ loggedIn, children }: Props) {
   );
 }
 
+/**
+ * Message de partage : une case verte ou rouge par calcul, le temps, la place et la série quand il y en a,
+ * puis le lien du calcul du jour pour donner envie de relever le défi.
+ */
+function shareText(run: DailyRunView, t: ReturnType<typeof useTranslations>, locale: string): string {
+  const date = new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", timeZone: "UTC" }).format(
+    new Date(`${run.date}T12:00:00Z`),
+  );
+  const grid = Array.from({ length: DAILY_ROUNDS }, (_, i) => (run.answers[i]?.correct ? "🟩" : "🟥")).join("");
+  const lines = [
+    t("daily.shareTitle", { date }),
+    "",
+    `${grid}  ${run.correct}/${DAILY_ROUNDS}`,
+    t("daily.shareTime", { time: formatSeconds(run.totalTimeMs, locale) }),
+  ];
+  if (run.correct === DAILY_ROUNDS) lines.push(t("daily.sharePerfect"));
+  if (run.saved && run.rank) lines.push(t("daily.shareRank", { rank: run.rank, total: run.players }));
+  if (run.streak && run.streak.current >= 2) lines.push(t("daily.shareStreak", { count: run.streak.current }));
+  lines.push("", t("daily.shareCta", { url: `${window.location.origin}/${locale}/daily` }));
+  return lines.join("\n");
+}
+
+/** Aperçu du message et bouton de partage : feuille de partage du téléphone, sinon copie dans le presse-papiers. */
+function ShareScore({ run }: { run: DailyRunView }) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const touch = useTouch();
+  const [copied, setCopied] = useState(false);
+  // Cette vue n'apparaît qu'après la lecture de l'essai côté client : `window` est disponible.
+  const text = shareText(run, t, locale);
+
+  const share = async () => {
+    if (touch && typeof navigator.share === "function") {
+      try {
+        await navigator.share({ text });
+        return;
+      } catch (e) {
+        // Partage annulé par le joueur : rien à faire. Autre échec : on se rabat sur la copie.
+        if (e instanceof DOMException && e.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // Presse-papiers refusé (contexte non sécurisé, navigateur ancien) : on affiche le texte à copier à la main.
+      window.prompt?.(t("daily.share"), text);
+    }
+  };
+
+  return (
+    <div className="daily-share">
+      <p className="daily-share-preview" aria-label={t("daily.sharePreview")} data-testid="daily-share-preview">
+        {text}
+      </p>
+      <div className="actions">
+        <button className="btn" type="button" onClick={share} data-testid="daily-share">
+          {t("daily.share")}
+        </button>
+        <span role="status" aria-live="polite">
+          {copied ? t("daily.shareCopied") : ""}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 /** Fin de l'essai : score, place, invitation à enregistrer son score pour un invité, détail des calculs. */
 function DailyResult({ run, board }: { run: DailyRunView; board: ReactNode }) {
   const t = useTranslations();
@@ -308,6 +376,7 @@ function DailyResult({ run, board }: { run: DailyRunView; board: ReactNode }) {
           )}
         </div>
       </div>
+      <ShareScore run={run} />
       {run.streak && run.streak.current > 0 ? (
         <p className="daily-streak" data-testid="daily-streak">
           <span className="daily-streak-flame" aria-hidden="true">🔥</span>
