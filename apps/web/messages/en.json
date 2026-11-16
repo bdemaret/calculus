@@ -909,6 +909,11 @@
     "noticeOpen": "See what’s new",
     "noticeDismiss": "Dismiss",
     "notes": {
+      "v1_5_0": [
+        "Daily calc: at the end of your attempt, a preview of your score (one square per calculation, time, rank and streak) can be copied in one tap to share it.",
+        "Daily calc: only correct answers now count in your total time, so a mistake or a timeout no longer adds anything.",
+        "Navigation: the header is lighter, the rest of the site moves into a ☰ menu opened from the margin, with a 🏠 button to go back home."
+      ],
       "v1_4_0": [
         "Daily calc: every day played in a row extends your streak, shown on the home page with your last seven days and the time left before midnight.",
         "Achievements: four new achievements for 5, 10, 50 and 100 days in a row on the daily calc, and a title to unlock, “Metronome”.",

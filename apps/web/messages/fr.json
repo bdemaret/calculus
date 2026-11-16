@@ -906,6 +906,11 @@
     "noticeOpen": "Voir les nouveautés",
     "noticeDismiss": "Fermer",
     "notes": {
+      "v1_5_0": [
+        "Calcul du jour : à la fin de ton essai, un aperçu de ton score (une case par calcul, temps, place et série) se copie d’un geste pour le partager.",
+        "Calcul du jour : seules les bonnes réponses comptent désormais dans ton temps total, une erreur ou un temps écoulé n’y ajoute plus rien.",
+        "Navigation : l’en-tête s’allège, le reste du site passe dans un menu ☰ ouvert depuis la marge, avec un bouton 🏠 pour revenir à l’accueil."
+      ],
       "v1_4_0": [
         "Calcul du jour : chaque jour joué d’affilée allonge ta série, affichée sur l’accueil avec tes sept derniers jours et le temps qu’il te reste avant minuit.",
         "Succès : quatre nouveaux succès pour 5, 10, 50 et 100 jours d’affilée au calcul du jour, et un titre à débloquer, « Métronome ».",
