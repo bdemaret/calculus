@@ -48,7 +48,7 @@ export function dailyQuestion(seed: string, index: number): Question {
 /** Résultat comparable d'un calcul du jour. */
 export interface DailyScore {
   correct: number;
-  /** Temps total de calcul, en ms */
+  /** Temps total des bonnes réponses, en ms (une erreur n'y ajoute rien) */
   totalTimeMs: number;
 }
 

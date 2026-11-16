@@ -522,7 +522,7 @@ model DailyRun {
   /// Heure serveur à laquelle le calcul en cours a été envoyé ; null entre deux calculs
   questionAt  DateTime?
   correct     Int            @default(0)
-  /// Temps total de calcul, en ms : les corrections et pauses entre deux calculs n'y entrent pas
+  /// Temps total des bonnes réponses, en ms : les erreurs, temps écoulés, corrections et pauses entre deux calculs n'y entrent pas
   totalTimeMs Int            @default(0)
   /// Réponses données : tableau de `{ value, correct, timeMs }`, value null si le temps s'est écoulé
   answers     Json           @default("[]")

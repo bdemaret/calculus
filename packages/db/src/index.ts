@@ -1795,7 +1795,8 @@ async function closeDailyQuestion(run: DailyRunRow, value: number | null, now: D
       index,
       questionAt: null,
       correct: run.correct + (correct ? 1 : 0),
-      totalTimeMs: run.totalTimeMs + timeMs,
+      // Seules les bonnes réponses comptent dans le temps total : une erreur ou un temps écoulé n'y ajoute rien.
+      totalTimeMs: run.totalTimeMs + (correct ? timeMs : 0),
       answers: [...rows, row] as unknown as Prisma.InputJsonValue,
       finishedAt: index >= DAILY_ROUNDS ? now : null,
     },
