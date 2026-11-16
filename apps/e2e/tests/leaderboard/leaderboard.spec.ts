@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "@calculus/db";
 import { t } from "../../fixtures/i18n";
 import { expect, test } from "../../fixtures/test";
+import { openSiteMenu } from "../../pages/menu";
 
 /*
  * Le classement est commun à tous les tests : on remplit une combinaison mode × difficulté
@@ -83,7 +84,7 @@ test.describe("classement", () => {
 
     // Le menu mène au classement du premier mode ; on choisit le mode puis la difficulté.
     await page.goto("/fr");
-    await page.getByRole("navigation", { name: t("nav.main") }).getByRole("link", { name: t("nav.leaderboard") }).click();
+    await (await openSiteMenu(page)).getByRole("link", { name: t("nav.leaderboard") }).click();
     await expect(page).toHaveURL(/\/fr\/leaderboard\/standard\/[a-z-]+$/);
     await page.getByRole("navigation", { name: t("leaderboard.modesLabel") }).getByRole("link", { name: t(`modes.${MODE}.name`) }).click();
     await page.getByRole("navigation", { name: t("settings.difficulty") }).getByRole("link", { name: t(`levels.${DIFFICULTY}`) }).click();

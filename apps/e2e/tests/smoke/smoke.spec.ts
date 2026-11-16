@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { GAME_HTTP_URL } from "../../env";
 import { t, tr } from "../../fixtures/i18n";
 import { expectedAnswer } from "../../fixtures/oracle";
+import { openSiteMenu } from "../../pages/menu";
 
 test("la racine redirige vers le français", async ({ page }) => {
   await page.goto("/");
@@ -35,7 +36,7 @@ test("la page Jeux présente les quatre jeux, l'ancienne page Modes y mène", as
     await expect(page.getByRole("heading", { name: new RegExp(t(`games.${g}.name`)) })).toBeVisible();
   }
   await page.goto("/fr");
-  await page.getByRole("navigation", { name: t("nav.main") }).getByRole("link", { name: t("nav.games") }).click();
+  await (await openSiteMenu(page)).getByRole("link", { name: t("nav.games") }).click();
   await expect(page).toHaveURL(/\/fr\/games$/);
 });
 

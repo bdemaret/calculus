@@ -37,7 +37,19 @@
     "guildInvites": "Guilde, {count, plural, one {# invitation en attente} other {# invitations en attente}}",
     "learn": "Techniques",
     "daily": "Calcul du jour",
-    "dungeon": "Donjons"
+    "dungeon": "Donjons",
+    "shortcuts": "Raccourcis",
+    "menu": "Menu",
+    "openMenu": "Ouvrir le menu",
+    "openMenuInvites": "Ouvrir le menu, {count, plural, one {# invitation de guilde} other {# invitations de guilde}}",
+    "closeMenu": "Fermer le menu",
+    "homeShort": "Accueil",
+    "profile": "Mon profil",
+    "signup": "Créer un compte",
+    "groupPlay": "Jouer",
+    "groupProgress": "Progresser",
+    "groupAccount": "Mon compte",
+    "groupSettings": "Réglages"
   },
   "home": {
     "title": "Qui calcule le plus <hl>vite</hl> ?",

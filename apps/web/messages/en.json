@@ -37,7 +37,19 @@
     "guildInvites": "Guild, {count, plural, one {# pending invitation} other {# pending invitations}}",
     "learn": "Techniques",
     "daily": "Daily calc",
-    "dungeon": "Dungeons"
+    "dungeon": "Dungeons",
+    "shortcuts": "Shortcuts",
+    "menu": "Menu",
+    "openMenu": "Open menu",
+    "openMenuInvites": "Open menu, {count, plural, one {# guild invite} other {# guild invites}}",
+    "closeMenu": "Close menu",
+    "homeShort": "Home",
+    "profile": "My profile",
+    "signup": "Sign up",
+    "groupPlay": "Play",
+    "groupProgress": "Improve",
+    "groupAccount": "My account",
+    "groupSettings": "Settings"
   },
   "home": {
     "title": "Who’s the <hl>fastest</hl> at mental math?",

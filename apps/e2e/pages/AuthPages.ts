@@ -36,6 +36,6 @@ export class AuthPages {
 
   /** Lien de la barre de navigation vers « Se connecter » (visible seulement déconnecté). */
   loginLink() {
-    return this.page.getByRole("navigation", { name: t("nav.main") }).getByRole("link", { name: t("nav.login") });
+    return this.page.getByRole("navigation", { name: t("nav.shortcuts") }).getByRole("link", { name: t("nav.login") });
   }
 }

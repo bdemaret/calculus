@@ -9,6 +9,7 @@ import { t } from "../../fixtures/i18n";
 import { solveText } from "../../fixtures/oracle";
 import { expect, signUp, test } from "../../fixtures/test";
 import { answerBox } from "../../pages/answer";
+import { openSiteMenu } from "../../pages/menu";
 
 /*
  * Donjons : un vrai navigateur pour le joueur dont on regarde l'écran, des `DungeonBot` (comptes) pour les coéquipiers.
@@ -76,15 +77,14 @@ async function playExpedition(page: Page, move: "right" | "wrong" = "right") {
 test.describe("donjons : accès", () => {
   test("réservés aux comptes : un visiteur est envoyé à la connexion et ne voit pas l'entrée", async ({ page }) => {
     await page.goto("/fr");
-    await expect(page.getByRole("link", { name: t("nav.dungeon"), exact: true })).toHaveCount(0);
+    await expect((await openSiteMenu(page)).getByRole("link", { name: t("nav.dungeon"), exact: true })).toHaveCount(0);
     await page.goto("/fr/dungeon");
     await expect(page).toHaveURL(/\/fr\/login\?next=\/dungeon$/);
 
     await signUp(page.request);
     await page.goto("/fr");
-    await expect(page.getByRole("navigation").getByRole("link", { name: t("nav.dungeon"), exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: new RegExp(t("home.dungeonSub")) })).toBeVisible();
-    await page.getByRole("navigation").getByRole("link", { name: t("nav.dungeon"), exact: true }).click();
+    await (await openSiteMenu(page)).getByRole("link", { name: t("nav.dungeon"), exact: true }).click();
     await expect(page.getByRole("heading", { name: t("dungeon.title"), level: 1 })).toBeVisible();
 
     // Les monstres ne sont décrits que dans le livre, ouvert par le bouton du bas.

@@ -545,6 +545,49 @@ a { color: var(--ink); }
 .nav-link { color: var(--muted); text-decoration: none; font-size: 15px; padding: 0 10px; height: calc(var(--sub) * 5); display: inline-flex; align-items: center; border-radius: 999px; border: 1.5px solid var(--line-strong); }
 .nav-link:hover { color: var(--ink); border-color: var(--ink); }
 .nav-link.nav-daily { background: var(--hl); color: var(--on-hl); border-color: var(--ink-deep); font-weight: 700; }
+
+/* Menu du site : deux boutons en haut de la marge (menu, accueil), et le menu qui se déroule depuis la marge. */
+/* En partie, sur tous les écrans : pas de bouton à côté du calcul qui ferait quitter par erreur. */
+html[data-playing] .margin-nav { display: none; }
+.margin-btn-label { margin-top: calc(var(--sub) * -1); font-family: var(--font-hand); font-size: 16px; line-height: 16px; color: var(--margin-red); }
+.margin-btn:focus-visible, .site-menu :focus-visible { outline-color: var(--ink); }
+.site-menu-link[aria-current="page"]:focus-visible { outline-offset: 3px; }
+.site-menu-tools .icon-btn { height: 44px; min-width: 44px; }
+.margin-nav { position: sticky; top: 24px; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: var(--sub); margin-top: var(--sub); margin-bottom: var(--grid); }
+.margin-btn { position: relative; display: grid; place-items: center; width: calc(var(--sub) * 5); height: calc(var(--sub) * 5); padding: 0; border: 1.5px solid var(--margin-red); border-radius: 12px; background: var(--paper); color: var(--margin-red); cursor: pointer; transition: background .12s, color .12s, transform .12s; }
+.margin-btn:hover { background: var(--margin-red); color: var(--paper); }
+.margin-btn:active { transform: scale(.94); }
+.margin-btn svg { width: 22px; height: 22px; }
+.margin-btn .nav-dot { top: -7px; right: -7px; }
+
+.site-menu { font-family: var(--font-display); font-size: 17px; text-align: left; position: fixed; inset: 0 auto 0 0; width: min(calc(var(--m) + 300px), 100vw - 24px); max-width: none; height: 100dvh; max-height: none; margin: 0; padding: 0; border: 0; display: none; grid-template-columns: var(--m) minmax(0, 1fr); color: var(--text); background-color: var(--paper); background-image: linear-gradient(var(--line) 1px, transparent 1px); background-size: 100% var(--sub); box-shadow: 8px 0 32px color-mix(in srgb, var(--ink-deep) 35%, transparent); overflow: hidden auto; overscroll-behavior: contain; }
+.site-menu[open] { display: grid; animation: menu-unroll .26s cubic-bezier(.2, .9, .3, 1); }
+.site-menu::backdrop { background: color-mix(in srgb, var(--ink-deep) 45%, transparent); animation: menu-fade .2s ease-out; }
+html:has(.site-menu[open]) { overflow: hidden; scrollbar-gutter: stable; }
+@keyframes menu-unroll { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes menu-fade { from { opacity: 0; } }
+.site-menu-gutter { border-right: 2px solid var(--margin-red); padding-top: calc(24px + var(--sub)); display: flex; justify-content: center; align-items: flex-start; }
+.site-menu-body { padding: 24px 24px calc(24px + env(safe-area-inset-bottom)) var(--pad); display: grid; align-content: start; gap: calc(var(--sub) * 3); min-width: 0; }
+.site-menu-title { font-size: 28px; line-height: calc(var(--sub) * 6); font-weight: 800; letter-spacing: -0.03em; color: var(--ink); }
+.site-menu nav { display: grid; gap: calc(var(--sub) * 3); }
+.site-menu-group ul { list-style: none; margin: 0; padding: 0; display: grid; }
+.site-menu-kicker { font-family: var(--font-hand); font-size: 22px; line-height: calc(var(--sub) * 4); font-weight: 700; color: var(--margin-red); transform: rotate(-2deg); transform-origin: left; width: max-content; }
+.site-menu-link { position: relative; display: flex; align-items: center; gap: 10px; min-height: calc(var(--sub) * 6); padding: 0 12px; margin-left: -12px; border-radius: 10px; color: var(--text); text-decoration: none; font-size: 19px; font-weight: 650; }
+.site-menu-link:hover { background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--ink); }
+.site-menu-link[aria-current="page"] { color: var(--ink); background: linear-gradient(100deg, transparent 1%, var(--hl) 3%, var(--hl) 97%, transparent 99%); color: var(--on-hl); }
+.site-menu-link .nav-dot { position: static; border: 0; }
+.site-menu-tools { display: flex; flex-wrap: wrap; gap: var(--sub); }
+/* Le nom à côté de l'avatar se cache sur téléphone : il reste le nom accessible du lien. */
+@media (max-width: 720px) {
+  .margin-nav { top: 16px; margin-top: 0; gap: var(--sub); }
+  .site-menu-gutter { padding-top: 24px; }
+  .margin:has(.margin-nav) { padding-inline: 2px; }
+  .margin-btn { width: 38px; height: 44px; border-radius: 10px; }
+  .margin-btn svg { width: 20px; height: 20px; }
+  .site-menu-body { padding-top: 16px; padding-right: 16px; }
+  .nav-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .nav-profile { padding-right: 6px; }
+}
 /* Lignes de 40 px : traits en box-shadow intérieur, qui ne comptent pas dans la hauteur. */
 .games { width: 100%; border-collapse: collapse; background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--line-strong); border-radius: 14px; overflow: hidden; font-size: 15px; }
 .games th, .games td { text-align: left; padding: 8px 14px; box-shadow: inset 0 -1px 0 var(--line); font-variant-numeric: tabular-nums; }

@@ -1,6 +1,7 @@
 import { WEB_URL } from "../../env";
 import { t } from "../../fixtures/i18n";
 import { expect, newUser, signUp, test } from "../../fixtures/test";
+import { openSiteMenu } from "../../pages/menu";
 
 test.describe("guildes", () => {
   test("fondation, invitation, membre en ligne, lobby de guilde puis exclusion", async ({ page, user, browser }) => {
@@ -11,7 +12,7 @@ test.describe("guildes", () => {
 
     // Fondation depuis le lien « Guilde » de l'en-tête.
     await page.goto("/fr");
-    await page.getByRole("navigation", { name: t("nav.main") }).getByRole("link", { name: t("nav.guild") }).click();
+    await (await openSiteMenu(page)).getByRole("link", { name: t("nav.guild") }).click();
     await expect(page).toHaveURL(/\/fr\/guild$/);
     await page.getByLabel(t("guild.nameLabel")).fill(guildName);
     await page.getByRole("button", { name: t("guild.create") }).click();
@@ -24,10 +25,11 @@ test.describe("guildes", () => {
     await expect(page.getByText(t("guild.inviteResult.sent", { name: member.name }))).toBeVisible();
     await expect(page.getByRole("heading", { name: t("guild.pendingTitle") })).toBeVisible();
 
-    // L'invité voit la pastille de l'en-tête et rejoint.
+    // L'invité voit la pastille sur le bouton du menu, puis sur « Guilde », et rejoint.
     await other.goto("/fr");
-    // (`t` ne gère pas les pluriels ICU : le libellé accessible commence par « Guilde ».)
-    const guildLink = other.getByRole("navigation", { name: t("nav.main") }).getByRole("link", { name: new RegExp(`^${t("nav.guild")}`) });
+    // (`t` ne gère pas les pluriels ICU : les libellés accessibles commencent par « Ouvrir le menu » et « Guilde ».)
+    await expect(other.getByRole("button", { name: new RegExp(`^${t("nav.openMenu")}`) }).locator(".nav-dot")).toHaveText("1");
+    const guildLink = (await openSiteMenu(other)).getByRole("link", { name: new RegExp(`^${t("nav.guild")}`) });
     await expect(guildLink.locator(".nav-dot")).toHaveText("1");
     await guildLink.click();
     await expect(other.getByRole("heading", { name: t("guild.invitesTitle") })).toBeVisible();

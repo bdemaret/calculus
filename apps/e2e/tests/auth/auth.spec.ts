@@ -98,7 +98,7 @@ test.describe("profil", () => {
     await name.fill("Nouveau nom");
     await page.getByRole("button", { name: t("profile.save") }).click();
     await expect(page.getByText(t("profile.saved"))).toBeVisible();
-    await expect(page.getByRole("navigation", { name: t("nav.main") }).getByRole("link", { name: "Nouveau nom" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: t("nav.shortcuts") }).getByRole("link", { name: "Nouveau nom" })).toBeVisible();
     await page.reload();
     await expect(name).toHaveValue("Nouveau nom");
   });
@@ -146,7 +146,7 @@ test.describe("profil", () => {
     // Le champ fichier est caché derrière le bouton « Ajouter une photo ».
     await page.locator('input[type="file"]').setInputFiles({ name: "photo.png", mimeType: "image/png", buffer: png });
     await expect(page.getByText(t("profile.avatarSaved"))).toBeVisible();
-    const headerAvatar = page.getByRole("navigation", { name: t("nav.main") }).locator("img.avatar");
+    const headerAvatar = page.getByRole("navigation", { name: t("nav.shortcuts") }).locator("img.avatar");
     await expect(headerAvatar).toHaveAttribute("src", /^\/api\/avatar\/[^/?]+\?v=\d+$/);
     const res = await page.request.get((await headerAvatar.getAttribute("src"))!);
     expect(res.headers()["content-type"]).toMatch(/^image\/(webp|jpeg)$/);
