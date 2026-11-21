@@ -438,6 +438,7 @@
 
 /* Le boss. */
 .dungeon-boss { display: grid; gap: 10px; max-width: 820px; justify-items: stretch; }
+.dungeon-boss-head, .dungeon-boss-info { display: grid; gap: 10px; min-width: 0; }
 .dungeon-boss-stage { position: relative; justify-self: center; width: min(260px, 60vw); aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; background: radial-gradient(circle at 50% 60%, rgba(226, 91, 49, .35), transparent 65%); }
 .dungeon-boss-stage .enemy-art { width: 82%; height: 82%; animation: dg-breathe 3s ease-in-out infinite; }
 .dungeon-boss-stage.hit .enemy-art { animation: dg-hit .42s ease-out; }
@@ -528,9 +529,15 @@
   .dungeon-duel { grid-template-columns: 72px minmax(0, 1fr); }
   .dungeon-duel .enemy-art { width: 72px; height: 72px; }
   .dungeon-duel-name { font-size: 20px; }
-  .dungeon-fight .dungeon-boss-stage { width: min(150px, 40vw); }
-  .dungeon-fight .dungeon-boss-name { font-size: 20px; }
+  /* Boss en combat : portrait à gauche, nom et vie à droite, comme les autres duels, pour garder le calcul au-dessus du pavé. */
+  .dungeon-fight .dungeon-boss { gap: 8px; }
+  .dungeon-fight .dungeon-boss-head { grid-template-columns: 84px minmax(0, 1fr); align-items: center; gap: 12px; }
+  .dungeon-fight .dungeon-boss-info { gap: 4px; }
+  .dungeon-fight .dungeon-boss-stage { width: 84px; justify-self: start; }
+  .dungeon-fight .dungeon-boss-name { font-size: 20px; text-align: left; }
+  .dungeon-fight .dungeon-boss-hp { font-size: 14px; text-align: left; }
   .dungeon-fight .dungeon-hp { height: 18px; }
+  .dungeon-fight .dg-hit { font-size: 20px; }
   .dungeon-end-hero .enemy-art { width: 80px; height: 80px; }
   .dungeon-table { display: block; overflow-x: auto; }
 }

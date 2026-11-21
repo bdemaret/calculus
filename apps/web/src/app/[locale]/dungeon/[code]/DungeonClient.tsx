@@ -1303,27 +1303,32 @@ function BossStage({ room, game, state, me }: { room: Room; game: DungeonView; s
   );
   return (
     <div className="dungeon-boss" data-testid="dungeon-boss" data-mood={mood}>
-      <div className={`dungeon-boss-stage${strike === "hit" ? " hit" : ""}`}>
-        <EnemyArt enemy="boss" />
-        {hits.map((h) => (
-          <span key={h.id} className="dg-hit" data-seat={h.seat % 4} style={{ left: `${h.x}%` }} aria-hidden="true">
-            −{h.amount}
-          </span>
-        ))}
+      {/* Portrait et vie : empilés sur grand écran, côte à côte sur téléphone pour que le calcul reste au-dessus du pavé. */}
+      <div className="dungeon-boss-head">
+        <div className={`dungeon-boss-stage${strike === "hit" ? " hit" : ""}`}>
+          <EnemyArt enemy="boss" />
+          {hits.map((h) => (
+            <span key={h.id} className="dg-hit" data-seat={h.seat % 4} style={{ left: `${h.x}%` }} aria-hidden="true">
+              −{h.amount}
+            </span>
+          ))}
+        </div>
+        <div className="dungeon-boss-info">
+          <p className="dungeon-boss-name">{t("boss.name")}</p>
+          <div
+            className="dungeon-hp"
+            role="meter"
+            aria-valuemin={0}
+            aria-valuemax={boss.maxHp}
+            aria-valuenow={boss.hp}
+            aria-label={t("boss.hpAria")}
+            style={{ ["--segments" as string]: boss.maxHp }}
+          >
+            <span style={{ transform: `scaleX(${Math.max(0, ratio)})` }} />
+          </div>
+          <p className="dungeon-boss-hp">{t("boss.hp", { hp: Math.max(0, boss.hp), max: boss.maxHp })}</p>
+        </div>
       </div>
-      <p className="dungeon-boss-name">{t("boss.name")}</p>
-      <div
-        className="dungeon-hp"
-        role="meter"
-        aria-valuemin={0}
-        aria-valuemax={boss.maxHp}
-        aria-valuenow={boss.hp}
-        aria-label={t("boss.hpAria")}
-        style={{ ["--segments" as string]: boss.maxHp }}
-      >
-        <span style={{ transform: `scaleX(${Math.max(0, ratio)})` }} />
-      </div>
-      <p className="dungeon-boss-hp">{t("boss.hp", { hp: Math.max(0, boss.hp), max: boss.maxHp })}</p>
       <TimerBar deadline={boss.endsAt - state.clockOffset} totalMs={boss.endsAt - boss.startedAt} />
       {meP?.standing && game.question ? (
         <AnswerLine room={room} game={game} state={state} target={null} />
