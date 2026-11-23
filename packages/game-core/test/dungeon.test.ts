@@ -7,6 +7,7 @@ import {
   CHEST_POINTS,
   DIFFICULTIES,
   DUNGEON_FLOORS,
+  DUNGEON_IDLE_MS,
   DUNGEON_MAX_LIVES,
   DUNGEON_START_LIVES,
   DungeonEngine,
@@ -105,9 +106,18 @@ function winRound(g: DungeonEngine, now: number, key = bestRoom(g).key): number 
   let t = now;
   for (const p of g.view("", now).players) if (p.standing) t = Math.max(t, clearSeries(g, p.id, now));
   g.closeCombat(t);
-  if (g.phase === "loot") g.closeLoot(t);
-  g.advance(t);
+  endRound(g, t);
   return t;
+}
+
+/** Après le combat : bilan des combats (tout le monde clique sur « Suivant »), puis la phase des objets s'il y en a. */
+function endRound(g: DungeonEngine, t: number): void {
+  if (g.phase !== "round-result") return;
+  for (const p of g.view("", t).players) if (!p.gone) g.markReady(p.id);
+  expect(g.allReady).toBe(true);
+  g.advance(t);
+  // Relu dans la vue : `advance` change la phase, ce que TypeScript ne voit pas après le test ci-dessus.
+  if (g.view("", t).phase === "loot") g.closeLoot(t);
 }
 
 /* ------------------------------------------------------------------ */
@@ -278,8 +288,7 @@ describe("donjon : exploration", () => {
       let t = now + intro;
       for (const p of g.view("", t).players) if (p.standing) t = Math.max(t, clearSeries(g, p.id, now + intro));
       g.closeCombat(t);
-      g.closeLoot(t);
-      g.advance(t);
+      endRound(g, t);
       now = t + 1;
       if (g.bossReached) break;
     }
@@ -290,8 +299,7 @@ describe("donjon : exploration", () => {
       let t = now + intro;
       for (const p of g.view("", t).players) if (p.fight?.status === "fighting") t = Math.max(t, clearSeries(g, p.id, now + intro));
       g.closeCombat(t);
-      g.closeLoot(t);
-      g.advance(t);
+      endRound(g, t);
       now = t + 1;
     }
     expect(g.phase).toBe("boss");
@@ -313,8 +321,7 @@ describe("donjon : exploration", () => {
       g.closePositioning(rounds * 100_000);
       for (const p of g.view("", 0).players) if (p.fight?.status === "fighting") g.submit(p.id, { value: -1 }, rounds * 100_000 + 10);
       g.closeCombat(rounds * 100_000 + 20);
-      if (g.phase === "loot") g.closeLoot(rounds * 100_000 + 30);
-      if (!g.isOver) g.advance(rounds * 100_000 + 40);
+      if (!g.isOver) endRound(g, rounds * 100_000 + 40);
       rounds += 1;
     }
     expect(g.lossReason).toBe("boss-not-reached");
@@ -353,7 +360,12 @@ describe("donjon : exploration", () => {
       g.pick("p0", chest.key);
       g.pick("p1", chest.key);
       g.closePositioning(0);
-      // Personne n'a de série : la manche se clôt aussitôt, avec le butin.
+      // Personne n'a de série : la manche se clôt aussitôt, sur le bilan des combats, puis la phase des objets.
+      expect(g.phase).toBe("round-result");
+      expect(g.giveLoot("p0", "p0")).toEqual({ ok: false, reason: "phase" });
+      g.markReady("p0");
+      g.markReady("p1");
+      g.advance(0);
       expect(g.phase).toBe("loot");
       const items = rollLoot(`coffre${s}`, chest.key, "chest");
       expect(items).toHaveLength(CHEST_ITEMS);
@@ -608,6 +620,7 @@ describe("donjon : butin et sac", () => {
       inside(g).players[1]!.lives = 0;
       g.pick("p0", chest.key);
       g.closePositioning(0);
+      g.advance(0);
       expect(g.giveLoot("p1", "p1")).toEqual({ ok: false, reason: "no-loot" });
       expect(g.giveLoot("p0", "p1", "heart")).toEqual({ ok: true });
       expect(g.lootDone).toBe(false);
@@ -617,6 +630,102 @@ describe("donjon : butin et sac", () => {
       return;
     }
     throw new Error("aucun cœur au 2e étage");
+  });
+});
+
+describe("donjon : bilan des combats et phase des objets", () => {
+  /** Une carte où un coffre du 2e étage donne deux objets ; p0 y va, p1 affronte une salle de l'entrée. */
+  function chestRound(seed: string) {
+    for (let s = 0; s < 500; s++) {
+      const g = engine(2, 1, `${seed}${s}`);
+      const chest = g.map.rooms.find((r) => r.kind === "chest" && r.floor === 2);
+      if (!chest) continue;
+      openRoom(g, chest.key);
+      g.pick("p0", chest.key);
+      g.pick("p1", g.accessible().find((r) => r.floor === 1)!.key);
+      g.closePositioning(0);
+      return g;
+    }
+    throw new Error("aucune carte avec un coffre au 2e étage");
+  }
+
+  it("le bilan garde chaque calcul de chaque joueur, jusqu'à ce que tous cliquent sur Suivant (une minute au plus)", () => {
+    const g = chestRound("bilan");
+    expect(g.phase).toBe("combat");
+    // Le coffre de p0 est déjà pris ; p1 rate un calcul après en avoir réussi un.
+    let t = 100;
+    expect(g.submit("p1", solve(g.view("p1", t)), t).correct).toBe(true);
+    t += 250;
+    const wrong = wrongOf(solve(g.view("p1", t)));
+    g.submit("p1", wrong, t);
+    // Selon l'ennemi (seconde chance, hydre), l'erreur ne finit pas forcément la série : le temps la finit.
+    if (!g.combatOver) g.expire(t + 600_000);
+    g.closeCombat(t);
+    expect(g.phase).toBe("round-result");
+    expect(g.phaseEndsAt).toBe(t + DUNGEON_IDLE_MS);
+    expect(g.nextDeadline()).toBe(t + DUNGEON_IDLE_MS);
+    const fights = g.lastRound!.fights;
+    expect(fights.find((f) => f.playerId === "p0")!.calcs).toEqual([]);
+    const calcs = fights.find((f) => f.playerId === "p1")!.calcs;
+    expect(calcs[0]).toMatchObject({ correct: true, timeMs: 100 });
+    expect(calcs[1]).toMatchObject({ correct: false, given: "value" in wrong ? String(wrong.value) : expect.any(String), timeMs: 250 });
+    for (const c of calcs) expect(c.solution).not.toBe("");
+    // Tout le monde la voit, dans la vue de chacun.
+    expect(g.view("p0", t).lastRound!.fights.find((f) => f.playerId === "p1")!.calcs).toHaveLength(calcs.length);
+
+    expect(g.markReady("p0")).toEqual({ ok: true });
+    expect(g.allReady).toBe(false);
+    expect(g.view("p1", t).players.find((p) => p.id === "p0")!.ready).toBe(true);
+    // Un joueur à terre doit cliquer aussi ; seul un départ le dispense.
+    g.leave("p1", t);
+    expect(g.allReady).toBe(true);
+    g.advance(t);
+    // Le coffre a rapporté des objets : la phase des objets, elle aussi limitée à une minute.
+    expect(g.phase).toBe("loot");
+    expect(g.nextDeadline()).toBe(t + DUNGEON_IDLE_MS);
+  });
+
+  it("un joueur inactif ne bloque rien : au bout d'une minute, le bilan passe et le butin est distribué d'office", () => {
+    const g = chestRound("inactif");
+    while (!g.combatOver) g.submit("p1", solve(g.view("p1", 100)), 100);
+    g.closeCombat(100);
+    // Personne n'a cliqué : le serveur, à l'échéance, avance quand même.
+    expect(g.allReady).toBe(false);
+    g.advance(100 + DUNGEON_IDLE_MS);
+    expect(g.phase).toBe("loot");
+    expect(g.lootDone).toBe(false);
+    g.closeLoot(100 + 2 * DUNGEON_IDLE_MS);
+    expect(g.loot.every((l) => l.givenTo !== null || l.lost)).toBe(true);
+    expect(g.phase).toBe("positioning");
+  });
+
+  it("sans butin, le bilan mène directement à la manche suivante", () => {
+    const g = engine(2, 1, "sansbutin");
+    const key = g.accessible().find((r) => !r.loot)!.key;
+    winRound(g, 0, key);
+    expect(g.phase).toBe("positioning");
+    expect(g.round).toBe(1);
+  });
+
+  it("la phase des objets finit quand tout est donné, gardé ou laissé ; un départ distribue ce qu'il avait", () => {
+    const g = chestRound("objets");
+    while (!g.combatOver) g.submit("p1", solve(g.view("p1", 100)), 100);
+    g.closeCombat(100);
+    g.markReady("p0");
+    g.markReady("p1");
+    g.advance(100);
+    expect(g.phase).toBe("loot");
+    const [first, second] = g.loot.filter((l) => l.holderId === "p0").map((l) => l.item);
+    expect(g.discardLoot("p1", first)).toEqual({ ok: false, reason: "no-loot" });
+    expect(g.discardLoot("p0", first)).toEqual({ ok: true });
+    expect(g.loot.find((l) => l.item === first)!.lost).toBe(true);
+    expect(g.lootDone).toBe(false);
+    // p0 s'en va sans avoir choisi : son dernier objet va d'office à quelqu'un qui a la place.
+    g.leave("p0", 200);
+    expect(g.loot.find((l) => l.item === second)!.givenTo).toBe("p1");
+    expect(g.lootDone).toBe(true);
+    g.closeLoot(200);
+    expect(g.phase).toBe("positioning");
   });
 });
 

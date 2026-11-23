@@ -26,6 +26,8 @@ export class DungeonBot {
   policy: DungeonPolicy = () => "right";
   /** Salle choisie au positionnement (par défaut la plus proche du boss), null pour ne rien choisir. */
   room: (game: DungeonView) => string | null = (game) => roomsTowardBoss(game)[0]?.key ?? null;
+  /** Clique tout seul sur « Suivant » au bilan des combats (faux : le test l'envoie lui-même). */
+  autoReady = true;
   private done = new Set<string>();
 
   private constructor(
@@ -102,11 +104,19 @@ export class DungeonBot {
         this.colyseus.send("lock", {});
       }
     }
+    // Bilan des combats : le bot clique aussitôt sur Suivant (la suite attend aussi le joueur du navigateur).
+    if (this.autoReady && g.phase === "round-result" && me && !me.gone && !me.ready && this.once(`ready:${round}`)) this.colyseus.send("ready", {});
     if (g.phase === "loot") {
-      // Un coffre donne plusieurs objets : un par vue, tant qu'il en reste un qui tient (cœur : une vie à gagner ; sinon une place au sac).
+      // Un coffre donne plusieurs objets : un par vue. Il garde ce qui tient (cœur : une vie à gagner ; sinon une place au sac),
+      // et laisse le reste : la phase des objets attend que tout soit réglé.
       const pending = g.loot.filter((l) => l.holderId === this.playerId && l.givenTo === null && !l.lost);
-      const mine = pending.find((l) => (l.item === "heart" ? (me?.lives ?? 0) < DUNGEON_MAX_LIVES : (me?.bag.length ?? 0) < BAG_SIZE));
-      if (mine && this.once(`loot:${round}:${pending.length}`)) this.colyseus.send("give-loot", { to: this.playerId, item: mine.item });
+      const fits = (l: (typeof pending)[number]) => (l.item === "heart" ? (me?.lives ?? 0) < DUNGEON_MAX_LIVES : (me?.bag.length ?? 0) < BAG_SIZE);
+      const mine = pending[0];
+      if (mine && this.once(`loot:${round}:${pending.length}`)) {
+        const keep = pending.find(fits);
+        if (keep) this.colyseus.send("give-loot", { to: this.playerId, item: keep.item });
+        else this.colyseus.send("discard-loot", { item: mine.item });
+      }
     }
     const q = g.question;
     // Le calcul se lit à la réception : une momie le cache ensuite (texte vide). Une tête d'hydre repoussée change le texte.

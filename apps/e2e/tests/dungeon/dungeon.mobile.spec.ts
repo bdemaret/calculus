@@ -107,13 +107,18 @@ async function reachBoss(page: Page) {
   const pickable = page.getByTestId("dungeon-cell").and(page.locator('[aria-disabled="false"]'));
   const ready = answerBox(page).and(page.locator(":enabled"));
   const keep = page.getByRole("button", { name: new RegExp(`^${t("dungeon.lootKeep")}`) }).first();
-  const next = boss.or(ready).or(keep).or(lock).or(pickable.first());
+  // Bilan des combats : « Suivant » ; phase des objets : un objet qui ne tient nulle part se laisse.
+  const nextRound = page.getByTestId("dungeon-ready");
+  const discard = page.getByRole("button", { name: t("dungeon.lootDiscard") }).first();
+  const next = boss.or(ready).or(keep).or(lock).or(pickable.first()).or(nextRound).or(discard);
   for (let step = 0; step < 300; step++) {
     await next.first().waitFor({ timeout: 40_000 });
     if (await boss.isVisible()) return;
     // Clics bornés : un bouton peut disparaître entre la vérification et le clic (vue suivante du serveur).
     if (await ready.isVisible()) await tapAnswer(page).catch(() => {});
+    else if (await nextRound.isVisible()) await nextRound.click({ timeout: 2_000 }).catch(() => {});
     else if (await keep.isVisible()) await keep.click({ timeout: 2_000 }).catch(() => {});
+    else if (await discard.isVisible()) await discard.click({ timeout: 2_000 }).catch(() => {});
     else if (await lock.isVisible()) await lock.click({ timeout: 2_000 }).catch(() => {});
     else if (await pickable.first().isVisible()) await pickable.first().click({ timeout: 2_000 }).catch(() => {});
   }

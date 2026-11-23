@@ -1,6 +1,6 @@
 import { Client } from "colyseus.js";
 import type { Page } from "@playwright/test";
-import { DUNGEON_ROOM, DUNGEON_START_LIVES, JOIN_ERRORS } from "@calculus/game-core";
+import { DUNGEON_IDLE_MS, DUNGEON_ROOM, DUNGEON_START_LIVES, JOIN_ERRORS } from "@calculus/game-core";
 import { GAME_HTTP_URL } from "../../env";
 import { Bot } from "../../fixtures/bot";
 import { dungeonRunsOf } from "../../fixtures/db";
@@ -60,14 +60,19 @@ async function playExpedition(page: Page, move: "right" | "wrong" = "right") {
   const ready = answerBox(page).and(page.locator(":enabled"));
   // Un coffre donne deux objets : un bouton « garder » par objet, on prend le premier.
   const keep = page.getByRole("button", { name: new RegExp(`^${t("dungeon.lootKeep")}`) }).first();
+  // Bilan des combats : « Suivant » ; phase des objets : un objet qui ne tient nulle part se laisse.
+  const nextRound = page.getByTestId("dungeon-ready");
+  const discard = page.getByRole("button", { name: t("dungeon.lootDiscard") }).first();
   const lockReady = lock.and(page.locator(":enabled"));
-  const next = summary.or(pickable.first()).or(lockReady).or(ready).or(keep);
+  const next = summary.or(pickable.first()).or(lockReady).or(ready).or(keep).or(nextRound).or(discard);
   for (let step = 0; step < 300; step++) {
     await next.first().waitFor({ timeout: 40_000 });
     if (await summary.isVisible()) return;
     // Clics bornés : un bouton peut disparaître entre la vérification et le clic (vue suivante du serveur).
     if (await ready.isVisible()) await answerCurrent(page, move).catch(() => {});
+    else if (await nextRound.isVisible()) await nextRound.click({ timeout: 2_000 }).catch(() => {});
     else if (await keep.isVisible()) await keep.click({ timeout: 2_000 }).catch(() => {});
+    else if (await discard.isVisible()) await discard.click({ timeout: 2_000 }).catch(() => {});
     else if (await lockReady.isVisible()) await lockReady.click({ timeout: 2_000 }).catch(() => {});
     else if (await pickable.first().isVisible()) await pickable.first().click({ timeout: 2_000 }).catch(() => {});
   }
@@ -250,6 +255,37 @@ test.describe("donjons : règles côté serveur", () => {
       expect(game.players.find((p) => p.id === bob.playerId)!.lives).toBe(DUNGEON_START_LIVES - 1);
       // La réponse attendue n'apparaît qu'au bilan de la manche.
       expect(game.lastRound!.fights.find((f) => f.playerId === bob.playerId)!.failure).toMatchObject({ solution: expect.any(String) });
+    } finally {
+      await bob.leave();
+      await alice.leave();
+    }
+  });
+
+  test("le bilan des combats montre tous les calculs de chacun et attend que tous cliquent sur Suivant", async () => {
+    const alice = await DungeonBot.create({ difficulty: 1 });
+    const bob = await DungeonBot.join(alice.code);
+    try {
+      alice.autoReady = false;
+      bob.autoReady = false;
+      await alice.waitFor((s) => s.members.length === 2);
+      alice.send("start", {});
+      const review = await alice.waitFor((s) => s.game?.phase === "round-result", 60_000);
+      // Une minute au plus pour le lire ; chacun voit les calculs de tous, avec la solution et la réponse donnée.
+      expect(review.deadline! - review.serverNow).toBeGreaterThan(DUNGEON_IDLE_MS - 5_000);
+      for (const f of review.game!.lastRound!.fights) {
+        const room = review.game!.rooms.find((r) => r.key === f.roomKey)!;
+        if (room.enemy) expect(f.calcs.length).toBeGreaterThan(0);
+        for (const c of f.calcs) expect(c).toMatchObject({ text: expect.any(String), solution: expect.any(String), correct: expect.any(Boolean) });
+      }
+      alice.send("ready", {});
+      await alice.waitFor((s) => !!s.game?.players.find((p) => p.id === alice.playerId)?.ready);
+      // Bob n'a pas cliqué : on reste sur le bilan.
+      await new Promise((r) => setTimeout(r, 1_500));
+      expect(alice.snapshot!.game!.phase).toBe("round-result");
+      bob.send("ready", {});
+      // Puis la phase des objets (s'il y a du butin, distribué par les bots) et la manche suivante. Les bots verrouillent
+      // aussitôt leur choix : on relit l'historique plutôt que l'état courant.
+      await expect.poll(() => alice.snapshots.some((s) => s.game?.round === 1), { timeout: 30_000 }).toBe(true);
     } finally {
       await bob.leave();
       await alice.leave();

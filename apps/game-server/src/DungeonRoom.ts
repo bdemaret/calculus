@@ -57,6 +57,8 @@ const answerSchema = z.union([
 ]);
 const itemSchema = z.enum(ITEM_IDS as [ItemId, ...ItemId[]]);
 const lootSchema = z.object({ to: z.string().min(1).max(100), item: itemSchema.optional() }).strict();
+const discardLootSchema = z.object({ item: itemSchema.optional() }).strict();
+const readySchema = z.object({}).strict();
 const useItemSchema = z.object({ item: itemSchema, target: roomKeySchema.optional() }).strict();
 const giveItemSchema = z.object({ item: itemSchema, to: z.string().min(1).max(100) }).strict();
 const dropItemSchema = z.object({ item: itemSchema }).strict();
@@ -143,12 +145,26 @@ export class DungeonRoom extends Room {
 
     this.on("answer", (m, msg, client) => this.handleAnswer(m, client, msg));
 
+    // Bilan des combats : on passe à la suite quand tous ceux qui restent ont cliqué sur « Suivant ».
+    this.on("ready", (m, msg, client) => {
+      const engine = this.engine;
+      if (!readySchema.safeParse(msg ?? {}).success || !engine || !engine.markReady(m.id).ok) return this.refuse(client);
+      this.step(() => this.advanceIfReady(engine));
+    });
+
+    // Phase des objets : finie dès que tout le butin est donné, gardé ou laissé.
     this.on("give-loot", (m, msg, client) => {
       const parsed = lootSchema.safeParse(msg);
       const engine = this.engine;
       if (!parsed.success || !engine || !engine.giveLoot(m.id, parsed.data.to, parsed.data.item).ok) return this.refuse(client);
-      if (engine.lootDone) this.step(() => engine.closeLoot(Date.now()));
-      else this.broadcastSnapshot();
+      this.step(() => this.advanceIfReady(engine));
+    });
+
+    this.on("discard-loot", (m, msg, client) => {
+      const parsed = discardLootSchema.safeParse(msg ?? {});
+      const engine = this.engine;
+      if (!parsed.success || !engine || !engine.discardLoot(m.id, parsed.data.item).ok) return this.refuse(client);
+      this.step(() => this.advanceIfReady(engine));
     });
 
     // Sac : chaque action est vérifiée par le moteur (phase, objet présent, cible). Une bombe peut finir l'expédition.
@@ -358,11 +374,15 @@ export class DungeonRoom extends Room {
     this.step(() => this.advanceIfReady(engine));
   }
 
-  /** Clôt ce qui peut l'être sans attendre l'échéance : combat fini, tous verrouillés, butin donné. */
+  /**
+   * Clôt ce qui peut l'être sans attendre l'échéance : tous verrouillés, combat fini, bilan lu par tous, butin distribué.
+   * Le bilan des combats et la phase des objets n'attendent les inactifs qu'une minute (`DUNGEON_IDLE_MS`, `onDeadline`).
+   */
   private advanceIfReady(engine: DungeonEngine) {
     const now = Date.now();
     if (engine.phase === "positioning" && engine.allLocked) engine.closePositioning(now);
     if (engine.phase === "combat" && engine.combatOver) engine.closeCombat(now);
+    if (engine.phase === "round-result" && engine.allReady) engine.advance(now);
     if (engine.phase === "loot" && engine.lootDone) engine.closeLoot(now);
   }
 
@@ -380,11 +400,12 @@ export class DungeonRoom extends Room {
           engine.expire(now);
           if (engine.combatOver) engine.closeCombat(now);
           break;
-        case "loot":
-          engine.closeLoot(now);
-          break;
+        // Délai d'inactivité écoulé : le bilan passe à la suite, le butin restant est distribué d'office.
         case "round-result":
           engine.advance(now);
+          break;
+        case "loot":
+          engine.closeLoot(now);
           break;
         case "boss":
           engine.expire(now);

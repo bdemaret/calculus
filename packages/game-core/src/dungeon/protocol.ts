@@ -73,8 +73,12 @@ export interface DungeonClientMessages {
   lock: Record<string, never>;
   /** Réponse au calcul numéro `index` de sa série (ou du boss) : un nombre, ou un opérateur (spectre). */
   answer: { index: number; value: number } | { index: number; op: BasicOperation };
-  /** Butin : donner un objet trouvé (à soi ou à un allié) ; `item` dit lequel quand on en a plusieurs. */
+  /** Bilan des combats : « Suivant ». On passe à la suite quand tous les joueurs encore là l'ont envoyé. */
+  ready: Record<string, never>;
+  /** Phase des objets : donner un objet trouvé (à soi ou à un allié) ; `item` dit lequel quand on en a plusieurs. */
   "give-loot": { to: string; item?: ItemId };
+  /** Phase des objets : laisser un objet trouvé (il est perdu). */
+  "discard-loot": { item?: ItemId };
   /** Sac : utiliser (la clé vise une salle), passer à un allié, jeter. */
   "use-item": { item: ItemId; target?: string };
   "give-item": { item: ItemId; to: string };

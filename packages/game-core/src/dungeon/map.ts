@@ -11,10 +11,13 @@ export const DUNGEON_FLOORS = FLOOR_POOLS.length;
 export const DUNGEON_ROUNDS = DUNGEON_FLOORS + 1;
 export const DUNGEON_START_LIVES = 3;
 export const DUNGEON_MAX_LIVES = 5;
-/** Temps pour se positionner, distribuer le butin, voir le bilan d'une manche (ms), lus par le serveur. */
+/** Temps pour se positionner (ms), lu par le serveur. */
 export const DUNGEON_POSITIONING_MS = 20_000;
-export const DUNGEON_LOOT_MS = 15_000;
-export const DUNGEON_RESULT_MS = 5_000;
+/**
+ * Bilan des combats et phase des objets : ils se closent dès que tout le monde a cliqué sur « Suivant » (bilan)
+ * ou que tout a été distribué (objets), et au plus tard au bout de ce délai, pour qu'un joueur inactif ne bloque personne.
+ */
+export const DUNGEON_IDLE_MS = 60_000;
 /** Décompte avant chaque combat et avant le boss : les chronos ne partent qu'après, le calcul n'est pas encore envoyé. */
 export const DUNGEON_INTRO_MS = 3_000;
 /** PV du boss par joueur au départ ; chaque sceau brisé lui en retire une part (jusqu'au plancher). */

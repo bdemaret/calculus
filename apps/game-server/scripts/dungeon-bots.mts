@@ -78,6 +78,10 @@ function drive(room: any, id: string, name: string, host: boolean) {
         room.send("lock", {});
       }, rand(2000, 5000));
     }
+    // Bilan des combats : le bot « lit » quelques secondes, puis clique sur Suivant.
+    if (g.phase === "round-result" && me && !me.gone && !me.ready && once(`ready:${round}`)) {
+      setTimeout(() => room.send("ready", {}), rand(2000, 4000));
+    }
     if (g.phase === "loot") {
       // Un coffre donne plusieurs objets : un à la fois, à chaque vue où il en reste.
       const pending = g.loot.filter((l) => l.holderId === id && l.givenTo === null && !l.lost);
@@ -86,7 +90,9 @@ function drive(room: any, id: string, name: string, host: boolean) {
         const fits = (p: (typeof g.players)[number]) => !p.gone && (mine.item === "heart" ? p.lives < DUNGEON_MAX_LIVES : p.bag.length < BAG_SIZE);
         const need = (p: (typeof g.players)[number]) => (mine.item === "heart" ? p.lives : p.bag.length);
         const target = [...g.players].filter(fits).sort((a, b) => need(a) - need(b))[0];
+        // Personne n'a de place : l'objet est laissé (la phase des objets attend que tout soit réglé).
         if (target) setTimeout(() => room.send("give-loot", { to: target.id, item: mine.item }), rand(1500, 3000));
+        else setTimeout(() => room.send("discard-loot", { item: mine.item }), rand(1500, 3000));
       }
     }
     const q = g.question;

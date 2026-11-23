@@ -10,10 +10,9 @@ import {
   BOSS_TIME_FACTOR,
   CHEST_POINTS,
   DUNGEON_FLOORS,
-  DUNGEON_LOOT_MS,
+  DUNGEON_IDLE_MS,
   DUNGEON_MAX_LIVES,
   DUNGEON_POSITIONING_MS,
-  DUNGEON_RESULT_MS,
   DUNGEON_START_LIVES,
   LIFE_POINTS,
   SEAL_FLOOR_RATIO,
@@ -33,8 +32,10 @@ import { bossQuestion, enemyQuestion } from "./questions";
  * (`phaseEndsAt`, `nextDeadline`) et qui appelle `expire` quand une échéance tombe.
  *
  * Une manche d'exploration : chacun choisit une salle accessible (positionnement), puis l'affronte (combat) ;
- * les salles réussies ouvrent les suivantes et donnent leur butin. Il faut avoir ouvert la salle du boss
- * à la fin des 4 manches d'exploration ; la 5e manche est le boss.
+ * vient ensuite le bilan des combats (`round-result` : chacun y relit ses calculs et ceux des autres, puis clique
+ * sur « Suivant »), puis la phase des objets (`loot`, seulement si la manche a rapporté du butin, close dès que tout
+ * est distribué). Ces deux phases durent au plus `DUNGEON_IDLE_MS`, pour qu'un joueur inactif ne bloque personne. Les salles réussies ouvrent les suivantes. Il faut avoir ouvert
+ * la salle du boss à la fin des 4 manches d'exploration ; la 5e manche est le boss.
  */
 
 export type DungeonPhase = "positioning" | "combat" | "loot" | "round-result" | "boss" | "finished";
@@ -46,6 +47,18 @@ export type DungeonLossReason = "boss-not-reached" | "team-down" | "boss-timeout
 export type DungeonAnswer = { value: number } | { op: BasicOperation };
 
 export type FightStatus = "fighting" | "won" | "failed";
+
+/** Un calcul joué pendant une série, relu au bilan des combats. `given` null : temps écoulé (ou départ). */
+export interface CalcRecord {
+  /** Forme du calcul : ordinaire, ou nombre manquant (sorcière, spectre), pour l'afficher comme au jeu. */
+  game: Question["puzzle"]["game"];
+  text: string;
+  solution: string;
+  given: string | null;
+  correct: boolean;
+  /** Temps mis à répondre (ms). */
+  timeMs: number;
+}
 
 interface PlayerRecord extends PlayerInfo {
   lives: number;
@@ -86,6 +99,8 @@ interface Fight {
   finishedAt: number | null;
   /** Le calcul raté, sa solution et la réponse donnée (null : temps écoulé ou départ). */
   failure: { question: Question; given: string | null } | null;
+  /** Chaque calcul joué, dans l'ordre (montré seulement une fois la manche finie). */
+  log: CalcRecord[];
   /** Sablier : temps multiplié. */
   timeFactor: number;
   secondChance: boolean;
@@ -133,6 +148,8 @@ export interface DungeonRoundOutcome {
     reached: number;
     count: number;
     failure: { text: string; solution: string; given: string | null } | null;
+    /** Tous les calculs joués par ce joueur pendant la manche (vide pour un coffre). */
+    calcs: CalcRecord[];
   }[];
 }
 
@@ -208,6 +225,8 @@ export interface DungeonView {
     standing: boolean;
     pick: string | null;
     locked: boolean;
+    /** Bilan des combats : a cliqué sur « Suivant ». */
+    ready: boolean;
     fight: { roomKey: string; index: number; count: number; status: FightStatus } | null;
     bossDamage: number;
     bag: ItemId[];
@@ -313,6 +332,8 @@ export class DungeonEngine {
   private readonly entered = new Set<string>();
   private picks = new Map<string, string>();
   private locked = new Set<string>();
+  /** Bilan des combats : joueurs qui ont cliqué sur « Suivant ». */
+  private ready = new Set<string>();
   private fights = new Map<string, Fight>();
   private pools = new Map<string, SharedPool>();
   private bossFights = new Map<string, BossFight>();
@@ -455,6 +476,7 @@ export class DungeonEngine {
           status: "won",
           finishedAt: now,
           failure: null,
+          log: [],
           timeFactor: 1,
           secondChance: false,
         });
@@ -479,6 +501,7 @@ export class DungeonEngine {
         status: "fighting",
         finishedAt: null,
         failure: null,
+        log: [],
         timeFactor: factor,
         secondChance,
       });
@@ -533,6 +556,7 @@ export class DungeonEngine {
     if (!isRight(fight.question, answer)) {
       if (fight.secondChance || fight.form === "regrow") {
         // Seconde chance : l'erreur est pardonnée une fois. Hydre : deux têtes repoussent.
+        this.record(fight, answerText(answer), false, now);
         if (fight.secondChance) fight.secondChance = false;
         else fight.count += fight.profile?.regrow ?? 2;
         fight.attempt += 1;
@@ -545,6 +569,7 @@ export class DungeonEngine {
     }
     p.correct += 1;
     p.correctTimeMs += Math.max(0, elapsed);
+    this.record(fight, answerText(answer), true, now);
     fight.index += 1;
     if (fight.form === "shared") {
       const pool = this.pools.get(fight.room.key)!;
@@ -576,6 +601,14 @@ export class DungeonEngine {
     fight.status = "failed";
     fight.finishedAt = now;
     fight.failure = fight.question ? { question: fight.question, given } : null;
+    this.record(fight, given, false, now);
+  }
+
+  /** Note le calcul en cours de la série dans son journal (relu au bilan des combats). */
+  private record(fight: Fight, given: string | null, correct: boolean, now: number): void {
+    const q = fight.question;
+    if (!q) return;
+    fight.log.push({ game: q.puzzle.game, text: q.text, solution: q.solution, given, correct, timeMs: Math.max(0, now - fight.startedAt) });
   }
 
   /** Temps écoulé : la série du joueur échoue ; pour une horde, toute la salle. */
@@ -681,7 +714,10 @@ export class DungeonEngine {
     return false;
   }
 
-  /** Fin d'une manche d'exploration : salles réussies, vies perdues, butin, chemin du boss. Null si des séries sont encore en cours. */
+  /**
+   * Fin d'une manche d'exploration : salles réussies, vies perdues, butin, chemin du boss, puis le bilan des combats.
+   * Null si des séries sont encore en cours.
+   */
   closeCombat(now: number): DungeonRoundOutcome | null {
     if (!this.combatOver) return null;
     this.introEndsAt = null;
@@ -735,14 +771,17 @@ export class DungeonEngine {
         reached: f.index,
         count: f.form === "shared" ? (this.pools.get(f.room.key)?.total ?? f.count) : f.count,
         failure: f.failure ? { text: f.failure.question.text, solution: f.failure.question.solution, given: f.failure.given } : null,
+        calcs: f.log.map((c) => ({ ...c })),
       })),
     };
     if (this.standing().length === 0) this.finish("lost", "team-down");
     else if (!this.bossStillReachable()) this.finish("lost", "boss-not-reached");
-    else if (this.loot.length > 0) {
-      this.phase = "loot";
-      this.phaseEndsAt = now + DUNGEON_LOOT_MS;
-    } else this.toResult(now);
+    else {
+      // Bilan des combats : on attend que chacun clique sur « Suivant », au plus une minute.
+      this.phase = "round-result";
+      this.phaseEndsAt = now + DUNGEON_IDLE_MS;
+      this.ready = new Set();
+    }
     return this.lastRound;
   }
 
@@ -780,24 +819,39 @@ export class DungeonEngine {
     return this.giveLoot(fromId, toId);
   }
 
-  /** Tout le butin a été distribué : le serveur peut clore en avance. */
+  /** Laisser un objet trouvé (personne n'en veut, ou plus de place nulle part) : il est perdu. */
+  discardLoot(fromId: string, item?: ItemId): DungeonActionResult {
+    if (this.phase !== "loot") return { ok: false, reason: "phase" };
+    const entry = this.loot.find((l) => l.holderId === fromId && l.givenTo === null && !l.lost && (item === undefined || l.item === item));
+    if (!entry) return { ok: false, reason: "no-loot" };
+    entry.lost = true;
+    return { ok: true };
+  }
+
+  /** Tout le butin a été distribué (ou laissé) : la phase des objets est finie, le serveur peut passer à la suite. */
   get lootDone(): boolean {
     return this.loot.every((l) => l.givenTo !== null || l.lost);
   }
 
-  /** Fin du butin : un objet non donné reste à son vainqueur s'il a la place, sinon va à l'allié qui en a le plus besoin. */
+  /**
+   * Fin de la phase des objets (tout réglé, ou délai écoulé), puis manche suivante. Un objet encore à distribuer reste à son vainqueur
+   * s'il a la place, sinon va à l'allié qui en a le plus besoin.
+   */
   closeLoot(now: number): void {
     if (this.phase !== "loot") return;
-    for (const entry of this.loot) {
-      if (entry.givenTo !== null || entry.lost) continue;
-      const holder = this.player(entry.holderId);
-      const fits = (p: PlayerRecord) => !p.gone && (entry.item === "heart" ? p.lives < DUNGEON_MAX_LIVES : p.bag.length < BAG_SIZE);
-      const need = (p: PlayerRecord) => (entry.item === "heart" ? p.lives : p.bag.length);
-      const target = holder && fits(holder) ? holder : this.players.filter(fits).sort((a, b) => need(a) - need(b) || this.order(a.id) - this.order(b.id))[0];
-      if (target) this.applyLoot(entry, target);
-      else entry.lost = true;
-    }
-    this.toResult(now);
+    for (const entry of this.loot) this.settleLoot(entry);
+    this.nextRound(now);
+  }
+
+  /** Distribue d'office un objet en attente : à son vainqueur s'il a la place, sinon à l'allié qui en a le plus besoin, sinon perdu. */
+  private settleLoot(entry: LootEntry): void {
+    if (entry.givenTo !== null || entry.lost) return;
+    const holder = this.player(entry.holderId);
+    const fits = (p: PlayerRecord) => !p.gone && (entry.item === "heart" ? p.lives < DUNGEON_MAX_LIVES : p.bag.length < BAG_SIZE);
+    const need = (p: PlayerRecord) => (entry.item === "heart" ? p.lives : p.bag.length);
+    const target = holder && fits(holder) ? holder : this.players.filter(fits).sort((a, b) => need(a) - need(b) || this.order(a.id) - this.order(b.id))[0];
+    if (target) this.applyLoot(entry, target);
+    else entry.lost = true;
   }
 
   private applyLoot(entry: LootEntry, to: PlayerRecord): void {
@@ -898,14 +952,36 @@ export class DungeonEngine {
     return { ok: true };
   }
 
-  private toResult(now: number): void {
-    this.phase = "round-result";
-    this.phaseEndsAt = now + DUNGEON_RESULT_MS;
+  /** Bilan des combats : ce joueur a fini de le lire (« Suivant »). */
+  markReady(playerId: string): DungeonActionResult {
+    if (this.phase !== "round-result") return { ok: false, reason: "phase" };
+    const p = this.player(playerId);
+    if (!p || p.gone) return { ok: false, reason: "unknown-player" };
+    this.ready.add(playerId);
+    return { ok: true };
   }
 
-  /** Après le bilan d'une manche : manche d'exploration suivante, ou le boss. */
+  /** Tous les joueurs encore là (debout ou à terre) ont cliqué sur « Suivant » : le serveur peut avancer. */
+  get allReady(): boolean {
+    return this.phase === "round-result" && this.players.every((p) => p.gone || this.ready.has(p.id));
+  }
+
+  /**
+   * Après le bilan des combats (tous prêts, ou délai écoulé) : la phase des objets s'il y a du butin à distribuer,
+   * sinon la manche suivante.
+   */
   advance(now: number): void {
     if (this.phase !== "round-result") return;
+    if (!this.lootDone) {
+      this.phase = "loot";
+      this.phaseEndsAt = now + DUNGEON_IDLE_MS;
+      return;
+    }
+    this.nextRound(now);
+  }
+
+  /** Manche d'exploration suivante, ou le boss. */
+  private nextRound(now: number): void {
     this.round += 1;
     if (this.round < DUNGEON_FLOORS) this.startPositioning(now);
     else if (this.bossReached) this.startBoss(now);
@@ -945,6 +1021,8 @@ export class DungeonEngine {
     if (this.phase === "combat" && fight?.status === "fighting") this.failFight(fight, null, now);
     const boss = this.bossFights.get(playerId);
     if (boss) boss.down = true;
+    // Phase des objets : ce qu'il avait à distribuer est réparti d'office, pour ne bloquer personne.
+    if (this.phase === "loot") for (const entry of this.loot) if (entry.holderId === playerId) this.settleLoot(entry);
     if (this.standing().length === 0) this.finish("lost", "team-down");
   }
 
@@ -1052,6 +1130,7 @@ export class DungeonEngine {
         standing: p.lives > 0 && !p.gone,
         pick: this.picks.get(p.id) ?? null,
         locked: this.locked.has(p.id),
+        ready: this.ready.has(p.id),
         fight: f ? { roomKey: f.room.key, index: pool ? pool.total - pool.remaining : f.index, count: pool ? pool.total : f.count, status: f.status } : null,
         bossDamage: p.bossDamage,
         bag: [...p.bag],

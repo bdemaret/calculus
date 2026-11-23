@@ -8,11 +8,10 @@ import {
   CHEST_POINTS,
   DIFFICULTIES,
   DUNGEON_FLOORS,
+  DUNGEON_IDLE_MS,
   ITEM_USE,
-  DUNGEON_LOOT_MS,
   DUNGEON_MAX_LIVES,
   DUNGEON_POSITIONING_MS,
-  DUNGEON_RESULT_MS,
   DUNGEON_ROUNDS,
   type Difficulty,
   type DungeonSnapshot,
@@ -25,11 +24,12 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { CalcLine } from "@/components/CalcLine";
 import { UnlockedBlock } from "@/components/GameReportView";
 import { InviteFriends } from "@/components/InviteFriends";
+import { MathText } from "@/components/MathText";
 import { Margin, MarginNote } from "@/components/Margin";
 import { PlayerTitle } from "@/components/PlayerTitle";
 import { TimerBar } from "@/components/TimerBar";
 import { BagIcon, ChestIcon, EnemyArt, Heart, ItemIcon, SealIcon, SwordsIcon } from "../DungeonArt";
-import { answerFromInput } from "@/lib/answer";
+import { answerFromInput, revealSeparator } from "@/lib/answer";
 import {
   JoinError,
   joinDungeon,
@@ -350,7 +350,6 @@ function DungeonGame({
   const [keyMode, setKeyMode] = useState(false);
   const meP = game.players.find((p) => p.id === me) ?? null;
   const roomOf = (key: string | undefined | null) => game.rooms.find((r) => r.key === key) ?? null;
-  const nameOf = (id: string) => game.players.find((p) => p.id === id)?.name ?? "?";
   const lastPhase = useRef("");
 
   useEffect(() => {
@@ -384,7 +383,6 @@ function DungeonGame({
   // Fiche montrée sous la carte : la salle survolée, sinon celle qu'on affronte ou qu'on a choisie.
   const myRoom = roomOf(meP?.fight?.roomKey ?? meP?.pick);
   const shown = roomOf(inspected) ?? myRoom;
-  const phaseTotal = game.phase === "positioning" ? DUNGEON_POSITIONING_MS : game.phase === "loot" ? DUNGEON_LOOT_MS : DUNGEON_RESULT_MS;
   const localDeadline = snap.deadline !== null ? snap.deadline - state.clockOffset : null;
   const exploring = game.phase !== "boss";
   const roundLabel = exploring
@@ -399,6 +397,10 @@ function DungeonGame({
     (game.phase === "combat" && meP?.fight?.status === "fighting" && !!myRoom?.enemy) ||
     (game.phase === "boss" && !!meP?.standing && !!game.boss);
   if (inFight && meP) return <FightScreen room={room} game={game} state={state} me={meP} target={myRoom} onLeave={onLeave} />;
+  // Combat des autres : coffre en cours d'ouverture, ou série finie. On suit où en sont les alliés.
+  if (game.phase === "combat") return <WaitScreen room={room} game={game} state={state} me={me} target={myRoom} onLeave={onLeave} />;
+  // Bilan des combats : on passe à la suite quand tout le monde a cliqué sur « Suivant » (au plus une minute).
+  if (game.phase === "round-result") return <ReviewScreen room={room} game={game} state={state} me={me} deadline={localDeadline} onLeave={onLeave} />;
 
   const onRoom = (key: string) => {
     if (keyMode) {
@@ -436,19 +438,15 @@ function DungeonGame({
       </header>
       {state.reconnecting ? <p className="status">{t("lobby.reconnecting")}</p> : null}
 
-      {game.phase === "positioning" || game.phase === "loot" || game.phase === "round-result" ? (
-        <TimerBar deadline={localDeadline} totalMs={phaseTotal} />
+      {game.phase === "positioning" || game.phase === "loot" ? (
+        <TimerBar deadline={localDeadline} totalMs={game.phase === "positioning" ? DUNGEON_POSITIONING_MS : DUNGEON_IDLE_MS} />
       ) : null}
 
       {/* Le sac garde toujours la même place, juste sous le bandeau : on le voit et on s'en sert sans défiler. */}
       {meP && !meP.gone && game.phase !== "boss" ? <BagBar room={room} game={game} me={meP} fresh={fresh} keyMode={keyMode} setKeyMode={setKeyMode} /> : null}
 
-      {/* Série finie (ou coffre) : son issue passe avant la carte, en attendant les alliés. */}
-      {game.phase === "combat" ? <CombatStage room={room} game={game} state={state} me={me} target={myRoom} /> : null}
-
-      {/* Le butin et le bilan passent aussi avant la carte. */}
+      {/* La phase des objets passe avant la carte. */}
       {game.phase === "loot" ? <LootStage room={room} game={game} me={me} roomOf={roomOf} /> : null}
-      {game.phase === "round-result" && game.lastRound ? <RoundResult game={game} roomOf={roomOf} nameOf={nameOf} me={me} /> : null}
 
       {game.phase === "boss" ? (
         <BossStage room={room} game={game} state={state} me={me} />
@@ -947,7 +945,7 @@ function CombatStage({
   const meP = game.players.find((p) => p.id === me);
   const fight = meP?.fight;
   if (!fight || !target) return <p className="dungeon-panel dungeon-aside">{t("downWatching")}</p>;
-  if (!target.enemy) return <p className="dungeon-panel dungeon-aside">{t("chestTaken")}</p>;
+  if (!target.enemy) return <p className="dungeon-panel dungeon-aside">{t("chestOpening")}</p>;
   const pool = game.pools.find((p) => p.roomKey === fight.roomKey);
   const status =
     fight.status === "fighting"
@@ -1115,9 +1113,13 @@ function BagBar({
   );
 }
 
-/** Le butin de la manche : chaque objet trouvé avec ses boutons (un coffre en donne plusieurs), puis ce que font les alliés. */
+/**
+ * Phase des objets : chaque objet trouvé avec ses boutons (un coffre en donne plusieurs), puis ce que font les alliés.
+ * Elle se termine quand tout a été donné, gardé ou laissé (au plus une minute : le reste est alors distribué d'office). Toucher un objet montre ce qu'il fait.
+ */
 function LootStage({ room, game, me, roomOf }: { room: Room; game: DungeonView; me: string | null; roomOf: (k: string) => RoomV | null }) {
   const t = useTranslations("dungeon");
+  const [described, setDescribed] = useState<string | null>(null);
   const mine = game.loot.filter((l) => l.holderId === me && l.givenTo === null && !l.lost);
   const meP = game.players.find((p) => p.id === me);
   const nameOf = (id: string) => game.players.find((p) => p.id === id)?.name ?? "?";
@@ -1125,63 +1127,81 @@ function LootStage({ room, game, me, roomOf }: { room: Room; game: DungeonView; 
   const fits = (p: DungeonView["players"][number], item: ItemId) =>
     !p.gone && (item === "heart" ? p.lives < DUNGEON_MAX_LIVES : p.bag.length < BAG_SIZE);
   const from = mine[0] ? roomOf(mine[0].roomKey) : null;
+  const pending = game.loot.filter((l) => l.givenTo === null && !l.lost);
+  const waitingOn = [...new Set(pending.filter((l) => l.holderId !== me).map((l) => nameOf(l.holderId)))];
   return (
     <div className="dungeon-panel dungeon-loot-panel" data-testid="dungeon-loot">
       {mine.length ? (
         <>
           <p className="dungeon-loot-title">{t("lootFound", { room: from ? name(from) : "?", count: mine.length })}</p>
           <ul className="dungeon-loot-items">
-            {mine.map((l) => (
-              <li key={l.item} className="dungeon-loot-item" data-item={l.item}>
-                <ItemIcon item={l.item} />
-                <p className="dungeon-loot-text">
-                  <strong>{t(`items.${l.item}.name`)}</strong>
-                  <span>{t(`items.${l.item}.desc`)}</span>
-                </p>
-                <div className="actions">
-                  {game.players
-                    .filter((p) => fits(p, l.item))
-                    .map((p) => (
-                      <button
-                        key={p.id}
-                        className={p.id === me ? "btn" : "btn ghost"}
-                        type="button"
-                        onClick={() => room.send("give-loot", { to: p.id, item: l.item })}
-                      >
-                        {p.id === me ? t("lootKeep") : t("lootGive", { name: p.name })}
-                        {l.item === "heart" ? <Lives lives={p.lives} /> : null}
-                      </button>
-                    ))}
-                  {/* Sac plein : rien à garder tant qu'on n'a pas fait de place (le sac est juste au-dessus). */}
-                  {l.item !== "heart" && meP && !fits(meP, l.item) ? <span className="note">{t("lootBagFull")}</span> : null}
-                </div>
-              </li>
-            ))}
+            {mine.map((l, i) => {
+              const key = `${l.roomKey}:${l.item}:${i}`;
+              const open = described === key;
+              return (
+                <li key={key} className="dungeon-loot-item" data-item={l.item}>
+                  <button
+                    type="button"
+                    className="dungeon-loot-toggle"
+                    aria-expanded={open}
+                    onClick={() => setDescribed(open ? null : key)}
+                  >
+                    <ItemIcon item={l.item} />
+                    <span className="dungeon-loot-text">
+                      <strong>{t(`items.${l.item}.name`)}</strong>
+                      {open ? <span>{t(`items.${l.item}.desc`)}</span> : <span className="note">{t("lootDescribe")}</span>}
+                    </span>
+                  </button>
+                  <div className="actions">
+                    {game.players
+                      .filter((p) => fits(p, l.item))
+                      .map((p) => (
+                        <button
+                          key={p.id}
+                          className={p.id === me ? "btn" : "btn ghost"}
+                          type="button"
+                          onClick={() => room.send("give-loot", { to: p.id, item: l.item })}
+                        >
+                          {p.id === me ? t("lootKeep") : t("lootGive", { name: p.name })}
+                          {l.item === "heart" ? <Lives lives={p.lives} /> : null}
+                        </button>
+                      ))}
+                    <button className="link-btn" type="button" onClick={() => room.send("discard-loot", { item: l.item })}>
+                      {t("lootDiscard")}
+                    </button>
+                    {/* Sac plein : rien à garder tant qu'on n'a pas fait de place (le sac est juste au-dessus). */}
+                    {l.item !== "heart" && meP && !fits(meP, l.item) ? <span className="note">{t("lootBagFull")}</span> : null}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
-          <p className="note">{t("lootHint")}</p>
         </>
-      ) : null}
+      ) : (
+        <p className="dungeon-loot-title">{t("lootWaiting", { names: waitingOn.join(", ") })}</p>
+      )}
+      <p className="note">{t("lootTimeout")}</p>
       {/* Ce que font les alliés, et ce qui est déjà réglé ; ses propres objets en attente sont au-dessus. */}
       <ul className="dungeon-loot">
         {game.loot.map((l, i) =>
           mine.includes(l) ? null : (
-          <li key={`${l.roomKey}:${i}`}>
-            <ItemIcon item={l.item} />{" "}
-            {l.givenTo
-              ? l.givenTo === l.holderId
-                ? t("lootKept", {
-                    name: nameOf(l.holderId),
-                    item: t(`items.${l.item}.name`),
-                  })
-                : t("lootGiven", {
-                    name: nameOf(l.holderId),
-                    to: nameOf(l.givenTo),
-                    item: t(`items.${l.item}.name`),
-                  })
-              : l.lost
-                ? t("lootLost", { item: t(`items.${l.item}.name`) })
-                : t("lootPending", { name: nameOf(l.holderId), item: t(`items.${l.item}.name`) })}
-          </li>
+            <li key={`${l.roomKey}:${i}`}>
+              <ItemIcon item={l.item} />{" "}
+              {l.givenTo
+                ? l.givenTo === l.holderId
+                  ? t("lootKept", {
+                      name: nameOf(l.holderId),
+                      item: t(`items.${l.item}.name`),
+                    })
+                  : t("lootGiven", {
+                      name: nameOf(l.holderId),
+                      to: nameOf(l.givenTo),
+                      item: t(`items.${l.item}.name`),
+                    })
+                : l.lost
+                  ? t("lootLeft", { name: nameOf(l.holderId), item: t(`items.${l.item}.name`) })
+                  : t("lootPending", { name: nameOf(l.holderId), item: t(`items.${l.item}.name`) })}
+            </li>
           ),
         )}
       </ul>
@@ -1189,72 +1209,240 @@ function LootStage({ room, game, me, roomOf }: { room: Room; game: DungeonView; 
   );
 }
 
-function RoundResult({
-  game,
-  roomOf,
-  nameOf,
-  me,
-}: {
-  game: DungeonView;
-  roomOf: (k: string) => RoomV | null;
-  nameOf: (id: string) => string;
-  me: string | null;
-}) {
+/** Où en est la série d'un joueur, en quelques mots (calcul en cours, gobelins ou têtes restants, issue). */
+function useFightText() {
+  const t = useTranslations("dungeon");
+  return (fight: NonNullable<DungeonView["players"][number]["fight"]>, target: RoomV | null, game: DungeonView): string => {
+    if (target && !target.enemy) return t("chestOpened");
+    if (fight.status === "won") return t("seriesWon");
+    if (fight.status === "failed") return t("seriesFailed");
+    const pool = game.pools.find((p) => p.roomKey === fight.roomKey);
+    if (pool) return t("hordeLeft", { n: pool.remaining, count: pool.total });
+    if (target?.form === "regrow") return t("hydraLeft", { n: Math.max(0, fight.count - fight.index) });
+    return t("progress", { n: Math.min(fight.index + 1, fight.count), count: fight.count });
+  };
+}
+
+/** Pendant le combat, ce que font les autres : leur adversaire, leur jauge et où ils en sont. */
+function AlliesProgress({ game, me }: { game: DungeonView; me: string | null }) {
   const t = useTranslations("dungeon");
   const name = useRoomName();
-  const last = game.lastRound;
-  if (!last) return null;
+  const fightText = useFightText();
+  const roomOf = (key: string) => game.rooms.find((r) => r.key === key) ?? null;
+  const others = game.players.map((p, seat) => ({ p, seat })).filter(({ p }) => p.id !== me);
+  if (others.length === 0) return null;
   return (
-    <div className="dungeon-panel dungeon-round-result">
-      <p className="dungeon-banner">{t("roundCleared", { count: last.cleared.length, points: last.points })}</p>
-      {last.sealsBroken ? <p className="dungeon-seal-news">{t("sealsBrokenNews", { count: last.sealsBroken })}</p> : null}
-      {game.bossReached ? <p className="dungeon-seal-news">{t("goalReached")}</p> : null}
-      {/* Le butin de la manche : la phase de butin se clôt dès que tout est donné, on le retrouve ici. */}
-      {game.loot.length ? (
-        <div className="dungeon-round-loot" data-testid="dungeon-round-loot">
-          <p className="dungeon-round-loot-title">{t("roundLoot")}</p>
-          <ul className="dungeon-loot">
-            {game.loot.map((l, i) => {
-              const r = roomOf(l.roomKey);
-              const item = t(`items.${l.item}.name`);
-              return (
-                <li key={`${l.roomKey}:${i}`}>
-                  <ItemIcon item={l.item} /> <strong>{r ? name(r) : "?"}</strong> ·{" "}
-                  {l.lost
-                    ? t("lootLost", { item })
-                    : l.givenTo && l.givenTo !== l.holderId
-                      ? t("lootGiven", { name: nameOf(l.holderId), to: nameOf(l.givenTo), item })
-                      : t("lootKept", { name: nameOf(l.holderId), item })}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ) : null}
-      <ul className="dungeon-results">
-        {last.fights.map((f) => {
-          const r = roomOf(f.roomKey);
+    <div className="dungeon-panel dungeon-allies" data-testid="dungeon-allies">
+      <p className="dungeon-allies-title">{t("alliesProgress")}</p>
+      <ul className="dungeon-allies-list">
+        {others.map(({ p, seat }) => {
+          const r = p.fight ? roomOf(p.fight.roomKey) : null;
+          const pool = p.fight ? game.pools.find((x) => x.roomKey === p.fight!.roomKey) : undefined;
           return (
-            <li key={f.playerId} className={`${f.playerId === me ? "me " : ""}${f.status}`}>
-              {r?.enemy ? <EnemyArt enemy={r.enemy} /> : <ChestIcon />}
-              <span>
-                <strong>{nameOf(f.playerId)}</strong> → {r ? name(r) : "?"} :{" "}
-                {f.status === "won" ? (
-                  <span className="ok">{r?.enemy ? t("seriesWon") : t("chestOpened")}</span>
-                ) : (
-                  <span className="ko">
-                    {t("failedAt", { n: f.reached + 1, count: f.count })}
-                    {f.failure
-                      ? ` · ${f.failure.text} → ${f.failure.solution}${f.failure.given === null ? ` (${t("timeUp")})` : ` (${f.failure.given})`}`
-                      : ""}
-                  </span>
-                )}
+            <li key={p.id} className={`dungeon-ally${p.fight ? ` ${p.fight.status}` : " down"}`} data-player={p.id}>
+              <Token name={p.name} seat={seat} />
+              <span className="dungeon-ally-face">{r?.enemy ? <EnemyArt enemy={r.enemy} /> : r ? <ChestIcon /> : null}</span>
+              <span className="dungeon-ally-info">
+                <span className="nm">
+                  <strong>{p.name}</strong>
+                  {r ? ` · ${name(r)}` : null}
+                </span>
+                {p.fight && r?.enemy ? (
+                  <Progress done={pool ? pool.total - pool.remaining : p.fight.index} count={pool ? pool.total : p.fight.count} status={p.fight.status} />
+                ) : null}
+                <span className="muted">{p.gone ? t("gone") : p.fight ? fightText(p.fight, r, game) : t("teamDown")}</span>
               </span>
             </li>
           );
         })}
       </ul>
     </div>
+  );
+}
+
+/**
+ * Combat en cours, sans série à jouer (coffre, série finie, à terre) : l'écran ne montre que l'attente, avec un coffre
+ * qui s'ouvre pour qui en a pris un, puis où en sont les alliés dans leurs calculs.
+ */
+function WaitScreen({
+  room,
+  game,
+  state,
+  me,
+  target,
+  onLeave,
+}: {
+  room: Room;
+  game: DungeonView;
+  state: DungeonState;
+  me: string | null;
+  target: RoomV | null;
+  onLeave: () => void;
+}) {
+  const t = useTranslations();
+  const meP = game.players.find((p) => p.id === me) ?? null;
+  const chest = !!meP?.fight && !!target && !target.enemy;
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+  return (
+    <section className="game dungeon-game dungeon-wait" data-testid="dungeon-game" data-phase={game.phase}>
+      <header className="dungeon-hud">
+        <span className="dungeon-round">{t("dungeon.roundOf", { n: Math.min(game.round + 1, DUNGEON_FLOORS), total: DUNGEON_FLOORS })}</span>
+        <span className="dungeon-phase">{t("dungeon.phase.combat")}</span>
+        {meP ? <Lives lives={meP.lives} /> : null}
+      </header>
+      {state.reconnecting ? <p className="status">{t("lobby.reconnecting")}</p> : null}
+      {chest ? (
+        <div className="dungeon-panel dungeon-chest-wait" data-testid="dungeon-chest-wait" role="status">
+          <span className="dungeon-chest-loader" aria-hidden="true">
+            <ChestIcon />
+          </span>
+          <p className="dungeon-chest-title">
+            {t("dungeon.chestOpening")}
+            <span className="dungeon-dots" aria-hidden="true">
+              <span>.</span>
+              <span>.</span>
+              <span>.</span>
+            </span>
+          </p>
+          <p className="note">{t("dungeon.chestOpeningHint")}</p>
+        </div>
+      ) : (
+        <CombatStage room={room} game={game} state={state} me={me} target={target} />
+      )}
+      <AlliesProgress game={game} me={me} />
+      <div className="actions">
+        <button className="link-btn" type="button" onClick={onLeave}>
+          {t("game.quit")}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Bilan des combats, après chaque manche d'exploration : tous les calculs de chacun (le sien d'abord), avec la solution,
+ * la réponse donnée et le temps mis. On passe à la suite quand tout le monde a cliqué sur « Suivant », au plus tard
+ * au bout d'une minute (`deadline`, heure locale).
+ */
+function ReviewScreen({
+  room,
+  game,
+  state,
+  me,
+  deadline,
+  onLeave,
+}: {
+  room: Room;
+  game: DungeonView;
+  state: DungeonState;
+  me: string | null;
+  deadline: number | null;
+  onLeave: () => void;
+}) {
+  const t = useTranslations();
+  const td = useTranslations("dungeon");
+  const locale = useLocale();
+  const name = useRoomName();
+  const meP = game.players.find((p) => p.id === me) ?? null;
+  const roomOf = (key: string) => game.rooms.find((r) => r.key === key) ?? null;
+  const nameOf = (id: string) => game.players.find((p) => p.id === id)?.name ?? "?";
+  const seatOf = (id: string) => Math.max(0, game.players.findIndex((p) => p.id === id));
+  const last = game.lastRound;
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+  if (!last) return null;
+  const fights = [...last.fights].sort((a, b) => (a.playerId === me ? -1 : b.playerId === me ? 1 : seatOf(a.playerId) - seatOf(b.playerId)));
+  const waiting = game.players.filter((p) => !p.gone && !p.ready);
+  return (
+    <section className="game dungeon-game dungeon-review-screen" data-testid="dungeon-game" data-phase={game.phase}>
+      <header className="dungeon-hud">
+        <span className="dungeon-round">{td("roundOf", { n: Math.min(game.round + 1, DUNGEON_FLOORS), total: DUNGEON_FLOORS })}</span>
+        <span className="dungeon-phase">{td("phase.round-result")}</span>
+        {meP ? <Lives lives={meP.lives} /> : null}
+      </header>
+      {state.reconnecting ? <p className="status">{t("lobby.reconnecting")}</p> : null}
+      <TimerBar deadline={deadline} totalMs={DUNGEON_IDLE_MS} />
+      <div className="dungeon-panel dungeon-review-head" data-testid="dungeon-review">
+        <p className="dungeon-banner">{td("roundCleared", { count: last.cleared.length, points: last.points })}</p>
+        {last.sealsBroken ? <p className="dungeon-seal-news">{td("sealsBrokenNews", { count: last.sealsBroken })}</p> : null}
+        {game.bossReached ? <p className="dungeon-seal-news">{td("goalReached")}</p> : null}
+        {/* Le butin trouvé : il se répartit juste après, dans la phase des objets. */}
+        {game.loot.length ? (
+          <div className="dungeon-round-loot" data-testid="dungeon-round-loot">
+            <p className="dungeon-round-loot-title">{td("roundLootNext")}</p>
+            <ul className="dungeon-loot">
+              {game.loot.map((l, i) => (
+                <li key={`${l.roomKey}:${i}`}>
+                  <ItemIcon item={l.item} /> {td("lootFoundBy", { name: nameOf(l.holderId), item: td(`items.${l.item}.name`) })}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+
+      <ul className="dungeon-review">
+        {fights.map((f) => {
+          const r = roomOf(f.roomKey);
+          const chest = !r?.enemy;
+          return (
+            <li key={f.playerId} className={`dungeon-review-card ${f.status}${f.playerId === me ? " me" : ""}`} data-player={f.playerId}>
+              <div className="dungeon-review-who">
+                <Token name={nameOf(f.playerId)} seat={seatOf(f.playerId)} />
+                <span className="dungeon-review-face">{r?.enemy ? <EnemyArt enemy={r.enemy} /> : <ChestIcon />}</span>
+                <p>
+                  <strong>{f.playerId === me ? td("reviewYou") : nameOf(f.playerId)}</strong> · {r ? name(r) : "?"}
+                  <br />
+                  {f.status === "won" ? (
+                    <span className="ok">{chest ? td("chestOpened") : td("seriesWon")}</span>
+                  ) : (
+                    <span className="ko">{td("failedAt", { n: f.reached + 1, count: f.count })}</span>
+                  )}
+                </p>
+              </div>
+              {f.calcs.length ? (
+                <ol className="dungeon-calcs">
+                  {f.calcs.map((c, i) => (
+                    <li key={i} className={c.correct ? "ok" : "ko"}>
+                      <span className="dungeon-calc-text">
+                        <MathText text={c.text} />
+                        <span className="eq"> {revealSeparator(c.game)} </span>
+                        <b>{c.solution}</b>
+                      </span>
+                      <span className="dungeon-calc-given">
+                        {c.correct ? "✓" : c.given === null ? td("timeUp") : td("reviewGiven", { given: c.given })}
+                      </span>
+                      <span className="dungeon-calc-time">{formatSeconds(c.timeMs, locale)}</span>
+                    </li>
+                  ))}
+                </ol>
+              ) : chest ? null : (
+                <p className="note">{td("reviewNoCalc")}</p>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="dungeon-review-next">
+        {meP && !meP.gone && !meP.ready ? (
+          <button className="btn" type="button" data-testid="dungeon-ready" onClick={() => room.send("ready", {})}>
+            {td("reviewNext")}
+          </button>
+        ) : null}
+        <p className="note" role="status">
+          {waiting.length ? td("reviewWaiting", { names: waiting.map((p) => p.name).join(", ") }) : td("reviewAllReady")}
+        </p>
+      </div>
+      <div className="actions">
+        <button className="link-btn" type="button" onClick={onLeave}>
+          {t("game.quit")}
+        </button>
+      </div>
+    </section>
   );
 }
 

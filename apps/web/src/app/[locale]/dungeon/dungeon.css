@@ -547,3 +547,54 @@
 @media (prefers-reduced-motion: reduce) {
   .dungeon-world *, .dungeon-world::before, .dungeon-world::after { animation: none !important; transition: none !important; }
 }
+
+/* Combat des autres : coffre en cours d'ouverture, puis où en sont les alliés. */
+.dungeon-chest-wait { justify-items: center; text-align: center; padding: 20px 16px; border-radius: 16px; border: 1.5px solid rgba(242, 201, 76, .55); background: radial-gradient(60% 80% at 50% 30%, rgba(242, 201, 76, .16), transparent 70%), rgba(0, 0, 0, .3); }
+.dungeon-chest-loader { display: grid; place-items: center; width: 96px; height: 96px; }
+.dungeon-chest-loader svg { width: 100%; height: 100%; filter: drop-shadow(0 0 16px rgba(242, 201, 76, .55)); animation: dg-chest-shake 1.6s ease-in-out infinite; transform-origin: 50% 90%; }
+.dungeon-chest-title { margin: 0; font-size: 20px; font-weight: 700; color: var(--dg-torch-hi); }
+.dungeon-dots span { animation: dg-dot 1.2s infinite; opacity: .2; }
+.dungeon-dots span:nth-child(2) { animation-delay: .2s; }
+.dungeon-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes dg-chest-shake { 0%, 60%, 100% { transform: rotate(0); } 70% { transform: rotate(-6deg); } 80% { transform: rotate(5deg); } 90% { transform: rotate(-3deg); } }
+@keyframes dg-dot { 0%, 100% { opacity: .2; } 40% { opacity: 1; } }
+.dungeon-allies-title { margin: 0; font-weight: 700; color: var(--dg-torch-hi); }
+.dungeon-allies-list { display: grid; gap: 8px; padding: 0; margin: 0; list-style: none; }
+.dungeon-ally { display: grid; grid-template-columns: auto 44px minmax(0, 1fr); align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--dg-edge); background: rgba(0, 0, 0, .22); }
+.dungeon-ally-face { display: grid; place-items: center; width: 44px; height: 44px; }
+.dungeon-ally-face :is(.enemy-art, svg) { width: 44px; height: 44px; }
+.dungeon-ally-info { display: grid; gap: 4px; min-width: 0; }
+.dungeon-ally.won .muted { color: var(--dg-heal); }
+.dungeon-ally.failed .muted { color: var(--dg-blood); }
+.dungeon-ally.down { opacity: .6; }
+
+/* Bilan des combats : tous les calculs de chacun, puis « Suivant ». */
+.dungeon-review { display: grid; gap: 12px; padding: 0; margin: 0; list-style: none; }
+.dungeon-review-card { display: grid; gap: 8px; padding: 12px; border-radius: 14px; border: 1px solid var(--dg-edge); background: rgba(0, 0, 0, .25); }
+.dungeon-review-card.me { border-color: var(--dg-torch); }
+.dungeon-review-who { display: grid; grid-template-columns: auto 40px minmax(0, 1fr); align-items: center; gap: 10px; }
+.dungeon-review-who p { margin: 0; }
+.dungeon-review-face { display: grid; place-items: center; width: 40px; height: 40px; }
+.dungeon-review-face :is(.enemy-art, svg) { width: 40px; height: 40px; }
+.dungeon-review-card .ok { color: var(--dg-heal); font-weight: 700; }
+.dungeon-review-card .ko { color: var(--dg-blood); font-weight: 700; }
+.dungeon-calcs { display: grid; gap: 4px; padding: 0; margin: 0; list-style: none; }
+.dungeon-calcs li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: baseline; gap: 4px 12px; padding: 4px 8px; border-radius: 8px; border-left: 3px solid var(--dg-heal); background: rgba(255, 255, 255, .04); }
+.dungeon-calcs li.ko { border-left-color: var(--dg-blood); }
+.dungeon-calc-text { overflow-wrap: anywhere; }
+.dungeon-calc-given { font-size: 14px; }
+.dungeon-calcs li.ok .dungeon-calc-given { color: var(--dg-heal); }
+.dungeon-calcs li.ko .dungeon-calc-given { color: var(--dg-blood); }
+.dungeon-calc-time { font-size: 13px; color: var(--dg-muted); font-variant-numeric: tabular-nums; }
+.dungeon-review-next { position: sticky; bottom: 0; z-index: 5; display: grid; justify-items: center; gap: 6px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, transparent, var(--dg-night) 35%); }
+.dungeon-review-next .btn { min-width: 200px; }
+
+/* Phase des objets : toucher un objet montre ce qu'il fait. */
+.dungeon-loot-toggle { grid-column: 1 / -1; display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: center; gap: 12px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+@media (max-width: 480px) {
+  .dungeon-calcs li { grid-template-columns: minmax(0, 1fr) auto; }
+  .dungeon-calc-time { grid-column: 2; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dungeon-chest-loader svg, .dungeon-dots span { animation: none; opacity: 1; }
+}
