@@ -50,6 +50,10 @@ export interface EnemyProfile {
   /** Temps dégressif : chaque calcul a `timeStepMs` de moins que le précédent, sans descendre sous `minTimeMs`. */
   timeStepMs?: number;
   minTimeMs?: number;
+  /** Temps des derniers calculs de la série (flèches finales du squelette), en ms ; ils comptent dans `count`. */
+  finalTimesMs?: number[];
+  /** Un des termes tiré dans ces bornes, les autres dans celles de `level` (troll de Légende : un nombre à 4 chiffres). */
+  bigTerm?: { min: number; max: number };
   /** Chrono global de la série (`shared`, `regrow`), en ms ; il remplace le temps par calcul. */
   totalMs?: number;
   /** `regrow` : calculs ajoutés à chaque erreur. */
@@ -58,6 +62,9 @@ export interface EnemyProfile {
 
 /** Temps du calcul numéro `index` d'une série (temps dégressif compris). */
 export function enemyTimeMs(p: EnemyProfile, index: number): number {
+  const finals = p.finalTimesMs ?? [];
+  const fromEnd = index - (p.count - finals.length);
+  if (fromEnd >= 0 && fromEnd < finals.length) return finals[fromEnd]!;
   if (!p.timeStepMs) return p.timeMs;
   return Math.max(p.minTimeMs ?? 1000, p.timeMs - index * p.timeStepMs);
 }
@@ -86,17 +93,18 @@ const elf: EnemyDefinition = {
   }),
 };
 
-/** Troll : de gros calculs simples (additions et soustractions à 3 chiffres), avec du temps. */
+/** Troll : de gros calculs simples (additions et soustractions à 3 chiffres, dont un à 4 chiffres en Légende), avec du temps. */
 const troll: EnemyDefinition = {
   id: "troll",
   tier: 2,
   profile: (difficulty, floor) => ({
-    level: levelFrom(difficulty, { addMin: 100, addMax: 999, terms: difficulty >= 4 ? [3] : [2], maxResult: 3000 }),
+    level: levelFrom(difficulty, { addMin: 100, addMax: 999, terms: difficulty >= 4 ? [3] : [2], maxResult: difficulty >= 5 ? 15_000 : 3000 }),
     operations: ["add", "sub"],
     parentheses: false,
     count: 3 + Math.floor(floor / 2),
     timeMs: (difficulty >= 4 ? 25 : 20) * 1000,
     visibleMs: null,
+    ...(difficulty >= 5 ? { bigTerm: { min: 1000, max: 9999 } } : {}),
   }),
 };
 
@@ -150,6 +158,9 @@ const witch: EnemyDefinition = {
   }),
 };
 
+/** Temps du spectre par calcul : trouver un signe va vite, même sur de grands nombres. */
+const SPECTER_TIME_MS: Record<Difficulty, number> = { 1: 12_000, 2: 12_000, 3: 12_000, 4: 11_000, 5: 10_000 };
+
 /** Spectre : un opérateur caché (« 12 ? 4 = 3 »), au moins l'addition et la soustraction. */
 const specter: EnemyDefinition = {
   id: "specter",
@@ -159,7 +170,7 @@ const specter: EnemyDefinition = {
     operations: difficulty >= 2 ? basicOf(difficulty) : ["add", "sub", "mul"],
     parentheses: false,
     count: 4 + Math.floor(floor / 2),
-    timeMs: (LEVELS[difficulty].defaultTime + 2) * 1000,
+    timeMs: SPECTER_TIME_MS[difficulty],
     visibleMs: null,
     question: "missing-operator",
   }),
@@ -182,7 +193,10 @@ const cyclops: EnemyDefinition = {
   },
 };
 
-/** Squelette archer : des calculs simples, et le temps fond à chaque flèche (5 s, puis de moins en moins). */
+/** Flèches finales du squelette selon la difficulté : une à 2 s en Expert, puis une à 1,7 s en Légende. */
+const SKELETON_FINALS_MS: Record<Difficulty, number[]> = { 1: [], 2: [], 3: [], 4: [2000], 5: [2000, 1700] };
+
+/** Squelette archer : des calculs simples, et le temps fond à chaque flèche (5,5 s, puis de moins en moins, et les flèches finales). */
 const skeleton: EnemyDefinition = {
   id: "skeleton",
   tier: 1,
@@ -190,10 +204,11 @@ const skeleton: EnemyDefinition = {
     level: levelFrom(difficulty, { addMin: 2, addMax: difficulty >= 3 ? 30 : 15, mulMax: 9, divMax: 9, terms: [2], maxResult: 300 }),
     operations: difficulty >= 2 ? ["add", "sub", "mul"] : ["add", "sub"],
     parentheses: false,
-    count: 6 + floor,
+    count: 6 + floor + SKELETON_FINALS_MS[difficulty].length,
     timeMs: 5500,
     timeStepMs: 500,
     minTimeMs: 2500,
+    finalTimesMs: SKELETON_FINALS_MS[difficulty],
     visibleMs: null,
   }),
 };
@@ -219,6 +234,12 @@ const hydra: EnemyDefinition = {
   },
 };
 
+/**
+ * Taille de la horde selon la difficulté (avant le bonus d'étage) : les calculs restent petits,
+ * c'est le nombre qui monte. En Légende, une trentaine en 40 s : hors de portée d'un joueur seul.
+ */
+const GOBLIN_COUNT: Record<Difficulty, number> = { 1: 10, 2: 12, 3: 16, 4: 22, 5: 30 };
+
 /** Horde de gobelins : beaucoup de petits calculs, une série commune à tous ceux qui l'affrontent. */
 const goblins: EnemyDefinition = {
   id: "goblins",
@@ -227,7 +248,7 @@ const goblins: EnemyDefinition = {
     level: levelFrom(difficulty, { addMin: 1, addMax: difficulty >= 3 ? 30 : 12, mulMax: 9, divMax: 9, terms: [2], maxResult: 300 }),
     operations: difficulty >= 2 ? ["add", "sub", "mul"] : ["add", "sub"],
     parentheses: false,
-    count: 10 + 2 * Math.floor(floor / 2),
+    count: GOBLIN_COUNT[difficulty] + 2 * Math.floor(floor / 2),
     timeMs: 6000,
     visibleMs: null,
     form: "shared",

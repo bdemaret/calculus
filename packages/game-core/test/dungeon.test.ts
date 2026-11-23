@@ -23,6 +23,7 @@ import {
   bossQuestion,
   buildDungeon,
   enemyQuestion,
+  enemyTimeMs,
   evaluateText,
   missingGame,
   rollLoot,
@@ -195,6 +196,33 @@ describe("donjon : calculs des ennemis", () => {
     expect(enemyQuestion("g", 0, "2-0", "cyclops", 2, 3, "p0", 0).text.split(/[+−×÷]/).length).toBeGreaterThanOrEqual(4);
     const skel = ENEMIES.skeleton.profile(1, 0);
     expect(skel.timeStepMs).toBeGreaterThan(0);
+  });
+
+  it("le squelette tire ses flèches finales en Expert et en Légende", () => {
+    const times = (d: 1 | 4 | 5) => {
+      const p = ENEMIES.skeleton.profile(d, 0);
+      return Array.from({ length: p.count }, (_, i) => enemyTimeMs(p, i));
+    };
+    expect(times(1)).toEqual([5500, 5000, 4500, 4000, 3500, 3000]);
+    expect(times(4)).toEqual([5500, 5000, 4500, 4000, 3500, 3000, 2000]);
+    expect(times(5)).toEqual([5500, 5000, 4500, 4000, 3500, 3000, 2000, 1700]);
+  });
+
+  it("le troll de Légende pose un nombre à 4 chiffres et deux à 3 chiffres", () => {
+    for (let i = 0; i < 200; i++) {
+      const q = enemyQuestion("g", 0, "1-0", "troll", 1, 5, "p0", i);
+      expect(evaluateText(q.text)).toBe(q.answer);
+      const sizes = q.text.split(/[+−]/).map((n) => n.trim().length).sort();
+      expect(sizes).toEqual([3, 3, 4]);
+    }
+    const expert = enemyQuestion("g", 0, "1-0", "troll", 1, 4, "p0", 0);
+    expect(expert.text.split(/[+−]/).every((n) => n.trim().length === 3)).toBe(true);
+  });
+
+  it("le spectre a moins de temps aux hauts niveaux", () => {
+    expect(ENEMIES.specter.profile(5, 0).timeMs).toBe(10_000);
+    expect(ENEMIES.specter.profile(4, 0).timeMs).toBe(11_000);
+    expect(ENEMIES.specter.profile(1, 0).timeMs).toBe(12_000);
   });
 
   it("le boss pose des calculs justes à tous les niveaux", () => {
