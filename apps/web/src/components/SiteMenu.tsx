@@ -83,9 +83,21 @@ export function SiteMenu({ signedIn, isAdmin, guildInvites, requests }: SiteMenu
   };
   const close = () => dialog.current?.close();
 
+  // Retour à l'accueil, toujours présent au-dessus du bouton du menu (et du bouton de fermeture, menu ouvert).
+  const homeLink = (onClick?: () => void) => (
+    <Link className="margin-btn" href="/" aria-label={t("home")} title={t("home")} aria-current={pathname === "/" ? "page" : undefined} onClick={onClick}>
+      <Icon>
+        <path d="M4 11.5 12 4l8 7.5" />
+        <path d="M6.5 9.5V20h11V9.5" />
+        <path d="M10 20v-5.5h4V20" />
+      </Icon>
+    </Link>
+  );
+
   return (
     <>
       <div className="margin-nav">
+        {homeLink()}
         <button
           type="button"
           className="margin-btn"
@@ -103,15 +115,6 @@ export function SiteMenu({ signedIn, isAdmin, guildInvites, requests }: SiteMenu
         <span className="margin-btn-label" aria-hidden="true">
           {t("menu")}
         </span>
-        {pathname === "/" ? null : (
-          <Link className="margin-btn" href="/" aria-label={t("home")} title={t("home")}>
-            <Icon>
-              <path d="M4 11.5 12 4l8 7.5" />
-              <path d="M6.5 9.5V20h11V9.5" />
-              <path d="M10 20v-5.5h4V20" />
-            </Icon>
-          </Link>
-        )}
       </div>
       <dialog
         id="site-menu"
@@ -128,6 +131,7 @@ export function SiteMenu({ signedIn, isAdmin, guildInvites, requests }: SiteMenu
         }}
       >
         <div className="site-menu-gutter">
+          {homeLink(close)}
           <button type="button" className="margin-btn" aria-label={t("closeMenu")} title={t("closeMenu")} onClick={close}>
             <Icon>
               <path d="M6 6l12 12M18 6 6 18" />

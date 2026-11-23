@@ -566,7 +566,7 @@ html[data-playing] .margin-nav { display: none; }
 html:has(.site-menu[open]) { overflow: hidden; scrollbar-gutter: stable; }
 @keyframes menu-unroll { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes menu-fade { from { opacity: 0; } }
-.site-menu-gutter { border-right: 2px solid var(--margin-red); padding-top: calc(24px + var(--sub)); display: flex; justify-content: center; align-items: flex-start; }
+.site-menu-gutter { border-right: 2px solid var(--margin-red); padding-top: calc(24px + var(--sub)); display: flex; flex-direction: column; align-items: center; gap: var(--sub); }
 .site-menu-body { padding: 24px 24px calc(24px + env(safe-area-inset-bottom)) var(--pad); display: grid; align-content: start; gap: calc(var(--sub) * 3); min-width: 0; }
 .site-menu-title { font-size: 28px; line-height: calc(var(--sub) * 6); font-weight: 800; letter-spacing: -0.03em; color: var(--ink); }
 .site-menu nav { display: grid; gap: calc(var(--sub) * 3); }
