@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   GAMES,
+  gameDefaults,
+  isRandomDifficulty,
   GAME_IDS,
   GameEngine,
   answerOfRecord,
@@ -110,7 +112,7 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
     if (preset && preset !== saved.game) {
       // Jeu choisi dans l'onglet Jeux : ses derniers réglages, sinon ceux par défaut au dernier niveau joué.
       const last = local.get<unknown>(`solo.${preset}`, null);
-      const next = last ? sanitizeSettings({ ...(last as object), game: preset }) : sanitizeSettings({ ...saved, game: preset, ...GAMES[preset].defaults(saved.difficulty) });
+      const next = last ? sanitizeSettings({ ...(last as object), game: preset }) : sanitizeSettings({ ...saved, game: preset, ...gameDefaults(preset, saved.difficulty) });
       setSettings(next);
       local.set("solo", next);
     } else {
@@ -351,6 +353,8 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
       <Margin>
         <MarginNote value={`${(shown?.index ?? 0) + 1}${totalLabel}`} label={t("game.round")} />
         <MarginNote value={<span className="grade">{me?.score ?? 0}</span>} label={settings.mode === "speed-race" ? t("game.points") : t("game.correct")} />
+        {/* Niveau aléatoire : le niveau tiré pour ce calcul. */}
+        {isRandomDifficulty(settings.difficulty) && shown ? <MarginNote value={t(`levels.${shown.question.difficulty}`)} label={t("settings.difficulty")} /> : null}
       </Margin>
       <TimerBar
         deadline={phase === "question" && round ? round.startedAt + round.timeLimitMs : null}

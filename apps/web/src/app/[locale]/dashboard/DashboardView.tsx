@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { DashboardBreakdown, DashboardData } from "@calculus/db";
-import { DIFFICULTIES, GAMES, GAME_IDS, PLACEMENT_GAMES, type GameId, type RatingChange } from "@calculus/game-core";
+import { DIFFICULTY_CHOICES, GAMES, GAME_IDS, PLACEMENT_GAMES, type GameId, type RatingChange } from "@calculus/game-core";
 import { Link } from "@/i18n/navigation";
 import { Margin, MarginNote } from "@/components/Margin";
 import { formatPercent, formatSeconds, formatSigned } from "@/lib/format";
@@ -196,7 +196,7 @@ function RatingsGrid({ ratings }: { ratings: DashboardData["ratings"] }) {
           <thead>
             <tr>
               <th>{t("settings.game")}</th>
-              {DIFFICULTIES.map((d) => (
+              {DIFFICULTY_CHOICES.map((d) => (
                 <th key={d}>{t(`levels.${d}`)}</th>
               ))}
             </tr>
@@ -207,7 +207,7 @@ function RatingsGrid({ ratings }: { ratings: DashboardData["ratings"] }) {
                 <td>
                   {t(`games.${game}.name`)} · {t(`modes.${mode}.name`)}
                 </td>
-                {DIFFICULTIES.map((d) => {
+                {DIFFICULTY_CHOICES.map((d) => {
                   const r = byKey.get(`${game}:${mode}:${d}`);
                   if (r?.rating != null)
                     return (
@@ -274,7 +274,7 @@ function DifficultyTable({ rows }: { rows: DashboardBreakdown[] }) {
             </tr>
           </thead>
           <tbody>
-            {DIFFICULTIES.map((d) => {
+            {DIFFICULTY_CHOICES.map((d) => {
               const s = statsOf(rows.filter((r) => r.difficulty === d));
               if (!s.gamesPlayed)
                 return (

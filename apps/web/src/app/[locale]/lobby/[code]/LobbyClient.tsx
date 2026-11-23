@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { Room } from "colyseus.js";
-import { GAMES, MAX_PLAYERS, readSteps, type GameSettings, type PlayerAnswer, type RoomSnapshot } from "@calculus/game-core";
+import { GAMES, MAX_PLAYERS, isRandomDifficulty, readSteps, type GameSettings, type PlayerAnswer, type RoomSnapshot } from "@calculus/game-core";
 import { Link, useRouter } from "@/i18n/navigation";
 import { CalcLine } from "@/components/CalcLine";
 import { BombAssign, BombBuild, BombPairList, BombResults } from "@/components/BombStage";
@@ -460,6 +460,10 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
       <Margin>
         <MarginNote value={`${(last?.index ?? snap.roundIndex) + 1}${snap.totalRounds ? `/${snap.totalRounds}` : ""}`} label={t("game.round")} />
         <MarginNote value={<span className="grade">{meP?.score ?? 0}</span>} label={snap.settings.mode === "speed-race" ? t("game.points") : t("game.correct")} />
+        {/* Niveau aléatoire : le niveau tiré pour ce calcul. */}
+        {isRandomDifficulty(snap.settings.difficulty) && (snap.question ?? last) ? (
+          <MarginNote value={t(`levels.${(snap.question ?? last)!.difficulty}`)} label={t("settings.difficulty")} />
+        ) : null}
       </Margin>
       <TimerBar
         deadline={snap.phase === "question" || snap.phase === "build" ? localDeadline : null}

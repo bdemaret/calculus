@@ -1,6 +1,8 @@
 import { GAME_IDS, GAMES } from "./games";
 import { DEFAULT_BUILD_TIME, DEFAULT_POWER, MAX_BUILD_TIME, MAX_POWER, MAX_ROUNDS, MIN_BUILD_TIME, MIN_POWER, MIN_ROUNDS } from "./limits";
-import type { Difficulty, GameId, GameModeId, GameSettings, MissingKind, TurnStyle } from "./types";
+import { DIFFICULTIES, isDifficultyChoice, isRandomDifficulty } from "./levels";
+import { createRng, pick } from "./rng";
+import type { Difficulty, DifficultyChoice, GameId, GameModeId, GameSettings, MissingKind, QuestionSettings, TurnStyle } from "./types";
 
 export * from "./limits";
 
@@ -8,13 +10,22 @@ export const GAME_MODES: GameModeId[] = ["battle-royale", "speed-race"];
 export const TURN_STYLES: TurnStyle[] = ["simultaneous", "turns"];
 export const MISSING_KINDS: MissingKind[] = ["number", "operator", "mixed"];
 
-export function defaultSettings(difficulty: Difficulty = 2, mode: GameModeId = "speed-race", game: GameId = "standard"): GameSettings {
+/**
+ * Opérations, parenthèses et temps par défaut d'un jeu à un niveau. En aléatoire, chaque calcul prend ceux de son
+ * niveau (`settingsAt`) : la partie garde ceux de la Légende, qui les englobent (toutes les opérations, le plus long temps).
+ */
+export const gameDefaults = (game: GameId, difficulty: DifficultyChoice) => GAMES[game].defaults(isRandomDifficulty(difficulty) ? 5 : difficulty);
+
+/** Réglages par défaut. Avec un niveau fixe, ils servent tels quels à générer un calcul (`QuestionSettings`). */
+export function defaultSettings(difficulty?: Difficulty, mode?: GameModeId, game?: GameId): QuestionSettings;
+export function defaultSettings(difficulty: DifficultyChoice, mode?: GameModeId, game?: GameId): GameSettings;
+export function defaultSettings(difficulty: DifficultyChoice = 2, mode: GameModeId = "speed-race", game: GameId = "standard"): GameSettings {
   return {
     game,
     difficulty,
     mode,
     // Opérations, parenthèses et temps dépendent du jeu et du niveau.
-    ...GAMES[game].defaults(difficulty),
+    ...gameDefaults(game, difficulty),
     rounds: 15,
     turnStyle: "simultaneous",
     // Aux premiers niveaux, on ne cache qu'un nombre ; ensuite, un nombre ou un opérateur.
@@ -32,7 +43,7 @@ const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(mi
  */
 export function sanitizeSettings(input: unknown): GameSettings {
   const raw = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
-  const difficulty = ([1, 2, 3, 4, 5].includes(Number(raw.difficulty)) ? Number(raw.difficulty) : 2) as Difficulty;
+  const difficulty: DifficultyChoice = isDifficultyChoice(Number(raw.difficulty)) ? (Number(raw.difficulty) as DifficultyChoice) : 2;
   const game = GAME_IDS.includes(raw.game as GameId) ? (raw.game as GameId) : GAME_IDS[0]!;
   const base = defaultSettings(difficulty, undefined, game);
   const time = GAMES[game].timeRange;
@@ -63,4 +74,16 @@ export function sanitizeSettings(input: unknown): GameSettings {
         ? clamp(raw.timePerQuestion, time.min, time.max)
         : base.timePerQuestion,
   };
+}
+
+/**
+ * Réglages du calcul numéro `index` d'une partie. Niveau fixe : ceux de la partie. Niveau aléatoire : un niveau
+ * tiré au sort à partir de la graine et de l'index (déterministe, comme le calcul), avec les opérations, parenthèses
+ * et temps par défaut de ce niveau pour ce jeu ; les autres réglages (manches, trou, exposant…) restent ceux de la partie.
+ */
+export function settingsAt(settings: GameSettings, seed: string, index: number): QuestionSettings {
+  const { difficulty } = settings;
+  if (!isRandomDifficulty(difficulty)) return { ...settings, difficulty };
+  const level = pick(createRng(`${seed}:${index}:level`), DIFFICULTIES);
+  return { ...settings, difficulty: level, ...GAMES[settings.game].defaults(level) };
 }

@@ -37,6 +37,7 @@ import {
   type Difficulty,
   type DungeonSummary,
   type GameFacts,
+  settingsAt,
   type GameId,
   type GameModeId,
   type GameReport,
@@ -599,7 +600,7 @@ function rebuildGame(game: StoredGame): { settings: GameSettings; standings: Sta
       index: q.position,
       question:
         personal && draw?.game === "bomb"
-          ? { index: q.position, text: draw.tiles.join(" "), answer: 0, solution: "", puzzle: draw, tags: [], difficulty: settings.difficulty }
+          ? { index: q.position, text: draw.tiles.join(" "), answer: 0, solution: "", puzzle: draw, tags: [], difficulty: settingsAt(settings, game.seed, q.position).difficulty }
           : toQuestion(q),
       ...(personal ? { personal, ...(draw?.game === "bomb" ? { bombs: bombsOf(game.seed, q.position, draw, personal) } : {}) } : {}),
       activePlayerId: q.activePlayerKey,

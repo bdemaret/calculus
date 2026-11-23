@@ -10,7 +10,7 @@ import {
   evaluateText,
   missingGame,
   sanitizeSettings,
-  type GameSettings,
+  type QuestionSettings,
   type Operation,
   type PlayerAnswer,
   type Question,
@@ -43,7 +43,7 @@ describe("nombre manquant", () => {
       for (const operations of OPS_COMBOS) {
         for (const parentheses of [false, true]) {
           for (const missingKind of MISSING_KINDS) {
-            const settings: GameSettings = { ...defaultSettings(difficulty, "speed-race", "missing"), operations, parentheses, missingKind, powerMax: 4 };
+            const settings: QuestionSettings = { ...defaultSettings(difficulty, "speed-race", "missing"), operations, parentheses, missingKind, powerMax: 4 };
             for (let i = 0; i < 40; i++) {
               const q = missingGame.generate(`m-${difficulty}-${operations.join()}-${parentheses}-${missingKind}`, i, settings);
               if (q.puzzle.game !== "missing") throw new Error("puzzle attendu");

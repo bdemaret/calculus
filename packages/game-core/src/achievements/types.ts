@@ -1,4 +1,4 @@
-import type { Difficulty, GameId, GameModeId, Operation, OpTag, TurnStyle } from "../types";
+import type { Difficulty, DifficultyChoice, GameId, GameModeId, Operation, OpTag, TurnStyle } from "../types";
 
 export type AchievementCategory = "journey" | "mode" | "game" | "fun" | "social" | "dungeon";
 export type AchievementTier = "bronze" | "silver" | "gold" | "platinum";
@@ -31,7 +31,8 @@ export interface GameFacts {
   solo: boolean;
   game: GameId;
   mode: GameModeId;
-  difficulty: Difficulty;
+  /** Niveau de la partie (aléatoire compris) ; celui de chaque calcul est dans `rounds[].difficulty`. */
+  difficulty: DifficultyChoice;
   turnStyle: TurnStyle;
   operations: readonly Operation[];
   /** Partie classée (en ligne, au moins deux comptes). */

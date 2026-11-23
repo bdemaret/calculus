@@ -1,4 +1,4 @@
-import type { BasicOperation, Difficulty, Operation } from "./types";
+import type { BasicOperation, Difficulty, DifficultyChoice, Operation, RandomDifficulty } from "./types";
 
 export interface LevelConfig {
   level: Difficulty;
@@ -97,6 +97,13 @@ export const LEVELS: Record<Difficulty, LevelConfig> = {
 };
 
 export const DIFFICULTIES: Difficulty[] = [1, 2, 3, 4, 5];
+/** Le niveau aléatoire : chaque calcul tire un niveau de 1 à 5 (avec ses opérations, parenthèses et temps par défaut). */
+export const RANDOM_DIFFICULTY: RandomDifficulty = 6;
+/** Les niveaux proposés pour une partie, dans l'ordre d'affichage : les cinq niveaux, puis l'aléatoire. */
+export const DIFFICULTY_CHOICES: DifficultyChoice[] = [...DIFFICULTIES, RANDOM_DIFFICULTY];
+export const isRandomDifficulty = (d: DifficultyChoice): d is RandomDifficulty => d === RANDOM_DIFFICULTY;
+/** Niveau valide d'une partie (entrée externe) : un niveau fixe ou l'aléatoire. */
+export const isDifficultyChoice = (d: unknown): d is DifficultyChoice => (DIFFICULTY_CHOICES as unknown[]).includes(d);
 /** Les quatre opérations de base (bon compte, bombe, opérateurs manquants). */
 export const BASIC_OPERATIONS: BasicOperation[] = ["add", "sub", "mul", "div"];
 /** Toutes les opérations, dans l'ordre d'affichage. La puissance et la racine ne sont proposées qu'au calcul mental et au nombre manquant. */

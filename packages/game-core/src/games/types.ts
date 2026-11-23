@@ -1,6 +1,6 @@
 import { SYMBOL_OPERATION, type OpSymbol } from "../generator";
 import type { GameEngine } from "../engine";
-import type { AnswerKind, AnswerRecord, Difficulty, GameId, GameModeId, GameSettings, Operation, PlayerAnswer, Question, RoundRecord } from "../types";
+import type { AnswerKind, AnswerRecord, Difficulty, GameId, GameModeId, GameSettings, Operation, PlayerAnswer, Question, QuestionSettings, RoundRecord } from "../types";
 
 /**
  * Un jeu décrit ce qu'on résout ; le mode (`modes.ts`) décide comment on gagne.
@@ -26,8 +26,11 @@ export interface GameDefinition {
   defaults(difficulty: Difficulty): { operations: Operation[]; parentheses: boolean; timePerQuestion: number };
   /** Forme de la réponse attendue pour ce calcul (elle peut changer d'un calcul à l'autre). */
   answerKind(question: Question): AnswerKind;
-  /** Calcul numéro `index` : ne dépend que de la graine, de l'index et des réglages (déterministe). */
-  generate(seed: string, index: number, settings: GameSettings): Question;
+  /**
+   * Calcul numéro `index` : ne dépend que de la graine, de l'index et des réglages (déterministe).
+   * Le niveau est toujours fixe : en aléatoire, `settingsAt` a déjà tiré celui de ce calcul.
+   */
+  generate(seed: string, index: number, settings: QuestionSettings): Question;
   /**
    * La réponse est-elle recevable (bien formée, plaques permises…) ? Une réponse irrecevable est refusée
    * sans consommer l'essai ; absent : toute réponse de la bonne forme l'est.

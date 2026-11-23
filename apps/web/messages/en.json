@@ -123,7 +123,8 @@
     "2": "Medium",
     "3": "Hard",
     "4": "Expert",
-    "5": "Legend"
+    "5": "Legend",
+    "6": "Random"
   },
   "ops": {
     "add": "Additions",
@@ -141,6 +142,7 @@
     "mode": "Game mode",
     "difficulty": "Difficulty",
     "example": "for example: {calc}",
+    "randomLevel": "Each calculation draws its own level, from Easy to Legend, with that level’s operations and time.",
     "operations": "Calculations",
     "missingKind": {
       "label": "What’s missing",
@@ -256,7 +258,7 @@
     "points": "points",
     "correct": "correct",
     "end": "end",
-    "level": "level {n}",
+    "level": "{n, select, 6 {random level} other {level {n}}}",
     "yourTurn": "Your turn!",
     "turnOf": "{name}’s turn",
     "spectator": "You’re out; watching the end of the game.",

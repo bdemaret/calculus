@@ -16,8 +16,11 @@ import {
   tokenize,
   generateQuestion,
   GAMES,
+  GAME_IDS,
   MODES,
+  RANDOM_DIFFICULTY,
   sanitizeSettings,
+  settingsAt,
   type Difficulty,
   type GameSettings,
   type Operation,
@@ -164,6 +167,58 @@ describe("paramètres", () => {
     for (const mode of ["battle-royale", "speed-race", "hack"]) {
       const s = sanitizeSettings({ game: "standard", mode });
       expect(GAMES[s.game].modes).toContain(s.mode);
+    }
+  });
+});
+
+describe("niveau aléatoire", () => {
+  it("est accepté par les réglages, avec ceux de la Légende par défaut", () => {
+    const s = sanitizeSettings({ difficulty: RANDOM_DIFFICULTY });
+    expect(s.difficulty).toBe(RANDOM_DIFFICULTY);
+    expect(s.operations).toEqual(LEVELS[5].defaultOperations);
+    expect(sanitizeSettings({ difficulty: 7 }).difficulty).toBe(2);
+  });
+
+  it("tire le niveau de chaque calcul, de façon déterministe, avec les réglages de ce niveau", () => {
+    const s = defaultSettings(RANDOM_DIFFICULTY);
+    const seen = new Set<Difficulty>();
+    for (let i = 0; i < 200; i++) {
+      const at = settingsAt(s, "graine", i);
+      expect(at).toEqual(settingsAt(s, "graine", i));
+      expect(at.operations).toEqual(LEVELS[at.difficulty].defaultOperations);
+      expect(at.timePerQuestion).toBe(LEVELS[at.difficulty].defaultTime);
+      seen.add(at.difficulty);
+    }
+    expect([...seen].sort()).toEqual(DIFFICULTIES);
+    // Un niveau fixe garde les réglages de la partie.
+    const fixed = { ...defaultSettings(3), operations: ["add"] as Operation[] };
+    expect(settingsAt(fixed, "graine", 4)).toEqual(fixed);
+  });
+
+  it("joue une partie de chaque jeu, chaque calcul à son niveau et avec son temps", () => {
+    for (const game of GAME_IDS) {
+      // Course de vitesse quand le jeu la propose : personne n'y est éliminé, la partie va au bout.
+      const mode = GAMES[game].modes.includes("speed-race") ? "speed-race" : GAMES[game].modes[0]!;
+      const s = sanitizeSettings({ ...defaultSettings(RANDOM_DIFFICULTY, mode, game), rounds: 30 });
+      const engine = new GameEngine(s, players(game === "bomb" ? 2 : 1), "aleatoire");
+      const twin = new GameEngine(s, players(game === "bomb" ? 2 : 1), "aleatoire");
+      const levels = new Set<Difficulty>();
+      for (let i = 0; i < 25; i++) {
+        const round = engine.startRound(i * 100_000)!;
+        expect(twin.startRound(i * 100_000)!.question).toEqual(round.question);
+        const at = settingsAt(s, "aleatoire", i);
+        expect(round.question.difficulty).toBe(at.difficulty);
+        levels.add(round.question.difficulty);
+        if (game === "standard") {
+          expect(evaluateText(round.question.text)).toBe(round.question.answer);
+          expect(round.timeLimitMs).toBe(Math.round(LEVELS[at.difficulty].defaultTime * 1000 * MODES[mode].timeFactor(i)));
+        }
+        if (game === "bomb") break;
+        engine.closeRound();
+        twin.closeRound();
+        if (engine.isOver) break;
+      }
+      if (game !== "bomb") expect(levels.size).toBeGreaterThan(2);
     }
   });
 });

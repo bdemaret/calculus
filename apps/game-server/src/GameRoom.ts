@@ -501,6 +501,7 @@ export class GameRoom extends Room {
     this.lastRound = {
       index: rec.index,
       text: rec.question.text,
+      difficulty: rec.question.difficulty,
       answer: rec.question.answer,
       solution: rec.question.solution,
       puzzle: rec.question.puzzle,
@@ -642,9 +643,10 @@ export class GameRoom extends Room {
 
   /** Le calcul montré à ce joueur : le tirage pendant la construction, sa bombe au désamorçage (aucune s'il n'en a pas). */
   private questionFor(round: RoundRecord, forId: string): RoomSnapshot["question"] {
-    if (this.phase !== "question" || !round.personal) return { index: round.index, text: round.question.text, puzzle: round.question.puzzle };
+    const { question } = round;
+    if (this.phase !== "question" || !round.personal) return { index: round.index, text: question.text, puzzle: question.puzzle, difficulty: question.difficulty };
     const mine = round.personal[forId]?.question;
-    return mine ? { index: round.index, text: mine.text, puzzle: mine.puzzle } : null;
+    return mine ? { index: round.index, text: mine.text, puzzle: mine.puzzle, difficulty: mine.difficulty } : null;
   }
 
   /** Chaque membre reçoit son propre instantané (identique pour tous, sauf à la bombe). */

@@ -1,7 +1,7 @@
 import { GAMES, answerKindOf, assignBombs, closestAnswers, bombValue, defuseQuestion, fallbackBomb, type BombError, type GameDefinition } from "./games";
 import { OPERATION_SYMBOL } from "./generator";
 import { MODES, type GameModeRules } from "./modes";
-import { BATTLE_ROYALE_ROUND_CAP } from "./settings";
+import { BATTLE_ROYALE_ROUND_CAP, settingsAt } from "./settings";
 import type { GameSettings, PlayerAnswer, PlayerInfo, PlayerState, RoundRecord, Standing } from "./types";
 
 export type SubmitRefusal = "no-round" | "unknown-player" | "not-allowed" | "already-answered" | "invalid-value";
@@ -100,10 +100,12 @@ export class GameEngine {
     if (this.currentRound) return this.currentRound;
     if (this.rules.isGameOver(this) || this.eligible().length === 0) return null;
     const index = this.history.length;
-    let question = this.game.generate(this.seed, index, this.settings);
+    // En niveau aléatoire, le niveau du calcul est tiré ici (toujours avec la graine de la partie).
+    const settings = settingsAt(this.settings, this.seed, index);
+    let question = this.game.generate(this.seed, index, settings);
     const previous = this.history[index - 1];
     if (previous && previous.question.text === question.text) {
-      question = this.game.generate(`${this.seed}:bis`, index, this.settings);
+      question = this.game.generate(`${this.seed}:bis`, index, settings);
     }
     const bomb = this.settings.game === "bomb";
     this.currentRound = {
@@ -123,7 +125,9 @@ export class GameEngine {
   }
 
   private questionTimeMs(index: number): number {
-    return Math.round(this.settings.timePerQuestion * 1000 * this.rules.timeFactor(index));
+    // En niveau aléatoire, le temps par défaut du niveau tiré pour ce calcul.
+    const { timePerQuestion } = settingsAt(this.settings, this.seed, index);
+    return Math.round(timePerQuestion * 1000 * this.rules.timeFactor(index));
   }
 
   /** La bombe : joueurs qui construisent et désamorcent (en vie et connectés). */

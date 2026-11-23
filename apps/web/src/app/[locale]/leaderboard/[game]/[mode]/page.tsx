@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { z } from "zod";
 import { LEADERBOARD_SIZE, getLeaderboard, searchLeaderboard } from "@calculus/db";
-import { DIFFICULTIES, GAMES, GAME_IDS, type Difficulty, type GameId, type GameModeId } from "@calculus/game-core";
+import { GAMES, GAME_IDS, isDifficultyChoice, type DifficultyChoice, type GameId, type GameModeId } from "@calculus/game-core";
 import { getSession } from "@/lib/auth";
 import { publicPage } from "@/lib/seo";
 import { LeaderboardView } from "./LeaderboardView";
@@ -10,14 +10,14 @@ import { LeaderboardView } from "./LeaderboardView";
 type Params = Promise<{ locale: string; game: string; mode: string }>;
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-const DEFAULT_DIFFICULTY: Difficulty = 2;
+const DEFAULT_DIFFICULTY: DifficultyChoice = 2;
 
 /* Paramètres d'URL : une valeur invalide est remplacée par la valeur par défaut. */
 const query = z.object({
   difficulty: z.coerce
     .number()
     .int()
-    .refine((d): d is Difficulty => DIFFICULTIES.includes(d as Difficulty))
+    .refine((d): d is DifficultyChoice => isDifficultyChoice(d))
     .catch(DEFAULT_DIFFICULTY),
   q: z.string().trim().max(64).catch(""),
 });
@@ -44,7 +44,7 @@ export default async function LeaderboardPage({ params, searchParams }: { params
     <LeaderboardView
       game={game as GameId}
       mode={mode as GameModeId}
-      difficulty={difficulty as Difficulty}
+      difficulty={difficulty as DifficultyChoice}
       query={q}
       board={board}
       size={LEADERBOARD_SIZE}

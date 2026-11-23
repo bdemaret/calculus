@@ -1,7 +1,7 @@
 import { DEFAULT_POWER } from "./limits";
 import { LEVELS, isBasicOperation, type LevelConfig } from "./levels";
 import { createRng, pick, randInt, type Rng } from "./rng";
-import type { BasicOperation, Difficulty, GameSettings, Operation, OpTag, Question } from "./types";
+import type { BasicOperation, Difficulty, Operation, OpTag, Question, QuestionSettings } from "./types";
 
 /** Symboles affichés des quatre opérations de base (signe moins et multiplication Unicode). */
 export type OpSymbol = "+" | "−" | "×" | "÷";
@@ -417,7 +417,7 @@ export function generateWithRng(rng: Rng, opts: GenerateOptions, index = 0): Que
 export function generateQuestion(
   seed: string,
   index: number,
-  settings: Pick<GameSettings, "difficulty" | "operations" | "parentheses"> & Partial<Pick<GameSettings, "powerMax">>,
+  settings: Pick<QuestionSettings, "difficulty" | "operations" | "parentheses"> & Partial<Pick<QuestionSettings, "powerMax">>,
 ): Question {
   return generateWithRng(createRng(`${seed}:${index}`), settings, index);
 }

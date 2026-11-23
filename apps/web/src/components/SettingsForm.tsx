@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
-  DIFFICULTIES,
+  DIFFICULTY_CHOICES,
   GAMES,
   GAME_IDS,
   MAX_BUILD_TIME,
@@ -13,8 +13,11 @@ import {
   MIN_ROUNDS,
   MISSING_KINDS,
   defaultSettings,
+  gameDefaults,
+  isRandomDifficulty,
   randomSeed,
   sanitizeSettings,
+  settingsAt,
   type GameSettings,
   type Operation,
 } from "@calculus/game-core";
@@ -39,8 +42,11 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
   // (calculé après l'affichage, pour que le serveur et le navigateur affichent la même chose)
   const [example, setExample] = useState("");
   const opsKey = s.operations.join();
+  // Niveau aléatoire : opérations, parenthèses et temps sont ceux du niveau tiré pour chaque calcul.
+  const random = isRandomDifficulty(s.difficulty);
   useEffect(() => {
-    setExample(GAMES[s.game].generate(randomSeed(), 0, s).text);
+    const seed = randomSeed();
+    setExample(GAMES[s.game].generate(seed, 0, settingsAt(s, seed, 0)).text);
   }, [s.game, s.difficulty, opsKey, s.parentheses, s.missingKind, s.powerMax]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleOp = (op: Operation) => {
@@ -61,7 +67,7 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
         <div className="mode-cards">
           {/* En solo, seuls les jeux jouables seul sont proposés. */}
           {GAME_IDS.filter((g) => online || GAMES[g].solo).map((g) => (
-            <button key={g} type="button" className="mode-card" aria-pressed={s.game === g} onClick={() => set({ game: g, ...GAMES[g].defaults(s.difficulty) })}>
+            <button key={g} type="button" className="mode-card" aria-pressed={s.game === g} onClick={() => set({ game: g, ...gameDefaults(g, s.difficulty) })}>
               <strong>{t(`games.${g}.name`)}</strong>
               <span>{t(`games.${g}.short`)}</span>
             </button>
@@ -87,7 +93,7 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
       <fieldset className="field" disabled={readOnly}>
         <legend>{t("settings.difficulty")}</legend>
         <div className="seg" role="group">
-          {DIFFICULTIES.map((d) => (
+          {DIFFICULTY_CHOICES.map((d) => (
             <button
               key={d}
               type="button"
@@ -103,46 +109,50 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
                 });
               }}
             >
-              {d} · {t(`levels.${d}`)}
+              {isRandomDifficulty(d) ? t(`levels.${d}`) : `${d} · ${t(`levels.${d}`)}`}
             </button>
           ))}
         </div>
+        {random ? <p className="explain">{t("settings.randomLevel")}</p> : null}
         <p className="example" aria-live="polite">
           {t("settings.example", { calc: example })}
         </p>
       </fieldset>
 
-      <fieldset className="field" disabled={readOnly}>
-        <legend>{t("settings.operations")}</legend>
-        <div className="seg ops" role="group">
-          {/* La puissance et la racine ne sont proposées qu'au calcul mental et au nombre manquant. */}
-          {GAMES[s.game].operations.map((op) => (
-            <button
-              key={op}
-              type="button"
-              className={shakeOp === op ? "shake" : undefined}
-              aria-pressed={s.operations.includes(op)}
-              aria-label={t(`ops.${op}`)}
-              title={t(`ops.${op}`)}
-              onClick={() => toggleOp(op)}
-            >
-              {OP_SYMBOL[op]}
-            </button>
-          ))}
-          {/* Au bon compte, les parenthèses sont toujours permises. */}
-          {s.game !== "right-count" ? (
-            <button
-              type="button"
-              aria-pressed={s.parentheses}
-              aria-label={t("ops.paren")}
-              title={t("ops.paren")}
-              onClick={() => set({ parentheses: !s.parentheses })}
-            >
-              ( )
-            </button>
-          ) : null}
-        </div>
-      </fieldset>
+      {/* Niveau aléatoire : chaque calcul prend les opérations et parenthèses de son niveau. */}
+      {random ? null : (
+        <fieldset className="field" disabled={readOnly}>
+          <legend>{t("settings.operations")}</legend>
+          <div className="seg ops" role="group">
+            {/* La puissance et la racine ne sont proposées qu'au calcul mental et au nombre manquant. */}
+            {GAMES[s.game].operations.map((op) => (
+              <button
+                key={op}
+                type="button"
+                className={shakeOp === op ? "shake" : undefined}
+                aria-pressed={s.operations.includes(op)}
+                aria-label={t(`ops.${op}`)}
+                title={t(`ops.${op}`)}
+                onClick={() => toggleOp(op)}
+              >
+                {OP_SYMBOL[op]}
+              </button>
+            ))}
+            {/* Au bon compte, les parenthèses sont toujours permises. */}
+            {s.game !== "right-count" ? (
+              <button
+                type="button"
+                aria-pressed={s.parentheses}
+                aria-label={t("ops.paren")}
+                title={t("ops.paren")}
+                onClick={() => set({ parentheses: !s.parentheses })}
+              >
+                ( )
+              </button>
+            ) : null}
+          </div>
+        </fieldset>
+      )}
 
       {s.operations.includes("pow") ? (
         <div className="field">
@@ -198,23 +208,25 @@ export function SettingsForm({ id, settings: s, onChange, online, readOnly }: Pr
         </div>
       ) : null}
 
-      <div className="field">
-        <label className="field-label" htmlFor={`${id}-time`}>
-          {t(s.mode === "battle-royale" ? "settings.timeStart" : "settings.time")}
-        </label>
-        <div className="range-row">
-          <input
-            type="range"
-            id={`${id}-time`}
-            min={GAMES[s.game].timeRange.min}
-            max={GAMES[s.game].timeRange.max}
-            value={s.timePerQuestion}
-            disabled={readOnly}
-            onChange={(e) => set({ timePerQuestion: Number(e.target.value) })}
-          />
-          <span className="range-value">{t("settings.seconds", { n: s.timePerQuestion })}</span>
+      {random ? null : (
+        <div className="field">
+          <label className="field-label" htmlFor={`${id}-time`}>
+            {t(s.mode === "battle-royale" ? "settings.timeStart" : "settings.time")}
+          </label>
+          <div className="range-row">
+            <input
+              type="range"
+              id={`${id}-time`}
+              min={GAMES[s.game].timeRange.min}
+              max={GAMES[s.game].timeRange.max}
+              value={s.timePerQuestion}
+              disabled={readOnly}
+              onChange={(e) => set({ timePerQuestion: Number(e.target.value) })}
+            />
+            <span className="range-value">{t("settings.seconds", { n: s.timePerQuestion })}</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {s.game === "bomb" ? (
         <div className="field">

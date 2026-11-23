@@ -2,7 +2,7 @@
 import { useState, useTransition, type FormEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { LeaderboardData, LeaderboardEntry } from "@calculus/db";
-import { DIFFICULTIES, GAMES, GAME_IDS, PLACEMENT_GAMES, type Difficulty, type GameId, type GameModeId } from "@calculus/game-core";
+import { DIFFICULTY_CHOICES, GAMES, GAME_IDS, PLACEMENT_GAMES, type DifficultyChoice, type GameId, type GameModeId } from "@calculus/game-core";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { formatPercent } from "@/lib/format";
 import { PlayerTitle } from "@/components/PlayerTitle";
@@ -10,7 +10,7 @@ import { PlayerTitle } from "@/components/PlayerTitle";
 interface Props {
   game: GameId;
   mode: GameModeId;
-  difficulty: Difficulty;
+  difficulty: DifficultyChoice;
   query: string;
   board: LeaderboardData;
   /** Taille du top affiché */
@@ -71,7 +71,7 @@ export function LeaderboardView({ game, mode, difficulty, query, board, size, re
       <div className="field">
         <span className="field-label">{t("settings.difficulty")}</span>
         <nav className="seg" aria-label={t("settings.difficulty")}>
-          {DIFFICULTIES.map((d) => (
+          {DIFFICULTY_CHOICES.map((d) => (
             <Link key={d} href={{ pathname, query: query ? { difficulty: d, q: query } : { difficulty: d } }} aria-current={d === difficulty ? "page" : undefined}>
               {t(`levels.${d}`)}
             </Link>

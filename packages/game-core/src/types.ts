@@ -5,7 +5,12 @@ export type Operation = BasicOperation | "pow" | "sqrt";
 /** Étiquette utilisée pour les statistiques : une opération, la présence de parenthèses ou le type de trou (nombre manquant). */
 export type OpTag = Operation | "paren" | "hole-num" | "hole-op";
 
+/** Un niveau, de 1 (Facile) à 5 (Légende) : celui d'un calcul. */
 export type Difficulty = 1 | 2 | 3 | 4 | 5;
+/** Le niveau « aléatoire » : chaque calcul tire son propre niveau (`RANDOM_DIFFICULTY`). */
+export type RandomDifficulty = 6;
+/** Le niveau choisi pour une partie : un niveau fixe, ou l'aléatoire. */
+export type DifficultyChoice = Difficulty | RandomDifficulty;
 /** Le jeu : ce qu'on résout (voir `games/`). */
 export type GameId = "standard" | "missing" | "right-count" | "bomb";
 /** Nombre manquant : ce qui peut être caché dans l'égalité. */
@@ -16,7 +21,8 @@ export type TurnStyle = "simultaneous" | "turns";
 
 export interface GameSettings {
   game: GameId;
-  difficulty: Difficulty;
+  /** Niveau de la partie ; en aléatoire, chaque calcul a le sien (`Question.difficulty`). */
+  difficulty: DifficultyChoice;
   mode: GameModeId;
   operations: Operation[];
   parentheses: boolean;
@@ -78,8 +84,12 @@ export interface Question {
   solution: string;
   puzzle: Puzzle;
   tags: OpTag[];
+  /** Niveau de ce calcul (tiré au sort en niveau aléatoire). */
   difficulty: Difficulty;
 }
+
+/** Réglages d'un calcul : ceux de la partie, avec un niveau fixe (`settingsAt` tire celui d'un calcul aléatoire). */
+export type QuestionSettings = Omit<GameSettings, "difficulty"> & { difficulty: Difficulty };
 
 /** Forme de la réponse attendue par un jeu. */
 export type AnswerKind = "number" | "expr" | "op";

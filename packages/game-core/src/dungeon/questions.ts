@@ -1,7 +1,7 @@
 import { generateWithRng } from "../generator";
 import { missingGame } from "../games/missing";
 import { createRng } from "../rng";
-import type { Difficulty, GameSettings, Question } from "../types";
+import type { Difficulty, Question, QuestionSettings } from "../types";
 import { ENEMIES, bossProfile, type EnemyId } from "./enemies";
 
 /**
@@ -30,7 +30,7 @@ export function enemyQuestion(
       parentheses: p.parentheses,
       missingKind: p.question === "missing-operator" ? "operator" : "number",
       level: p.level,
-    } as unknown as GameSettings;
+    } as unknown as QuestionSettings;
     return missingGame.generate(key, index, settings);
   }
   return generateWithRng(createRng(`${key}:${index}`), { difficulty, operations: p.operations, parentheses: p.parentheses, level: p.level }, index);

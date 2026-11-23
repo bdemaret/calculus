@@ -5,7 +5,7 @@
 import type { Unlock } from "./achievements";
 import type { RatingChange } from "./elo";
 import type { GameReport } from "./report";
-import type { GameSettings, PlayerAnswer, Puzzle } from "./types";
+import type { Difficulty, GameSettings, PlayerAnswer, Puzzle } from "./types";
 
 /** `build` et `assign` : construction des bombes, puis qui reçoit quoi (la bombe seulement). */
 export type RoomPhase = "lobby" | "countdown" | "build" | "assign" | "question" | "round-result" | "finished";
@@ -49,7 +49,7 @@ export interface RoomSnapshot {
    * Calcul en cours (jamais la réponse) : énoncé lisible et données propres au jeu. À la bombe, c'est le
    * tirage pendant la construction, puis la bombe que ce joueur doit désamorcer (chacun reçoit la sienne).
    */
-  question: { index: number; text: string; puzzle: Puzzle } | null;
+  question: { index: number; text: string; puzzle: Puzzle; difficulty: Difficulty } | null;
   /** La bombe : qui a déjà envoyé sa bombe, la sienne, et les paires une fois attribuées (sans les bombes). */
   bomb: { built: string[]; mine: string | null; pairs: BombPair[] | null } | null;
   activePlayerId: string | null;
@@ -75,6 +75,8 @@ export interface RoundResultPayload {
   solution: string;
   /** Données du calcul, pour le réafficher pendant le résultat de la manche. */
   puzzle: Puzzle;
+  /** Niveau du calcul (tiré au sort en niveau aléatoire). */
+  difficulty: Difficulty;
   /** `closest` : le bon compte, personne n'a trouvé et cette proposition est la plus proche. */
   answers: { playerId: string; value: number | null; text: string | null; correct: boolean; timeMs: number; closest?: boolean }[];
   /** La bombe : chaque bombe, son auteur, son désamorceur et sa valeur. */
