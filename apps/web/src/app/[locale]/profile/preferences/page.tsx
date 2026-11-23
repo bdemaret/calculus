@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return { title: t("tabs.preferences"), ...NO_INDEX };
 }
 
-/** Onglet « Mes préférences » : langue, saisie des réponses, affichage des divisions, conseils de fin de partie. */
+/** Onglet « Mes préférences » : langue, saisie des réponses, affichage des divisions, couleur des signes, conseils de fin de partie. */
 export default async function PreferencesPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -22,6 +22,7 @@ export default async function PreferencesPage({ params }: { params: Promise<{ lo
       voiceInput={!!session.user.voiceInput}
       divisionDisplay={isDivisionDisplay(session.user.divisionDisplay) ? session.user.divisionDisplay : "standard"}
       showTips={session.user.showTips !== false}
+      blueOperators={!!session.user.blueOperators}
     />
   );
 }

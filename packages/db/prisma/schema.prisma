@@ -30,6 +30,8 @@ model User {
   divisionDisplay String  @default("standard")
   /// Conseils de technique de calcul dans le rapport de fin de partie
   showTips      Boolean   @default(true)
+  /// Signes des opérations (+, −, ×, ÷) écrits en bleu dans les énoncés, pour mieux les distinguer des nombres
+  blueOperators Boolean   @default(false)
   /// Titre choisi, affiché sous le pseudo. Hors de `additionalFields` : le client ne doit pas pouvoir l'écrire
   titleId       String?
   /// Compte banni (anti-bot ou décision d'un administrateur) : plus de lobby, de donjon ni de calcul du jour. Hors de `additionalFields`

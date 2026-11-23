@@ -4,10 +4,21 @@ import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { authClient } from "@/lib/auth-client";
+import { OpText } from "@/components/MathText";
 import type { DivisionDisplay } from "@/lib/division";
 import { isVoiceSupported } from "@/lib/useVoiceInput";
 
-export function PreferencesForm({ voiceInput, divisionDisplay, showTips }: { voiceInput: boolean; divisionDisplay: DivisionDisplay; showTips: boolean }) {
+export function PreferencesForm({
+  voiceInput,
+  divisionDisplay,
+  showTips,
+  blueOperators,
+}: {
+  voiceInput: boolean;
+  divisionDisplay: DivisionDisplay;
+  showTips: boolean;
+  blueOperators: boolean;
+}) {
   const t = useTranslations("profile");
   const locale = useLocale();
   const router = useRouter();
@@ -20,6 +31,8 @@ export function PreferencesForm({ voiceInput, divisionDisplay, showTips }: { voi
   const [divisionState, setDivisionState] = useState<"idle" | "saved" | "error">("idle");
   const [tips, setTips] = useState(showTips);
   const [tipsState, setTipsState] = useState<"idle" | "saved" | "error">("idle");
+  const [blue, setBlue] = useState(blueOperators);
+  const [blueState, setBlueState] = useState<"idle" | "saved" | "error">("idle");
 
   useEffect(() => setVoiceSupported(isVoiceSupported()), []);
 
@@ -48,6 +61,15 @@ export function PreferencesForm({ voiceInput, divisionDisplay, showTips }: { voi
     const { error } = await authClient.updateUser({ showTips: on });
     if (error) setTips(!on);
     setTipsState(error ? "error" : "saved");
+    router.refresh();
+  };
+
+  const changeBlue = async (on: boolean) => {
+    if (on === blue) return;
+    setBlue(on);
+    const { error } = await authClient.updateUser({ blueOperators: on });
+    if (error) setBlue(!on);
+    setBlueState(error ? "error" : "saved");
     router.refresh();
   };
 
@@ -104,6 +126,25 @@ export function PreferencesForm({ voiceInput, divisionDisplay, showTips }: { voi
           </div>
           {divisionState === "saved" ? <p className="form-ok">{t("inputSaved")}</p> : null}
           {divisionState === "error" ? <p className="form-error">{t("prefError")}</p> : null}
+        </fieldset>
+      </div>
+      <div className="profile-card">
+        <fieldset className="field">
+          <legend>{t("operators")}</legend>
+          <div className="seg" role="group">
+            <button type="button" aria-pressed={!blue} onClick={() => changeBlue(false)}>
+              {t("operatorsDefault")}
+            </button>
+            <button type="button" aria-pressed={blue} onClick={() => changeBlue(true)}>
+              {t("operatorsBlue")}
+            </button>
+          </div>
+          {/* Aperçu : le même énoncé que dans une partie, avec la couleur choisie. */}
+          <p className="muted">
+            {t("operatorsHelp")} <OpText text="12 + 7 × 3" blue={blue} />
+          </p>
+          {blueState === "saved" ? <p className="form-ok">{t("inputSaved")}</p> : null}
+          {blueState === "error" ? <p className="form-error">{t("prefError")}</p> : null}
         </fieldset>
       </div>
       <div className="profile-card">

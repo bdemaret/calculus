@@ -487,6 +487,10 @@
       "en": "English"
     },
     "prefError": "The preference couldn’t be saved.",
+    "operators": "Operation signs",
+    "operatorsDefault": "Default",
+    "operatorsBlue": "Blue",
+    "operatorsHelp": "Writes the +, −, × and ÷ signs in blue in calculations so they stand out. Example:",
     "tips": "End-of-game tips",
     "tipsOn": "Show",
     "tipsOff": "Turn off help",

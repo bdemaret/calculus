@@ -487,6 +487,10 @@
       "en": "English"
     },
     "prefError": "La préférence n’a pas pu être enregistrée.",
+    "operators": "Signes des opérations",
+    "operatorsDefault": "Normaux",
+    "operatorsBlue": "En bleu",
+    "operatorsHelp": "Écrit les signes +, −, × et ÷ en bleu dans les calculs pour mieux les repérer. Exemple :",
     "tips": "Conseils en fin de partie",
     "tipsOn": "Afficher",
     "tipsOff": "Désactiver l’aide",

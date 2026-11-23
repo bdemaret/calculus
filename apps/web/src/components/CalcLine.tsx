@@ -7,7 +7,7 @@ import { useSession } from "@/lib/auth-client";
 import { useTouch } from "@/lib/useTouch";
 import { useVoiceInput } from "@/lib/useVoiceInput";
 import { Keypad } from "./Keypad";
-import { FractionExpr, MathText, fractionTree, useFractions } from "./MathText";
+import { FractionExpr, MathText, OpText, fractionTree, useBlueOperators, useFractions } from "./MathText";
 import { OperatorPad } from "./OperatorPad";
 import { PadDock } from "./PadDock";
 
@@ -68,6 +68,7 @@ export function CalcLine({ text, puzzle, value, onChange, onSubmit, disabled, st
   // Divisions en fraction : la case du nombre manquant se place dans la fraction.
   const fractions = useFractions();
   const holeTree = fractions && puzzle?.game === "missing" ? fractionTree(puzzle.tokens) : null;
+  const blue = useBlueOperators();
 
   const submit = () => {
     if (!disabled && value !== "") onSubmit();
@@ -92,11 +93,11 @@ export function CalcLine({ text, puzzle, value, onChange, onSubmit, disabled, st
             // Nombre manquant : « 23 + [  ] = 41 ». Le texte complet reste lisible dans data-calc.
             <span data-testid="calc-text" data-calc={text}>
               {/* Pas d'espace entre la case et une parenthèse, une racine ou un exposant : « (7 + [ ]) × 3 », « √[ ] », « [ ]² ». */}
-              {hole.before}
+              <OpText text={hole.before} blue={blue} />
               {hole.before && !/[(√]$/.test(hole.before) ? " " : null}
               {box}
               {hole.after && !/^[)⁰¹²³⁴⁵⁶⁷⁸⁹]/.test(hole.after) ? " " : null}
-              {hole.after} <span className="eq">=</span> {hole.result}
+              <OpText text={hole.after} blue={blue} /> <span className="eq">=</span> {hole.result}
             </span>
           ) : (
             <>

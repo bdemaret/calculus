@@ -20,6 +20,33 @@ export function useFractions(): boolean {
   return session?.user.divisionDisplay === "fraction";
 }
 
+/** Vrai quand le joueur connecté a choisi d'écrire les signes des opérations en bleu. */
+export function useBlueOperators(): boolean {
+  const { data: session } = useSession();
+  return !!session?.user.blueOperators;
+}
+
+const OPERATOR_SIGN = /([+−×÷])/;
+
+/** Un bout d'énoncé dont les signes des opérations sont colorés si `blue` ; sinon le texte tel quel. */
+export function OpText({ text, blue }: { text: string; blue: boolean }) {
+  if (!blue) return <>{text}</>;
+  return (
+    <>
+      {text.split(OPERATOR_SIGN).map((part, i) =>
+        // `split` avec un groupe capturant : les indices impairs sont les signes.
+        i % 2 === 1 ? (
+          <span key={i} className="op-sign">
+            {part}
+          </span>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
+
 /**
  * Arbre d'un calcul à afficher en fraction, ou null s'il n'a pas de division
  * ou ne se lit pas (un « ? » à la place d'un opérateur, par exemple).
@@ -67,26 +94,27 @@ export function fractionTree(tokens: readonly Tok[]): Node | null {
 
 /** Affiche un arbre : chaque division devient une barre de fraction, `hole` remplit le « ? ». */
 export function FractionExpr({ node, hole }: { node: Node; hole?: ReactNode }) {
-  return <>{render(node, hole, false)}</>;
+  const blue = useBlueOperators();
+  return <>{render(node, hole, false, blue)}</>;
 }
 
-/** `bare` : la barre de fraction regroupe déjà, les parenthèses de l'énoncé deviennent inutiles. */
-function render(node: Node, hole: ReactNode, bare: boolean): ReactNode {
+/** `bare` : la barre de fraction regroupe déjà, les parenthèses de l'énoncé deviennent inutiles. `blue` : signes en bleu. */
+function render(node: Node, hole: ReactNode, bare: boolean, blue: boolean): ReactNode {
   if (node.k === "num") return node.v;
   if (node.k === "hole") return hole;
   // Sous une racine ou à la base d'une puissance, les parenthèses de l'énoncé restent : « √(16 + 9) », « (7 + 3)² ».
-  if (node.k === "pow") return <>{render(node.base, hole, false)}{renderTokens(["^", node.exp])}</>;
-  if (node.k === "sqrt") return <>√{render(node.arg, hole, false)}</>;
+  if (node.k === "pow") return <>{render(node.base, hole, false, blue)}{renderTokens(["^", node.exp])}</>;
+  if (node.k === "sqrt") return <>√{render(node.arg, hole, false, blue)}</>;
   if (node.op === "÷")
     return (
       <span className="frac">
-        <span className="frac-num">{render(node.l, hole, true)}</span>
-        <span className="frac-den">{render(node.r, hole, true)}</span>
+        <span className="frac-num">{render(node.l, hole, true, blue)}</span>
+        <span className="frac-den">{render(node.r, hole, true, blue)}</span>
       </span>
     );
   const inner = (
     <>
-      {render(node.l, hole, false)} {node.op} {render(node.r, hole, false)}
+      {render(node.l, hole, false, blue)} {blue ? <span className="op-sign">{node.op}</span> : node.op} {render(node.r, hole, false, blue)}
     </>
   );
   return node.paren && !bare ? <>({inner})</> : inner;
@@ -95,9 +123,10 @@ function render(node: Node, hole: ReactNode, bare: boolean): ReactNode {
 /** Un énoncé écrit selon la préférence du joueur ; tout texte qui n'est pas un calcul reste tel quel. */
 export function MathText({ text }: { text: string }) {
   const fractions = useFractions();
-  if (!fractions) return <>{text}</>;
+  const blue = useBlueOperators();
+  if (!fractions) return <OpText text={text} blue={blue} />;
   const tokens = tokenize(text);
   // Le texte doit être entièrement un calcul (pas un tirage du bon compte, par exemple).
   const tree = renderTokens(tokens) === text.trim() ? fractionTree(tokens) : null;
-  return tree ? <FractionExpr node={tree} /> : <>{text}</>;
+  return tree ? <FractionExpr node={tree} /> : <OpText text={text} blue={blue} />;
 }

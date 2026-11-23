@@ -166,6 +166,8 @@ p { margin: 0; }
 .calc { --lh: round(up, calc(1.2em + 6px), var(--sub)); font-size: clamp(64px, 15vw, 176px); font-weight: 760; line-height: 1; letter-spacing: -0.03em; font-variation-settings: "opsz" 96, "wdth" 82; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .calc.long { font-size: clamp(40px, 9vw, 120px); white-space: normal; }
 .eq { color: var(--muted); font-weight: 400; }
+/* Préférence « signes des opérations en bleu » : l'encre bleue du cahier, lisible dans les deux thèmes. */
+.op-sign { color: var(--ink); }
 /* Division en fraction (préférence du profil) : dividende au-dessus de la barre, diviseur en dessous. */
 .frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; font-size: 0.62em; line-height: 1.05; margin-inline: 0.06em; }
 .frac .frac { font-size: 0.85em; }

@@ -82,6 +82,8 @@ export const auth = betterAuth({
       divisionDisplay: { type: "string", required: false, defaultValue: "standard" },
       /** Préférence d'aide : conseils de technique de calcul en fin de partie. */
       showTips: { type: "boolean", required: false, defaultValue: true },
+      /** Préférence d'affichage : signes des opérations en bleu dans les énoncés. */
+      blueOperators: { type: "boolean", required: false, defaultValue: false },
     },
     // Droit à l'effacement (RGPD) : le profil demande le mot de passe, Better Auth le vérifie.
     deleteUser: { enabled: true, beforeDelete: async (user) => eraseUserGames(user.id) },
