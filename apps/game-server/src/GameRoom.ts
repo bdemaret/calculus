@@ -60,6 +60,8 @@ interface Member {
   /** Fenêtre de limitation du nombre de messages. */
   rateWindowStart: number;
   rateCount: number;
+  /** Saisie en cours, pas encore validée : validée d'office si le temps du calcul s'écoule (`closeRound`). */
+  draft: { questionIndex: number; answer: PlayerAnswer; at: number } | null;
 }
 
 /** Une réponse : un nombre, une expression ou un opérateur (la forme attendue par le jeu est vérifiée par le moteur). */
@@ -69,8 +71,11 @@ const answerSchema = z.union([
   z.object({ questionIndex: z.number().int().min(0), op: z.enum(BASIC_OPERATIONS as [BasicOperation, ...BasicOperation[]]) }).strict(),
 ]);
 const readySchema = z.object({ ready: z.boolean() });
-/** Saisie visible : des chiffres, un opérateur (nombre manquant) ou des étapes séparées par « ; » (bon compte). */
-const typingSchema = z.object({ value: z.string().max(MAX_STEPS_LENGTH).regex(/^[0-9+\-−×÷*x/:() ;]*$/) });
+/**
+ * Saisie en cours : des chiffres, un opérateur (nombre manquant) ou des étapes séparées par « ; » (bon compte),
+ * et la réponse qu'elle forme (`draft`, même forme qu'une réponse).
+ */
+const typingSchema = z.object({ value: z.string().max(MAX_STEPS_LENGTH).regex(/^[0-9+\-−×÷*x/:() ;]*$/), draft: answerSchema.nullable().optional() }).strict();
 const kickSchema = z.object({ playerId: z.string().max(100) });
 const bombSchema = z.object({ roundIndex: z.number().int().min(0), expr: z.string().min(1).max(MAX_EXPRESSION_LENGTH) });
 
@@ -180,8 +185,15 @@ export class GameRoom extends Room {
     this.on("typing", (m, msg, client) => {
       const parsed = typingSchema.safeParse(msg);
       const round = this.engine?.currentRound;
-      if (!parsed.success || !round || this.phase !== "question" || round.activePlayerId !== m.id) return;
-      this.broadcast("typing", { playerId: m.id, value: parsed.data.value }, { except: client });
+      if (!parsed.success || !round || this.phase !== "question") return;
+      // La réponse que forme la saisie, gardée pour la fin du temps (le moteur la revérifiera comme toute réponse).
+      const draft = parsed.data.draft;
+      if (draft && draft.questionIndex === round.index) {
+        const { questionIndex, ...answer } = draft;
+        m.draft = { questionIndex, answer: answer as PlayerAnswer, at: Date.now() };
+      } else m.draft = null;
+      // « Chacun son tour » : les autres voient la saisie du joueur dont c'est le tour.
+      if (round.activePlayerId === m.id) this.broadcast("typing", { playerId: m.id, value: parsed.data.value }, { except: client });
     });
 
     // Type inconnu : ignoré en silence (sinon Colyseus le logue à chaque fois, logs inondables).
@@ -215,6 +227,7 @@ export class GameRoom extends Room {
       ready: false,
       rateWindowStart: 0,
       rateCount: 0,
+      draft: null,
     });
     if (!this.hostId && !this.isPublic) this.hostId = auth.id;
     client.send("welcome", { playerId: auth.id });
@@ -414,6 +427,7 @@ export class GameRoom extends Room {
   private nextRound() {
     const engine = this.engine;
     if (!engine) return;
+    for (const m of this.members.values()) m.draft = null;
     const now = Date.now();
     const round = engine.startRound(now);
     if (!round) {
@@ -430,7 +444,7 @@ export class GameRoom extends Room {
     this.phase = "question";
     this.deadline = round.startedAt + round.timeLimitMs;
     this.broadcastSnapshot();
-    this.timer = this.clock.setTimeout(() => this.closeRound(), round.timeLimitMs + LATENCY_GRACE_MS);
+    this.timer = this.clock.setTimeout(() => this.closeRound(true), round.timeLimitMs + LATENCY_GRACE_MS);
   }
 
   /** La bombe : une bombe envoyée pendant la construction. */
@@ -467,7 +481,7 @@ export class GameRoom extends Room {
     this.phase = "question";
     this.deadline = round.startedAt + round.timeLimitMs;
     this.broadcastSnapshot();
-    this.timer = this.clock.setTimeout(() => this.closeRound(), round.timeLimitMs + LATENCY_GRACE_MS);
+    this.timer = this.clock.setTimeout(() => this.closeRound(true), round.timeLimitMs + LATENCY_GRACE_MS);
   }
 
   private handleAnswer(m: Member, client: Client, msg: unknown) {
@@ -492,10 +506,12 @@ export class GameRoom extends Room {
     else this.broadcastSnapshot();
   }
 
-  private closeRound() {
+  /** `timedOut` : le temps du calcul est écoulé (et non une clôture anticipée). */
+  private closeRound(timedOut = false) {
     const engine = this.engine;
     if (!engine || (this.phase !== "question" && this.phase !== "assign")) return;
     this.timer?.clear();
+    if (timedOut && this.phase === "question") this.submitDrafts(engine);
     const rec = engine.closeRound();
     if (!rec) return;
     this.lastRound = {
@@ -526,6 +542,25 @@ export class GameRoom extends Room {
     this.deadline = Date.now() + engine.rules.resultMs;
     this.broadcastSnapshot();
     this.timer = this.clock.setTimeout(() => (engine.isOver ? this.finish() : this.nextRound()), engine.rules.resultMs);
+  }
+
+  /**
+   * Fin du temps : la saisie qu'un joueur a tapée sans l'envoyer est validée d'office, au temps limite
+   * (derrière toute réponse validée à temps, au bon compte : le plus proche arrivé le premier ; entre elles, dans l'ordre de frappe).
+   * Le moteur la vérifie comme toute réponse : forme, droit de répondre, une seule par calcul.
+   */
+  private submitDrafts(engine: GameEngine) {
+    const round = engine.currentRound;
+    if (!round) return;
+    const end = round.startedAt + round.timeLimitMs;
+    const drafts = [...this.members.values()]
+      .filter((m) => m.draft?.questionIndex === round.index)
+      .sort((a, b) => a.draft!.at - b.draft!.at);
+    for (const m of drafts) {
+      const draft = m.draft!;
+      m.draft = null;
+      engine.submit(m.id, draft.answer, end);
+    }
   }
 
   private finish() {

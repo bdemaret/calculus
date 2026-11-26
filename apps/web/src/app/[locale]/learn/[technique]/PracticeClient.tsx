@@ -85,7 +85,7 @@ export function PracticeClient({ technique }: { technique: TechniqueId }) {
           ))}
         </div>
       </div>
-      <TimerBar deadline={timer > 0 && question && !outcome ? startedAt + timer * 1000 : null} totalMs={timer * 1000} onExpire={() => finish("timeout")} />
+      <TimerBar deadline={timer > 0 && question && !outcome ? startedAt + timer * 1000 : null} totalMs={timer * 1000} onExpire={() => (value === "" ? finish("timeout") : submit())} />
       {question ? (
         <CalcLine
           text={question.text}

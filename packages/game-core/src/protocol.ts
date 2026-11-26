@@ -100,8 +100,12 @@ export interface ClientMessages {
   kick: { playerId: string };
   /** La bombe : le calcul construit pendant la construction (une seule fois par manche). */
   bomb: { roundIndex: number; expr: string };
-  /** Une saisie en cours (chiffres, ou un symbole d'opérateur), montrée aux autres en mode « chacun son tour ». */
-  typing: { value: string };
+  /**
+   * La saisie en cours (chiffres, symbole d'opérateur ou étapes du bon compte), montrée aux autres en mode « chacun son tour ».
+   * `draft` : la réponse qu'elle forme pour le calcul `questionIndex` (null si elle n'en forme pas). Le serveur la garde
+   * et la valide lui-même si le temps s'écoule avant que le joueur ne l'envoie.
+   */
+  typing: { value: string; draft?: (PlayerAnswer & { questionIndex: number }) | null };
 }
 
 /* Serveur → navigateur */

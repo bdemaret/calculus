@@ -49,6 +49,25 @@ test.describe("course de vitesse", () => {
     await expect(alice.page.getByText(t("report.keepPlayers"))).toBeVisible();
   });
 
+  test("à la fin du temps, le serveur valide d'office la réponse tapée mais pas envoyée", async ({ host, bots }) => {
+    const alice = await host("Alice", { mode: "speed-race", rounds: 2, timePerQuestion: 3 });
+    const code = await alice.create();
+    const [bot] = await bots(code, ["Bot"]);
+    bot!.play(() => "idle");
+    await expect(alice.slot("Bot")).toBeVisible();
+    await alice.start();
+
+    const status = alice.page.locator("p.status");
+    // Juste : le point est pris à la fin du temps.
+    await alice.play("pending");
+    await expect(status).toHaveText(t("game.youScored"));
+    // Fausse : une erreur ordinaire, pas un temps écoulé.
+    const missed = await alice.play("pending-wrong");
+    await expect(alice.result).toContainText(`${t("game.no")} : ${missed.answer}`);
+
+    await expect(alice.rankingRow("Alice")).toContainText(`1 ${t("report.pts")}`, { timeout: 20_000 });
+  });
+
   test("chacun son tour : seul le joueur actif répond, sa saisie s'affiche chez les autres", async ({ host, bots }) => {
     // Même si le dernier lobby était en « chacun son tour », un nouveau lobby commence en simultané.
     const alice = await host("Alice", { mode: "speed-race", rounds: 5, turnStyle: "turns" });

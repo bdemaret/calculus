@@ -30,7 +30,7 @@ import { Margin, MarginNote } from "@/components/Margin";
 import { RoundCorrection } from "@/components/RoundCorrection";
 import { SettingsForm } from "@/components/SettingsForm";
 import { TimerBar } from "@/components/TimerBar";
-import { answerFromInput, revealSeparator, shownAnswer } from "@/lib/answer";
+import { answerFromInput, pendingAnswer, revealSeparator, shownAnswer } from "@/lib/answer";
 import { formatSeconds } from "@/lib/format";
 import { celebrate, sfx } from "@/lib/sound";
 import { SOLO_ACTIVITY_PING_MS, SoloActivity } from "@/lib/soloActivity";
@@ -198,11 +198,28 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
     if (!e || !e.currentRound) return;
     const answer = given ?? answerFromInput(value, e.game.answerKind(e.currentRound.question));
     if (!answer) return;
-    const res = e.submit(ME, answer, Date.now());
-    if (!res.accepted) return;
+    answerWith(answer, Date.now());
+  }
+
+  /** Enregistre la réponse et clôt le calcul ; faux si le moteur la refuse (saisie invalide). */
+  function answerWith(answer: PlayerAnswer, now: number): boolean {
+    const e = engine.current;
+    if (!e) return false;
+    const res = e.submit(ME, answer, now);
+    if (!res.accepted) return false;
     setFeedback({ correct: !!res.correct, timeMs: res.timeMs ?? 0 });
     if (res.correct) sfx.ok();
     else sfx.ko();
+    endRound();
+    return true;
+  }
+
+  /** Fin du temps : ce qui est tapé sans avoir été validé l'est d'office (au temps limite), sinon le calcul est perdu. */
+  function expire() {
+    const r = engine.current?.currentRound;
+    if (!r) return;
+    const pending = pendingAnswer(value, r.question.puzzle);
+    if (pending && answerWith(pending, r.startedAt + r.timeLimitMs)) return;
     endRound();
   }
 
@@ -359,7 +376,7 @@ export function SoloGame({ loggedIn, playerName, preset }: Props) {
       <TimerBar
         deadline={phase === "question" && round ? round.startedAt + round.timeLimitMs : null}
         totalMs={round?.timeLimitMs ?? 1}
-        onExpire={endRound}
+        onExpire={expire}
       />
       <p className="status">{phase === "countdown" ? t(`modes.${settings.mode}.solo`) : ""}</p>
       {phase === "countdown" ? (

@@ -11,6 +11,7 @@ import {
   sanitizeDungeonSettings,
   type AdminDungeonSummary,
   type BasicOperation,
+  type DungeonAnswer,
   type ItemId,
   type DungeonMember,
   type DungeonRoomError,
@@ -44,6 +45,8 @@ interface Member {
   connected: boolean;
   rateWindowStart: number;
   rateCount: number;
+  /** Saisie en cours, pas encore validée : validée d'office à la fin du temps de son calcul (`submitDrafts`). */
+  draft: { index: number; answer: DungeonAnswer } | null;
 }
 
 const settingsSchema = z.object({ difficulty: z.number().int().min(1).max(5) }).strict();
@@ -55,6 +58,8 @@ const answerSchema = z.union([
   z.object({ index: z.number().int().min(0).max(1000), value: z.number().int().min(0).max(1_000_000) }).strict(),
   z.object({ index: z.number().int().min(0).max(1000), op: z.enum(BASIC_OPERATIONS as [BasicOperation, ...BasicOperation[]]) }).strict(),
 ]);
+/** Saisie en cours : la réponse qu'elle forme, ou `index` seul si elle n'en forme aucune. */
+const draftSchema = z.union([...answerSchema.options, z.object({ index: z.number().int().min(0).max(1000) }).strict()]);
 const itemSchema = z.enum(ITEM_IDS as [ItemId, ...ItemId[]]);
 const lootSchema = z.object({ to: z.string().min(1).max(100), item: itemSchema.optional() }).strict();
 const discardLootSchema = z.object({ item: itemSchema.optional() }).strict();
@@ -145,6 +150,15 @@ export class DungeonRoom extends Room {
 
     this.on("answer", (m, msg, client) => this.handleAnswer(m, client, msg));
 
+    this.on("draft", (m, msg) => {
+      const parsed = draftSchema.safeParse(msg);
+      if (!parsed.success || !this.engine) return;
+      const { index } = parsed.data;
+      const answer: DungeonAnswer | null = "value" in parsed.data ? { value: parsed.data.value } : "op" in parsed.data ? { op: parsed.data.op } : null;
+      // Seulement pour le calcul en cours de ce joueur ; le moteur la revérifiera comme toute réponse.
+      m.draft = answer && this.engine.questionIndex(m.id) === index ? { index, answer } : null;
+    });
+
     // Bilan des combats : on passe à la suite quand tous ceux qui restent ont cliqué sur « Suivant ».
     this.on("ready", (m, msg, client) => {
       const engine = this.engine;
@@ -214,7 +228,7 @@ export class DungeonRoom extends Room {
     if (this.phase !== "lobby") throw new ServerError(JOIN_ERRORS.inProgress, "in-progress");
     if (this.members.has(auth.id)) throw new ServerError(JOIN_ERRORS.duplicate, "duplicate");
     if (this.members.size >= DUNGEON_MAX_PLAYERS) throw new ServerError(JOIN_ERRORS.full, "full");
-    this.members.set(auth.id, { id: auth.id, name: auth.name, title: auth.title, client, connected: true, rateWindowStart: 0, rateCount: 0 });
+    this.members.set(auth.id, { id: auth.id, name: auth.name, title: auth.title, client, connected: true, rateWindowStart: 0, rateCount: 0, draft: null });
     if (!this.hostId) this.hostId = auth.id;
     client.send("welcome", { playerId: auth.id });
     this.broadcastSnapshot();
@@ -365,6 +379,7 @@ export class DungeonRoom extends Room {
       return;
     }
     const { index: _index, ...answer } = parsed.data;
+    m.draft = null;
     const res = engine.submit(m.id, answer, now);
     if (!res.accepted) {
       client.send("answer-refused", { reason: "refused" });
@@ -397,6 +412,7 @@ export class DungeonRoom extends Room {
           engine.closePositioning(now);
           break;
         case "combat":
+          this.submitDrafts(engine, now);
           engine.expire(now);
           if (engine.combatOver) engine.closeCombat(now);
           break;
@@ -408,12 +424,28 @@ export class DungeonRoom extends Room {
           engine.closeLoot(now);
           break;
         case "boss":
-          engine.expire(now);
+          this.submitDrafts(engine, now);
+          if (!engine.isOver) engine.expire(now);
           break;
         case "finished":
           break;
       }
     });
+  }
+
+  /**
+   * Fin du temps : la saisie qu'un joueur a tapée sans l'envoyer est validée d'office, au temps limite de son calcul,
+   * pour chaque joueur dont le temps est écoulé. Le moteur la vérifie comme toute réponse.
+   */
+  private submitDrafts(engine: DungeonEngine, now: number) {
+    for (const m of this.members.values()) {
+      const draft = m.draft;
+      if (!draft || engine.isOver) continue;
+      const deadline = engine.deadlineFor(m.id);
+      if (deadline === null || now <= deadline + LATENCY_GRACE_MS || engine.questionIndex(m.id) !== draft.index) continue;
+      m.draft = null;
+      engine.submit(m.id, draft.answer, deadline);
+    }
   }
 
   /**
@@ -423,7 +455,10 @@ export class DungeonRoom extends Room {
   private step(change: () => void) {
     const engine = this.engine;
     if (!engine) return;
+    const before = engine.phase;
     change();
+    // Nouvelle phase : les saisies en cours ne visent plus aucun calcul.
+    if (engine.phase !== before) for (const m of this.members.values()) m.draft = null;
     this.timer?.clear();
     this.timer = null;
     if (engine.isOver) {

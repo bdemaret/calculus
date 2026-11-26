@@ -17,7 +17,7 @@ import { PlayerTitle } from "@/components/PlayerTitle";
 import { SettingsForm } from "@/components/SettingsForm";
 import { TimerBar } from "@/components/TimerBar";
 import { JoinError, joinLobby, leaveLobby, readCurrentLobby, readRoom, subscribeCurrentLobby, subscribeRoom, type LobbyState } from "@/lib/colyseus";
-import { answerFromInput, answerKindOfPuzzle, revealSeparator, shownAnswer } from "@/lib/answer";
+import { answerFromInput, answerKindOfPuzzle, pendingAnswer, revealSeparator, shownAnswer } from "@/lib/answer";
 import { formatSeconds } from "@/lib/format";
 import { cleanName } from "@/lib/names";
 import { celebrate, sfx } from "@/lib/sound";
@@ -386,9 +386,13 @@ function Playing({ room, state, snap, me, onLeave }: { room: Room; state: LobbyS
     room.send("answer", { ...answer, questionIndex: question.index });
   };
 
+  // La saisie part au serveur à chaque frappe : il valide d'office, à la fin du temps, la réponse qu'elle forme
+  // (et la montre aux autres en « chacun son tour »).
   const onType = (v: string) => {
     setValue(v);
-    if (turns && myTurn) room.send("typing", { value: v });
+    if (!canAnswer || !question) return;
+    const draft = pendingAnswer(v, question.puzzle);
+    room.send("typing", { value: v, draft: draft ? { ...draft, questionIndex: question.index } : null });
   };
 
   const ack = state.lastAck && question && state.lastAck.questionIndex === question.index ? state.lastAck : null;

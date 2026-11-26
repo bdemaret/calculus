@@ -3,7 +3,8 @@ import { BASIC_OPERATIONS, OPERATION_SYMBOL } from "@calculus/game-core";
 import { t } from "../fixtures/i18n";
 import { expectedAnswer } from "../fixtures/oracle";
 
-export type Move = "right" | "wrong" | "timeout";
+/** `pending` / `pending-wrong` : la réponse est tapée mais jamais validée, le temps s'écoule dessus. */
+export type Move = "right" | "wrong" | "timeout" | "pending" | "pending-wrong";
 
 /** La case réponse de la ligne de cahier. */
 export const answerBox = (page: Page): Locator => page.getByRole("textbox", { name: t("game.yourAnswer") });
@@ -17,9 +18,11 @@ export async function answerRound(page: Page, move: Move, touch = false): Promis
   await expect(box).toBeEnabled({ timeout: 20_000 });
   await expect(box).toHaveValue("");
   const q = await expectedAnswer(page);
-  if (move !== "timeout") await type(page, move === "right" ? q.answer : q.wrong, touch);
+  const waits = move === "timeout" || move === "pending" || move === "pending-wrong";
+  if (move === "pending" || move === "pending-wrong") await box.fill(move === "pending" ? q.answer : q.wrong);
+  else if (move !== "timeout") await type(page, move === "right" ? q.answer : q.wrong, touch);
   const closed = box.and(page.locator(":disabled")).or(page.getByTestId("report-verdict"));
-  await expect(closed).toBeVisible({ timeout: move === "timeout" ? 70_000 : 5_000 });
+  await expect(closed).toBeVisible({ timeout: waits ? 70_000 : 5_000 });
   return q;
 }
 

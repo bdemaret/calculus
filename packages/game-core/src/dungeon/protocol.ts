@@ -73,6 +73,11 @@ export interface DungeonClientMessages {
   lock: Record<string, never>;
   /** Réponse au calcul numéro `index` de sa série (ou du boss) : un nombre, ou un opérateur (spectre). */
   answer: { index: number; value: number } | { index: number; op: BasicOperation };
+  /**
+   * Saisie en cours, pas encore validée (`index` seul : saisie vide). Le serveur la garde et la valide lui-même
+   * si le temps du calcul s'écoule avant que le joueur ne l'envoie.
+   */
+  draft: { index: number } | { index: number; value: number } | { index: number; op: BasicOperation };
   /** Bilan des combats : « Suivant ». On passe à la suite quand tous les joueurs encore là l'ont envoyé. */
   ready: Record<string, never>;
   /** Phase des objets : donner un objet trouvé (à soi ou à un allié) ; `item` dit lequel quand on en a plusieurs. */

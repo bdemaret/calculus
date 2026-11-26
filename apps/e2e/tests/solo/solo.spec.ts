@@ -84,6 +84,22 @@ test.describe("solo en invité", () => {
     await expect(solo.verdict).toHaveText("4/5");
   });
 
+  test("à la fin du temps, la réponse tapée mais pas validée est validée d'office", async ({ page }) => {
+    await presetSolo(page, { rounds: 5, timePerQuestion: 3 });
+    const solo = new SoloPage(page);
+    await solo.goto();
+    await solo.start();
+    // Juste : elle compte et la partie enchaîne comme après une bonne réponse.
+    await solo.play("pending");
+    // Fausse : c'est une erreur ordinaire, pas un temps écoulé.
+    const missed = await solo.play("pending-wrong");
+    await expect(page.locator(".result-line")).toHaveText(`${t("game.no")} : ${missed.answer}`);
+    await page.getByRole("button", { name: t("solo.next") }).click();
+    await solo.playAll(["right", "right", "right"]);
+
+    await expect(solo.verdict).toHaveText("4/5");
+  });
+
   test("en battle royale, la première erreur arrête la partie", async ({ page }) => {
     await presetSolo(page, { mode: "battle-royale" });
     const solo = new SoloPage(page);

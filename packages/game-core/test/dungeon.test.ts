@@ -451,6 +451,19 @@ describe("donjon : formes de combat", () => {
     expect(g.view("p0", deadline + 1).players.every((p) => p.fight?.status === "failed")).toBe(true);
   });
 
+  it("deadlineFor : la fin du temps du calcul en cours, celle de la vue ; une réponse rendue à cette heure compte", () => {
+    const { g, room } = withEnemy("hydra", 3);
+    g.pick("p0", room.key);
+    g.pick("p1", room.key);
+    expect(g.deadlineFor("p0")).toBeNull();
+    g.closePositioning(0);
+    const deadline = g.view("p0", 0).question!.deadline!;
+    expect(g.deadlineFor("p0")).toBe(deadline);
+    // Ce que le serveur fait d'une saisie pas validée à la fin du temps : elle est rendue au temps limite.
+    expect(g.submit("p0", solve(g.view("p0", 0)), deadline)).toMatchObject({ accepted: true, correct: true });
+    expect(g.view("p0", deadline).players.find((p) => p.id === "p0")!.fight!.index).toBe(1);
+  });
+
   it("horde : une série commune, chaque bonne réponse de n'importe qui retire un gobelin", () => {
     const { g, room } = withEnemy("goblins");
     g.pick("p0", room.key);

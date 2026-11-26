@@ -1,4 +1,4 @@
-import { MAX_EXPRESSION_LENGTH, OPERATION_SYMBOL, operatorOfSymbol, type AnswerKind, type GameId, type PlayerAnswer, type Puzzle } from "@calculus/game-core";
+import { MAX_EXPRESSION_LENGTH, OPERATION_SYMBOL, operatorOfSymbol, readSteps, type AnswerKind, type GameId, type PlayerAnswer, type Puzzle } from "@calculus/game-core";
 
 /** Forme de la réponse attendue pour un calcul affiché (le jeu le décide calcul par calcul). */
 export function answerKindOfPuzzle(puzzle: Puzzle | undefined): AnswerKind {
@@ -30,6 +30,19 @@ export function answerFromInput(value: string, kind: AnswerKind): PlayerAnswer |
     return op ? { op } : null;
   }
   return { value: Number(value) };
+}
+
+/**
+ * La réponse que forme la saisie en cours pour ce calcul, null si elle n'en forme aucune.
+ * Le bon compte se saisit en étapes : c'est l'expression complète qui part (comme sur « OK »).
+ * Sert à valider d'office, à la fin du temps, ce que le joueur a tapé sans l'envoyer.
+ */
+export function pendingAnswer(value: string, puzzle: Puzzle | undefined): PlayerAnswer | null {
+  if (puzzle?.game === "right-count") {
+    const complete = readSteps(puzzle.tiles, puzzle.operations, value).complete;
+    return complete ? { expr: complete.expr } : null;
+  }
+  return answerFromInput(value, answerKindOfPuzzle(puzzle));
 }
 
 /** Une réponse enregistrée, telle qu'on l'affiche (nombre, ou expression / symbole). */

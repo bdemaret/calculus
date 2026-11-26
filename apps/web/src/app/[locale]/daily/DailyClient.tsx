@@ -122,7 +122,7 @@ export function DailyClient({ loggedIn, children }: Props) {
     router.refresh();
   }
 
-  /** `given` null : le temps s'est écoulé. */
+  /** `given` null : le temps s'est écoulé sans rien de tapé (ce qui est tapé est envoyé d'office à la fin du temps). */
   async function send(given: number | null) {
     if (phase !== "question") return;
     setPhase("waiting");
@@ -232,7 +232,7 @@ export function DailyClient({ loggedIn, children }: Props) {
         <MarginNote value={`${round}/${DAILY_ROUNDS}`} label={t("game.round")} />
         <MarginNote value={<span className="grade">{run?.correct ?? 0}</span>} label={t("game.correct")} />
       </Margin>
-      <TimerBar deadline={phase === "question" ? deadline : null} totalMs={run?.question?.timeLimitMs ?? 1} onExpire={() => void send(null)} />
+      <TimerBar deadline={phase === "question" ? deadline : null} totalMs={run?.question?.timeLimitMs ?? 1} onExpire={() => void send(value === "" ? null : Number(value))} />
       <p className="status">{difficulty ? <span className="daily-level">{t(`levels.${difficulty}`)}</span> : t("daily.rule")}</p>
       {phase === "countdown" ? (
         <div className="game-row">

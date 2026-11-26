@@ -905,6 +905,12 @@ function AnswerLine({ room, game, state, target }: { room: Room; game: DungeonVi
   }, [state.lastAck, key]);
 
   if (!q) return null;
+  // La saisie part au serveur à chaque frappe : il valide d'office, à la fin du temps, la réponse qu'elle forme.
+  const onChange = (v: string) => {
+    setValue(v);
+    if (sentFor === key) return;
+    room.send("draft", { index: q.index, ...answerFromInput(v, q.answerKind) });
+  };
   const submit = () => {
     const answer = answerFromInput(value, q.answerKind);
     if (!answer || sentFor === key) return;
@@ -918,7 +924,7 @@ function AnswerLine({ room, game, state, target }: { room: Room; game: DungeonVi
         text={hidden ? t("hiddenCalc") : q.text}
         puzzle={hidden ? undefined : q.puzzle}
         value={value}
-        onChange={setValue}
+        onChange={onChange}
         onSubmit={submit}
         disabled={sentFor === key}
       />

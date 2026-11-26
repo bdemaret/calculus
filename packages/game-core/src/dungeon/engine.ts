@@ -668,6 +668,23 @@ export class DungeonEngine {
     return null;
   }
 
+  /**
+   * Fin du temps du calcul en cours de ce joueur (série ou boss, sans la marge de latence), null s'il n'en a pas.
+   * Sert au serveur à valider, à l'échéance, une saisie envoyée mais pas encore validée.
+   */
+  deadlineFor(playerId: string): number | null {
+    if (this.introEndsAt !== null) return null;
+    if (this.phase === "combat") {
+      const f = this.fights.get(playerId);
+      return f?.status === "fighting" ? this.deadlineOf(f) : null;
+    }
+    if (this.phase === "boss") {
+      const f = this.bossFights.get(playerId);
+      return f && !f.down && this.boss ? this.boss.endsAt : null;
+    }
+    return null;
+  }
+
   /** Toutes les séries de la manche sont finies. */
   get combatOver(): boolean {
     return this.phase === "combat" && [...this.fights.values()].every((f) => f.status !== "fighting");
