@@ -409,7 +409,8 @@
 .dungeon-progress span.broken { opacity: .18; transform: skewX(-18deg) scale(.8); }
 .dungeon-progress span.ko { background: var(--dg-gold); }
 .dungeon-answer { display: grid; gap: 8px; }
-.dungeon-answer.hidden-calc .calc { color: var(--dg-spirit); letter-spacing: .2em; text-shadow: 0 0 24px rgba(109, 255, 251, .5); }
+/* Momie : seul le « ? ? ? » prend l'espacement et la lueur ; la case réponse en hériterait (lettres espacées, chiffres coupés). */
+.dungeon-answer.hidden-calc .calc [data-calc] { color: var(--dg-spirit); letter-spacing: .2em; text-shadow: 0 0 24px rgba(109, 255, 251, .5); }
 @keyframes dg-idle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 @keyframes dg-hit { 0% { transform: translateX(0); filter: brightness(2.2) drop-shadow(0 0 10px #fff); } 40% { transform: translateX(8px) rotate(4deg); } 100% { transform: none; } }
 @keyframes dg-taunt { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.12); filter: drop-shadow(0 0 14px rgba(232, 90, 90, .7)); } }
