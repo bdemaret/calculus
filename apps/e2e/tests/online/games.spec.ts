@@ -50,7 +50,7 @@ test.describe("course de vitesse", () => {
   });
 
   test("à la fin du temps, le serveur valide d'office la réponse tapée mais pas envoyée", async ({ host, bots }) => {
-    const alice = await host("Alice", { mode: "speed-race", rounds: 2, timePerQuestion: 3 });
+    const alice = await host("Alice", { mode: "speed-race", rounds: 5, timePerQuestion: 3 });
     const code = await alice.create();
     const [bot] = await bots(code, ["Bot"]);
     bot!.play(() => "idle");
@@ -65,7 +65,8 @@ test.describe("course de vitesse", () => {
     const missed = await alice.play("pending-wrong");
     await expect(alice.result).toContainText(`${t("game.no")} : ${missed.answer}`);
 
-    await expect(alice.rankingRow("Alice")).toContainText(`1 ${t("report.pts")}`, { timeout: 20_000 });
+    // Seule la réponse juste a rapporté un point (score de la pastille : les 3 manches suivantes n'apportent rien).
+    await expect(alice.chipScore("Alice")).toHaveText("1");
   });
 
   test("chacun son tour : seul le joueur actif répond, sa saisie s'affiche chez les autres", async ({ host, bots }) => {
