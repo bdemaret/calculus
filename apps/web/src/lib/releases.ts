@@ -4,6 +4,7 @@
  * Pour une mise en production : ajouter une entrée en tête et ses notes dans les deux langues.
  */
 export const RELEASES = [
+  { version: "1.6.0", date: "2026-11-26" },
   { version: "1.5.0", date: "2026-11-16" },
   { version: "1.4.0", date: "2026-11-10" },
   { version: "1.3.0", date: "2026-11-06" },

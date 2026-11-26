@@ -915,6 +915,15 @@
     "noticeOpen": "See what’s new",
     "noticeDismiss": "Dismiss",
     "notes": {
+      "v1_6_0": [
+        "Dungeons: at the end of an expedition, won or lost, a recap traces each player’s journey round by round (rooms, calculations, loot, lives, boss), and the score is shared by everyone, broken down by source.",
+        "Dungeons: a new “Expedition leaderboard” gathers won expeditions by team size, each one leading to its recap.",
+        "Dungeons: after each fight, a “Battle summary” shows everyone’s calculations, then the “Items phase” lets you keep, give or leave the loot; meanwhile, players with nothing to play see how their allies are doing.",
+        "Difficulty: a new “Random” level after Legend, where each calculation draws its own level, with its own Elo and leaderboard.",
+        "Time’s up: what you typed without sending now counts as your answer when the clock runs out, wherever there is one.",
+        "Preferences: a new setting writes the +, −, × and ÷ signs in blue in calculations so they stand out.",
+        "Dungeons: enemies are tougher in Expert and Legend; fixes: the boss calculation stays visible on small phones and the 🏠 button is always there, above the menu."
+      ],
       "v1_5_0": [
         "Daily calc: at the end of your attempt, a preview of your score (one square per calculation, time, rank and streak) can be copied in one tap to share it.",
         "Daily calc: only correct answers now count in your total time, so a mistake or a timeout no longer adds anything.",

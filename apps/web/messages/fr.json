@@ -912,6 +912,15 @@
     "noticeOpen": "Voir les nouveautés",
     "noticeDismiss": "Fermer",
     "notes": {
+      "v1_6_0": [
+        "Donjons : à la fin de l’expédition, gagnée ou perdue, un récap retrace le parcours de chaque joueur manche par manche (salles, calculs, butin, vies, boss), et le score se partage entre tous, détaillé par source.",
+        "Donjons : un nouveau « Classement des expéditions » réunit les expéditions gagnées par taille d’équipe, chacune menant à son récap.",
+        "Donjons : après chaque combat, un « Bilan des combats » montre tous les calculs de chacun, puis la « Phase des objets » sert à garder, donner ou laisser le butin ; pendant ce temps, qui n’a rien à jouer voit où en sont ses alliés.",
+        "Difficulté : nouveau niveau « Aléatoire » après Légende, où chaque calcul tire son niveau au sort, avec son propre Elo et son classement.",
+        "Fin du temps : ce que tu as tapé sans l’envoyer compte désormais comme ta réponse quand le chrono tombe, partout où il y en a un.",
+        "Préférences : un nouveau réglage écrit les signes +, −, × et ÷ en bleu dans les calculs pour mieux les repérer.",
+        "Donjons : les ennemis sont plus coriaces en Expert et en Légende ; corrections : le calcul du boss reste visible sur les petits téléphones et le bouton 🏠 est toujours là, au-dessus du menu."
+      ],
       "v1_5_0": [
         "Calcul du jour : à la fin de ton essai, un aperçu de ton score (une case par calcul, temps, place et série) se copie d’un geste pour le partager.",
         "Calcul du jour : seules les bonnes réponses comptent désormais dans ton temps total, une erreur ou un temps écoulé n’y ajoute plus rien.",
