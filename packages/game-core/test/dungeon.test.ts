@@ -3,6 +3,7 @@ import {
   BAG_SIZE,
   BOMB_DAMAGE,
   BOSS_HP_PER_PLAYER,
+  BOSS_POINTS,
   CHEST_ITEMS,
   CHEST_POINTS,
   DIFFICULTIES,
@@ -16,6 +17,7 @@ import {
   FLOOR_POOLS,
   HOURGLASS_FACTOR,
   ITEM_IDS,
+  LIFE_POINTS,
   ITEM_USE,
   PURSE_POINTS,
   SEAL_FLOOR_RATIO,
@@ -23,12 +25,14 @@ import {
   SYMBOL_OPERATION,
   bossQuestion,
   buildDungeon,
+  dungeonPointsTotal,
   enemyQuestion,
   enemyTimeMs,
   evaluateText,
   missingGame,
   rollLoot,
   sanitizeDungeonSettings,
+  splitPoints,
   stepsToBoss,
   type BasicOperation,
   type Difficulty,
@@ -343,12 +347,34 @@ describe("donjon : exploration", () => {
     const ratio = Math.max(SEAL_FLOOR_RATIO, 1 - SEAL_WEAKEN * v.sealsBroken);
     expect(v.boss!.maxHp).toBe(Math.round(BOSS_HP_PER_PLAYER * 2 * ratio));
     let now = t;
+    const before = g.summary().players.map((p) => p.pointsDetail!.rooms);
+    // p0 porte deux coups sur trois.
     for (let hit = 0; hit < v.boss!.maxHp; hit++) {
-      const id = hit % 2 ? "p1" : "p0";
+      const id = hit % 3 === 2 ? "p1" : "p0";
       now += 100;
       expect(g.submit(id, solve(g.view(id, now)), now).correct).toBe(true);
     }
     expect(g.outcome).toBe("won");
+    const summary = g.summary();
+    const [a, b] = summary.players.map((p) => p.pointsDetail!);
+    // Le boss se partage selon les coups portés, les vies restent à qui les a.
+    expect(splitPoints(BOSS_POINTS, summary.players.map((p) => p.bossDamage))).toEqual([a!.boss, b!.boss]);
+    expect(a!.boss).toBeGreaterThan(b!.boss);
+    expect([a!.rooms, b!.rooms]).toEqual(before);
+    expect([a!.lives, b!.lives]).toEqual(summary.players.map((p) => p.lives * LIFE_POINTS));
+    for (const p of summary.players) expect(p.points).toBe(dungeonPointsTotal(p.pointsDetail!));
+    expect(summary.score).toBe(summary.players.reduce((sum, p) => sum + p.points, 0));
+  });
+
+  it("partage des points : entiers, somme exacte, les premiers prennent le reste", () => {
+    expect(splitPoints(350, [1, 1, 1])).toEqual([117, 117, 116]);
+    expect(splitPoints(1000, [2, 1])).toEqual([667, 333]);
+    expect(splitPoints(1000, [3, 0])).toEqual([1000, 0]);
+    expect(splitPoints(500, [0, 0])).toEqual([0, 0]);
+    for (let total = 0; total < 2000; total += 37) {
+      const weights = [total % 5, 3, (total % 7) + 1, 0];
+      expect(splitPoints(total, weights).reduce((x, y) => x + y, 0)).toBe(total);
+    }
   });
 
   it("un coffre se prend sans combat, rapporte des points et deux objets différents", () => {
@@ -378,7 +404,9 @@ describe("donjon : exploration", () => {
       expect(g.giveLoot("p0", "p0", items[1])).toEqual({ ok: false, reason: "no-loot" });
       expect(g.giveLoot("p0", "p0")).toEqual({ ok: true });
       expect(g.lootDone).toBe(true);
-      expect(g.summary().players[0]).toMatchObject({ itemsFound: CHEST_ITEMS, points: CHEST_POINTS });
+      // Ouvert à deux : les points du coffre sont partagés, le score de l'équipe est leur somme.
+      expect(g.summary().players.map((p) => p.points)).toEqual([CHEST_POINTS / 2, CHEST_POINTS / 2]);
+      expect(g.summary().players[0]).toMatchObject({ itemsFound: CHEST_ITEMS });
       return;
     }
     throw new Error("aucune carte avec un coffre au 2e étage");
@@ -622,6 +650,11 @@ describe("donjon : butin et sac", () => {
     const score = g.score;
     g.expire(g.view("", t).boss!.endsAt + 1);
     expect(g.score).toBe(score + PURSE_POINTS);
+    // La bourse revient à qui l'a dans son sac ; perdu, ni boss ni vies.
+    expect(g.summary().players.map((p) => p.pointsDetail!)).toMatchObject([
+      { purses: 0, boss: 0, lives: 0 },
+      { purses: PURSE_POINTS, boss: 0, lives: 0 },
+    ]);
   });
 
   it("le butin d'une salle va au plus rapide, qui le donne ; un cœur relève un allié à terre", () => {
@@ -739,6 +772,73 @@ describe("donjon : bilan des combats et phase des objets", () => {
     expect(g.lootDone).toBe(true);
     g.closeLoot(200);
     expect(g.phase).toBe("positioning");
+  });
+});
+
+describe("donjon : récap de fin (parcours de chaque joueur)", () => {
+  it("garde chaque salle, ses calculs, le butin reçu ou donné et le boss, joueur par joueur", () => {
+    for (let s = 0; s < 500; s++) {
+      const g = engine(2, 1, `parcours${s}`);
+      const chest = g.map.rooms.find((r) => r.kind === "chest" && r.floor === 2);
+      if (!chest) continue;
+      openRoom(g, chest.key);
+      const enemyRoom = g.accessible().find((r) => r.floor === 1)!;
+      g.pick("p0", chest.key);
+      g.pick("p1", enemyRoom.key);
+      g.closePositioning(0);
+      // p1 rate son premier calcul, puis le temps finit la série si l'erreur ne suffit pas (hydre).
+      g.submit("p1", wrongOf(solve(g.view("p1", 100))), 100);
+      if (!g.combatOver) g.expire(600_000);
+      g.closeCombat(600_000);
+      g.markReady("p0");
+      g.markReady("p1");
+      g.advance(600_000);
+      const [first, second] = g.loot.map((l) => l.item);
+      expect(g.giveLoot("p0", "p1", second)).toEqual({ ok: true });
+      expect(g.discardLoot("p0", first)).toEqual({ ok: true });
+      g.closeLoot(600_000);
+
+      const journeys = g.summary().journeys!;
+      const [p0] = journeys.p0!;
+      const [p1] = journeys.p1!;
+      expect(p0).toMatchObject({ round: 0, boss: false, roomKey: chest.key, roomKind: "chest", status: "won", calcs: [] });
+      expect(p0!.loot).toEqual([
+        { item: first, fromId: "p0", toId: null },
+        { item: second, fromId: "p0", toId: "p1" },
+      ]);
+      expect(p1).toMatchObject({ round: 0, roomKey: enemyRoom.key, enemy: enemyRoom.enemy, status: "failed" });
+      expect(p1!.calcs[0]).toMatchObject({ correct: false, timeMs: 100 });
+      expect(p1!.loot).toEqual([{ item: second, fromId: "p0", toId: "p1" }]);
+      // Le relevé ne bouge plus quand la partie continue.
+      expect(g.summary().journeys!.p1![0]).toEqual(p1);
+      return;
+    }
+    throw new Error("aucune carte avec un coffre au 2e étage");
+  });
+
+  it("note les calculs du boss, et celui en cours quand le chrono tombe", () => {
+    const g = engine(2, 1, "chemin");
+    let t = 0;
+    while (g.phase !== "boss" && !g.isOver) {
+      t = g.bossReached ? winRound(g, t, g.accessible().filter((r) => r.kind !== "mimic")[0]!.key) : winRound(g, t);
+    }
+    expect(g.phase).toBe("boss");
+    const ok = solve(g.view("p0", t));
+    g.submit("p0", ok, t + 100);
+    g.submit("p1", wrongOf(solve(g.view("p1", t))), t + 200);
+    g.expire(t + 10_000_000);
+    expect(g.lossReason).toBe("boss-timeout");
+    const journeys = g.summary().journeys!;
+    expect(journeys.p0!.map((s) => s.round)).toEqual([0, 1, 2, 3, DUNGEON_FLOORS]);
+    const boss0 = journeys.p0!.at(-1)!;
+    expect(boss0).toMatchObject({ boss: true, status: "failed", roomKey: null });
+    expect(boss0.calcs.map((c) => [c.correct, c.given === null])).toEqual([
+      [true, false],
+      [false, true],
+    ]);
+    const boss1 = journeys.p1!.at(-1)!;
+    expect(boss1.calcs[0]).toMatchObject({ correct: false });
+    expect(boss1.lives).toBe(g.summary().players[1]!.lives);
   });
 });
 

@@ -591,6 +591,8 @@ model DungeonRun {
   players         DungeonRunPlayer[]
 
   @@index([endedAt])
+  /// Classement des donjons : par nombre de joueurs, puis difficulté et score
+  @@index([playerCount, difficulty, score])
   @@map("dungeon_run")
 }
 
@@ -610,7 +612,13 @@ model DungeonRunPlayer {
   lives           Int
   livesLost       Int
   enemiesDefeated Int
+  /// Sa part du score (somme des quatre sources ci-dessous) ; avant le partage du score, les salles seules
   points          Int
+  /// Détail de sa part, null pour les expéditions enregistrées avant le partage du score
+  roomPoints      Int?
+  bossPoints      Int?
+  lifePoints      Int?
+  pursePoints     Int?
   bossDamage      Int
   heartsGiven     Int
   heartsReceived  Int
@@ -621,6 +629,8 @@ model DungeonRunPlayer {
   avgTimeMs       Int?
   /// Parti avant la fin : ne compte pas dans les expéditions réussies (succès)
   left            Boolean    @default(false)
+  /// Son parcours pour le récap de fin (`DungeonJourneyStep[]` : salles, calculs, butin, boss), null avant le récap
+  journey         Json?
 
   @@unique([runId, playerKey])
   @@index([userId])

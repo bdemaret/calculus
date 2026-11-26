@@ -60,14 +60,46 @@ export interface CalcRecord {
   timeMs: number;
 }
 
+/**
+ * Part d'un joueur dans le score, par source. Chaque point de l'expédition revient à quelqu'un :
+ * salles vaincues (partagées entre leurs vainqueurs), boss (selon les PV retirés), vies restantes et bourses gardées.
+ */
+export interface DungeonPoints {
+  rooms: number;
+  boss: number;
+  lives: number;
+  purses: number;
+}
+
+export const dungeonPointsTotal = (p: DungeonPoints): number => p.rooms + p.boss + p.lives + p.purses;
+
+/**
+ * Partage `total` points entiers au prorata de `weights` (plus forts restes) ; à reste égal, le premier de la liste
+ * l'emporte. Tout à zéro si aucun poids n'est positif. La somme vaut toujours `total` sinon.
+ */
+export function splitPoints(total: number, weights: number[]): number[] {
+  const sum = weights.reduce((a, w) => a + Math.max(0, w), 0);
+  if (sum <= 0) return weights.map(() => 0);
+  const exact = weights.map((w) => (total * Math.max(0, w)) / sum);
+  const shares = exact.map(Math.floor);
+  let left = total - shares.reduce((a, b) => a + b, 0);
+  const order = exact.map((e, i) => ({ i, rest: e - Math.floor(e) })).sort((a, b) => b.rest - a.rest || a.i - b.i);
+  for (const { i } of order) {
+    if (left <= 0) break;
+    shares[i]! += 1;
+    left -= 1;
+  }
+  return shares;
+}
+
 interface PlayerRecord extends PlayerInfo {
   lives: number;
   /** Parti pour de bon (après le délai de reconnexion). */
   gone: boolean;
   livesLost: number;
   enemiesDefeated: number;
-  /** Points des salles que ce joueur a réussies (sa part du score). */
-  points: number;
+  /** Sa part du score, par source : le score de l'équipe est la somme de ces parts. */
+  points: DungeonPoints;
   bossDamage: number;
   heartsGiven: number;
   heartsReceived: number;
@@ -151,6 +183,29 @@ export interface DungeonRoundOutcome {
     /** Tous les calculs joués par ce joueur pendant la manche (vide pour un coffre). */
     calcs: CalcRecord[];
   }[];
+}
+
+/**
+ * Une étape du parcours d'un joueur, pour le récap de fin d'expédition : une manche d'exploration (la salle affrontée)
+ * ou le boss, avec chaque calcul joué, les objets reçus ou distribués et les objets utilisés.
+ */
+export interface DungeonJourneyStep {
+  /** Manche d'exploration (0 à 3), ou `DUNGEON_FLOORS` pour le boss. */
+  round: number;
+  boss: boolean;
+  /** Salle affrontée (null : boss, ou manche sans combat, à terre). */
+  roomKey: string | null;
+  roomKind: RoomKind | null;
+  enemy: EnemyId | null;
+  /** Issue : salle réussie ou ratée, boss vaincu ou non ; null sans combat. */
+  status: Exclude<FightStatus, "fighting"> | null;
+  calcs: CalcRecord[];
+  /** Butin de la manche qui passe par ce joueur : trouvé (`fromId`) ou reçu (`toId`) ; `toId` null : laissé ou perdu. */
+  loot: { item: ItemId; fromId: string; toId: string | null }[];
+  /** Objets utilisés pendant l'étape. */
+  used: ItemId[];
+  /** Vies à la fin de l'étape. */
+  lives: number;
 }
 
 export type DungeonActionResult = { ok: true } | { ok: false; reason: DungeonRefusal };
@@ -277,7 +332,10 @@ export interface DungeonSummary {
     lives: number;
     livesLost: number;
     enemiesDefeated: number;
+    /** Sa part du score : la somme des parts vaut le score de l'équipe (sauf expéditions d'avant ce calcul). */
     points: number;
+    /** Détail de sa part, null pour une expédition enregistrée avant le partage du score. */
+    pointsDetail: DungeonPoints | null;
     bossDamage: number;
     heartsGiven: number;
     heartsReceived: number;
@@ -288,6 +346,8 @@ export interface DungeonSummary {
     /** Parti avant la fin (absent d'un bilan relu en base). */
     gone?: boolean;
   }[];
+  /** Parcours de chaque joueur, par id, étape par étape (absent d'un bilan relu en base). */
+  journeys?: Record<string, DungeonJourneyStep[]>;
 }
 
 export interface DungeonEngineOptions {
@@ -315,7 +375,6 @@ export class DungeonEngine {
   phase: DungeonPhase = "positioning";
   round = 0;
   phaseEndsAt: number | null = null;
-  score = 0;
   outcome: DungeonOutcome | null = null;
   lossReason: DungeonLossReason | null = null;
   lastRound: DungeonRoundOutcome | null = null;
@@ -338,6 +397,10 @@ export class DungeonEngine {
   private pools = new Map<string, SharedPool>();
   private bossFights = new Map<string, BossFight>();
   private boss: { hp: number; maxHp: number; startedAt: number; endsAt: number } | null = null;
+  /** Parcours de chaque joueur (récap de fin), étape par étape. */
+  private journeys = new Map<string, DungeonJourneyStep[]>();
+  /** Le butin de la manche est déjà noté dans les parcours. */
+  private lootRecorded = true;
 
   constructor(
     settings: DungeonSettings,
@@ -355,7 +418,7 @@ export class DungeonEngine {
       gone: false,
       livesLost: 0,
       enemiesDefeated: 0,
-      points: 0,
+      points: { rooms: 0, boss: 0, lives: 0, purses: 0 },
       bossDamage: 0,
       heartsGiven: 0,
       heartsReceived: 0,
@@ -632,6 +695,7 @@ export class DungeonEngine {
     }
     p.answered += 1;
     const correct = value === fight.question.answer;
+    this.recordBoss(fight, String(value), correct, now);
     if (correct) {
       p.correct += 1;
       p.correctTimeMs += Math.max(0, now - fight.startedAt);
@@ -725,7 +789,7 @@ export class DungeonEngine {
       return changed;
     }
     if (this.phase === "boss" && this.boss && now > this.boss.endsAt + this.graceMs) {
-      this.finish("lost", "boss-timeout");
+      this.finish("lost", "boss-timeout", now);
       return true;
     }
     return false;
@@ -753,12 +817,14 @@ export class DungeonEngine {
       this.cleared.add(room.key);
       points += room.points;
       if (room.kind === "seal") seals += 1;
-      for (const w of winners) {
+      // Les points de la salle sont partagés entre ses vainqueurs ; le reste de la division va aux premiers arrivés.
+      const shares = splitPoints(room.points, winners.map(() => 1));
+      winners.forEach((w, i) => {
         const p = this.player(w.playerId);
-        if (!p) continue;
+        if (!p) return;
         if (room.enemy) p.enemiesDefeated += 1;
-        p.points += room.points;
-      }
+        p.points.rooms += shares[i]!;
+      });
       const holder = winners[0];
       if (room.loot && holder) {
         // À la dernière manche d'exploration, plus de positionnement : le butin ne contient que ce qui sert encore.
@@ -774,7 +840,17 @@ export class DungeonEngine {
       const p = this.player(f.playerId);
       if (p && !p.gone) this.loseLife(p);
     }
-    this.score += points;
+    for (const f of fights) {
+      const step = this.stepOf(f.playerId);
+      if (!step) continue;
+      step.roomKey = f.room.key;
+      step.roomKind = f.room.kind;
+      step.enemy = f.room.enemy;
+      step.status = f.status === "won" ? "won" : "failed";
+      step.calcs = f.log.map((c) => ({ ...c }));
+    }
+    this.lootRecorded = this.loot.length === 0;
+    this.refreshLives();
     this.sealsBroken += seals;
     this.lastRound = {
       round: this.round,
@@ -935,6 +1011,7 @@ export class DungeonEngine {
         boss.hp -= BOMB_DAMAGE;
         p.bossDamage += BOMB_DAMAGE;
         p.bag.splice(at, 1);
+        this.stepOf(p.id)?.used.push(item);
         if (boss.hp <= 0) this.finish("won", null);
         return { ok: true };
       }
@@ -942,6 +1019,7 @@ export class DungeonEngine {
         return { ok: false, reason: "passive" };
     }
     p.bag.splice(at, 1);
+    this.stepOf(p.id)?.used.push(item);
     return { ok: true };
   }
 
@@ -999,6 +1077,7 @@ export class DungeonEngine {
 
   /** Manche d'exploration suivante, ou le boss. */
   private nextRound(now: number): void {
+    this.recordLoot();
     this.round += 1;
     if (this.round < DUNGEON_FLOORS) this.startPositioning(now);
     else if (this.bossReached) this.startBoss(now);
@@ -1018,6 +1097,7 @@ export class DungeonEngine {
     this.bossFights = new Map();
     for (const p of this.standing()) {
       this.bossFights.set(p.id, { playerId: p.id, index: 0, question: bossQuestion(this.seed, this.difficulty, p.id, 0), startedAt: start, down: false });
+      this.stepOf(p.id);
     }
     this.introEndsAt = this.introMs > 0 ? start : null;
     if (this.bossFights.size === 0) this.finish("lost", "team-down");
@@ -1043,17 +1123,86 @@ export class DungeonEngine {
     if (this.standing().length === 0) this.finish("lost", "team-down");
   }
 
-  private finish(outcome: DungeonOutcome, reason: DungeonLossReason | null): void {
+  private finish(outcome: DungeonOutcome, reason: DungeonLossReason | null, now?: number): void {
+    this.recordLoot();
+    if (this.phase === "boss") {
+      for (const fight of this.bossFights.values()) {
+        const step = this.stepOf(fight.playerId);
+        if (!step) continue;
+        // Chrono écoulé : le calcul en cours est noté sans réponse.
+        if (reason === "boss-timeout" && !fight.down && now !== undefined) this.recordBoss(fight, null, false, now);
+        step.status = outcome === "won" ? "won" : "failed";
+      }
+    }
     this.outcome = outcome;
     this.lossReason = reason;
     if (outcome === "won") {
-      this.score += BOSS_POINTS * this.difficulty + LIFE_POINTS * this.players.reduce((sum, p) => sum + (p.gone ? 0 : p.lives), 0);
+      // Le boss se partage selon les PV que chacun lui a retirés (calculs réussis et bombes).
+      const shares = splitPoints(BOSS_POINTS * this.difficulty, this.players.map((p) => p.bossDamage));
+      this.players.forEach((p, i) => {
+        p.points.boss += shares[i]!;
+        if (!p.gone) p.points.lives += LIFE_POINTS * p.lives;
+      });
     }
-    // Les bourses d'or comptent dans tous les cas.
-    this.score += PURSE_POINTS * this.players.reduce((sum, p) => sum + p.bag.filter((i) => i === "purse").length, 0);
+    // Les bourses d'or comptent dans tous les cas, pour qui les a dans son sac.
+    for (const p of this.players) p.points.purses += PURSE_POINTS * p.bag.filter((i) => i === "purse").length;
+    this.refreshLives();
     this.phase = "finished";
     this.phaseEndsAt = null;
     this.introEndsAt = null;
+  }
+
+  /** L'étape de la manche en cours d'un joueur, créée au besoin (undefined pour un joueur inconnu). */
+  private stepOf(playerId: string): DungeonJourneyStep | undefined {
+    const p = this.player(playerId);
+    if (!p) return undefined;
+    let steps = this.journeys.get(playerId);
+    if (!steps) this.journeys.set(playerId, (steps = []));
+    let step = steps.find((s) => s.round === this.round);
+    if (!step) {
+      step = {
+        round: this.round,
+        boss: this.round >= DUNGEON_FLOORS,
+        roomKey: null,
+        roomKind: null,
+        enemy: null,
+        status: null,
+        calcs: [],
+        loot: [],
+        used: [],
+        lives: p.lives,
+      };
+      steps.push(step);
+    }
+    return step;
+  }
+
+  /** Note un calcul du boss dans le parcours du joueur. */
+  private recordBoss(fight: BossFight, given: string | null, correct: boolean, now: number): void {
+    const q = fight.question;
+    this.stepOf(fight.playerId)?.calcs.push({ game: q.puzzle.game, text: q.text, solution: q.solution, given, correct, timeMs: Math.max(0, now - fight.startedAt) });
+  }
+
+  /** Note le butin de la manche (une fois réparti) chez qui l'a trouvé et chez qui l'a reçu. */
+  private recordLoot(): void {
+    if (this.lootRecorded) return;
+    this.lootRecorded = true;
+    for (const entry of this.loot) {
+      // Pas encore réparti (l'expédition s'est arrêtée avant) : rien à raconter.
+      if (entry.givenTo === null && !entry.lost) continue;
+      const line = { item: entry.item, fromId: entry.holderId, toId: entry.givenTo };
+      this.stepOf(entry.holderId)?.loot.push({ ...line });
+      if (entry.givenTo !== null && entry.givenTo !== entry.holderId) this.stepOf(entry.givenTo)?.loot.push({ ...line });
+    }
+    this.refreshLives();
+  }
+
+  /** Vies de chacun à la fin de l'étape en cours. */
+  private refreshLives(): void {
+    for (const p of this.players) {
+      const step = this.journeys.get(p.id)?.find((s) => s.round === this.round);
+      if (step) step.lives = p.lives;
+    }
   }
 
   /** Une vie perdue : le bouclier l'arrête ; la plume de phénix relève à 1 vie. */
@@ -1079,6 +1228,11 @@ export class DungeonEngine {
 
   private order(id: string): number {
     return this.players.findIndex((p) => p.id === id);
+  }
+
+  /** Score de l'équipe : la somme des parts de chacun (y compris de ceux qui sont partis). */
+  get score(): number {
+    return this.players.reduce((sum, p) => sum + dungeonPointsTotal(p.points), 0);
   }
 
   /** Ce qu'une salle montre, selon le brouillard. */
@@ -1238,7 +1392,8 @@ export class DungeonEngine {
         lives: p.lives,
         livesLost: p.livesLost,
         enemiesDefeated: p.enemiesDefeated,
-        points: p.points,
+        points: dungeonPointsTotal(p.points),
+        pointsDetail: { ...p.points },
         bossDamage: p.bossDamage,
         heartsGiven: p.heartsGiven,
         heartsReceived: p.heartsReceived,
@@ -1248,6 +1403,15 @@ export class DungeonEngine {
         avgTimeMs: p.correct > 0 ? Math.round(p.correctTimeMs / p.correct) : null,
         gone: p.gone,
       })),
+      journeys: Object.fromEntries(
+        this.players.map((p) => [
+          p.id,
+          (this.journeys.get(p.id) ?? [])
+            .slice()
+            .sort((a, b) => a.round - b.round)
+            .map((s) => ({ ...s, calcs: s.calcs.map((c) => ({ ...c })), loot: s.loot.map((l) => ({ ...l })), used: [...s.used] })),
+        ]),
+      ),
     };
   }
 }

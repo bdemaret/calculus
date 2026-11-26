@@ -2672,6 +2672,10 @@ export async function saveDungeonRun({ code, seed, startedAt, endedAt, summary }
           livesLost: p.livesLost,
           enemiesDefeated: p.enemiesDefeated,
           points: p.points,
+          roomPoints: p.pointsDetail?.rooms ?? null,
+          bossPoints: p.pointsDetail?.boss ?? null,
+          lifePoints: p.pointsDetail?.lives ?? null,
+          pursePoints: p.pointsDetail?.purses ?? null,
           bossDamage: p.bossDamage,
           heartsGiven: p.heartsGiven,
           heartsReceived: p.heartsReceived,
@@ -2680,6 +2684,8 @@ export async function saveDungeonRun({ code, seed, startedAt, endedAt, summary }
           answered: p.answered,
           avgTimeMs: p.avgTimeMs,
           left: p.gone ?? false,
+          // Récap de fin (salles, calculs, butin, boss), relu par la page de bilan.
+          journey: summary.journeys?.[p.id] ? (summary.journeys[p.id] as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
         })),
       },
     },
@@ -2727,3 +2733,48 @@ export async function loadDungeonRun(id: string) {
   });
 }
 export type DungeonRunRecord = NonNullable<Awaited<ReturnType<typeof loadDungeonRun>>>;
+
+/** Nombre d'expéditions affichées par classement des donjons. */
+export const DUNGEON_LEADERBOARD_SIZE = 50;
+
+export interface DungeonLeaderboardEntry {
+  /** Rang dans le classement affiché (1 = la meilleure) */
+  rank: number;
+  runId: string;
+  difficulty: number;
+  /** Score de l'équipe */
+  score: number;
+  /** Calculs réussis par toute l'équipe */
+  correct: number;
+  endedAt: Date;
+  /** Membres dans l'ordre d'arrivée ; `userId` null et `name` vide pour un compte supprimé */
+  players: { userId: string | null; name: string }[];
+}
+
+/**
+ * Classement des expéditions gagnées à `playerCount` joueurs : la plus haute difficulté d'abord (Légende → Facile),
+ * puis le meilleur score ; à égalité, la plus ancienne (arrivée la première). `difficulty` null : toutes.
+ */
+export async function getDungeonLeaderboard({ playerCount, difficulty }: { playerCount: number; difficulty: number | null }): Promise<DungeonLeaderboardEntry[]> {
+  const runs = await prisma.dungeonRun.findMany({
+    where: { playerCount, outcome: "won", ...(difficulty != null ? { difficulty } : {}) },
+    orderBy: [{ difficulty: "desc" }, { score: "desc" }, { endedAt: "asc" }],
+    take: DUNGEON_LEADERBOARD_SIZE,
+    select: {
+      id: true,
+      difficulty: true,
+      score: true,
+      endedAt: true,
+      players: { orderBy: { position: "asc" }, select: { userId: true, displayName: true, correct: true } },
+    },
+  });
+  return runs.map((run, i) => ({
+    rank: i + 1,
+    runId: run.id,
+    difficulty: run.difficulty,
+    score: run.score,
+    correct: run.players.reduce((sum, p) => sum + p.correct, 0),
+    endedAt: run.endedAt,
+    players: run.players.map((p) => ({ userId: p.userId, name: p.userId ? p.displayName : "" })),
+  }));
+}

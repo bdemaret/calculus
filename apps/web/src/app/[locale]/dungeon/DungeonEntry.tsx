@@ -2,7 +2,7 @@
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { CODE_LENGTH, ENEMIES, ENEMY_IDS, normalizeCode, sanitizeDungeonSettings } from "@calculus/game-core";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { Margin, MarginNote } from "@/components/Margin";
 import { JoinError, createDungeon } from "@/lib/dungeon";
 import { local } from "@/lib/storage";
@@ -50,7 +50,7 @@ export function DungeonEntry() {
         <h1>{t("dungeon.title")}</h1>
       </div>
       <ul className="dungeon-rules">
-        {(["rounds", "positioning", "perfect", "lives", "boss"] as const).map((k) => (
+        {(["rounds", "positioning", "perfect", "lives", "boss", "score"] as const).map((k) => (
           <li key={k}>{t(`dungeon.rules.${k}`)}</li>
         ))}
       </ul>
@@ -84,6 +84,9 @@ export function DungeonEntry() {
         </form>
       </div>
       <MonsterBook />
+      <Link className="btn ghost dungeon-board-open" href="/dungeon/leaderboard">
+        {t("dungeon.board.open")}
+      </Link>
     </section>
   );
 }

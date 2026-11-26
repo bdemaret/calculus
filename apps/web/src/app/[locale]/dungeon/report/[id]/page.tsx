@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { loadDungeonRun } from "@calculus/db";
-import { DIFFICULTIES, type Difficulty, type DungeonLossReason, type DungeonSummary } from "@calculus/game-core";
+import { DIFFICULTIES, type Difficulty, type DungeonJourneyStep, type DungeonLossReason, type DungeonSummary } from "@calculus/game-core";
 import { Link, redirect } from "@/i18n/navigation";
 import { getSession } from "@/lib/auth";
 import { NO_INDEX } from "@/lib/seo";
@@ -15,15 +15,14 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 const LOSS_REASONS: DungeonLossReason[] = ["boss-not-reached", "no-enemy-defeated", "team-down", "boss-timeout"];
 
-/** Bilan d'une expédition enregistrée : visible de ses seuls membres. */
+/** Bilan d'une expédition enregistrée : visible de tous les comptes (le classement y mène), comme le reste des donjons. */
 export default async function DungeonReportPage({ params }: { params: Promise<{ locale: string; id: string }> }) {
   const { locale, id } = await params;
   setRequestLocale(locale);
   const session = await getSession().catch(() => null);
   if (!session) return redirect({ href: "/login?next=/dungeon", locale });
   const run = id.length <= 64 ? await loadDungeonRun(id).catch(() => null) : null;
-  // Une expédition dont on n'était pas : même réponse qu'une expédition inexistante.
-  if (!run || !run.players.some((p) => p.userId === session.user.id)) notFound();
+  if (!run) notFound();
   const t = await getTranslations({ locale, namespace: "dungeon" });
   const summary: DungeonSummary = {
     difficulty: (DIFFICULTIES.includes(run.difficulty as Difficulty) ? run.difficulty : 1) as Difficulty,
@@ -42,6 +41,11 @@ export default async function DungeonReportPage({ params }: { params: Promise<{ 
       livesLost: p.livesLost,
       enemiesDefeated: p.enemiesDefeated,
       points: p.points,
+      // Expédition d'avant le partage du score : pas de détail (ses points ne comptaient que les salles).
+      pointsDetail:
+        p.roomPoints !== null && p.bossPoints !== null && p.lifePoints !== null && p.pursePoints !== null
+          ? { rooms: p.roomPoints, boss: p.bossPoints, lives: p.lifePoints, purses: p.pursePoints }
+          : null,
       bossDamage: p.bossDamage,
       heartsGiven: p.heartsGiven,
       heartsReceived: p.heartsReceived,
@@ -51,6 +55,11 @@ export default async function DungeonReportPage({ params }: { params: Promise<{ 
       avgTimeMs: p.avgTimeMs,
     })),
   };
+  // Récap de fin, joueur par joueur : absent des expéditions enregistrées avant lui (la section ne s'affiche pas).
+  const journeys = run.players.filter((p) => Array.isArray(p.journey));
+  if (journeys.length) {
+    summary.journeys = Object.fromEntries(journeys.map((p) => [p.userId ?? p.playerKey, p.journey as unknown as DungeonJourneyStep[]]));
+  }
   return (
     <section className="dungeon-end">
       <p className="muted">{t("end.playedOn", { date: run.endedAt.toLocaleDateString(locale, { dateStyle: "long" }) })}</p>

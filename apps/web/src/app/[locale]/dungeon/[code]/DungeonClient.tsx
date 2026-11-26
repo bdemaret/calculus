@@ -14,6 +14,8 @@ import {
   DUNGEON_POSITIONING_MS,
   DUNGEON_ROUNDS,
   type Difficulty,
+  type CalcRecord,
+  type DungeonJourneyStep,
   type DungeonSnapshot,
   type DungeonSummary,
   type DungeonView,
@@ -1349,7 +1351,6 @@ function ReviewScreen({
 }) {
   const t = useTranslations();
   const td = useTranslations("dungeon");
-  const locale = useLocale();
   const name = useRoomName();
   const meP = game.players.find((p) => p.id === me) ?? null;
   const roomOf = (key: string) => game.rooms.find((r) => r.key === key) ?? null;
@@ -1410,21 +1411,7 @@ function ReviewScreen({
                 </p>
               </div>
               {f.calcs.length ? (
-                <ol className="dungeon-calcs">
-                  {f.calcs.map((c, i) => (
-                    <li key={i} className={c.correct ? "ok" : "ko"}>
-                      <span className="dungeon-calc-text">
-                        <MathText text={c.text} />
-                        <span className="eq"> {revealSeparator(c.game)} </span>
-                        <b>{c.solution}</b>
-                      </span>
-                      <span className="dungeon-calc-given">
-                        {c.correct ? "✓" : c.given === null ? td("timeUp") : td("reviewGiven", { given: c.given })}
-                      </span>
-                      <span className="dungeon-calc-time">{formatSeconds(c.timeMs, locale)}</span>
-                    </li>
-                  ))}
-                </ol>
+                <CalcList calcs={f.calcs} />
               ) : chest ? null : (
                 <p className="note">{td("reviewNoCalc")}</p>
               )}
@@ -1449,6 +1436,27 @@ function ReviewScreen({
         </button>
       </div>
     </section>
+  );
+}
+
+/** Les calculs d'une série : énoncé avec sa solution, réponse donnée (ou temps écoulé), temps mis. */
+function CalcList({ calcs }: { calcs: CalcRecord[] }) {
+  const td = useTranslations("dungeon");
+  const locale = useLocale();
+  return (
+    <ol className="dungeon-calcs">
+      {calcs.map((c, i) => (
+        <li key={i} className={c.correct ? "ok" : "ko"}>
+          <span className="dungeon-calc-text">
+            <MathText text={c.text} />
+            <span className="eq"> {revealSeparator(c.game)} </span>
+            <b>{c.solution}</b>
+          </span>
+          <span className="dungeon-calc-given">{c.correct ? "✓" : c.given === null ? td("timeUp") : td("reviewGiven", { given: c.given })}</span>
+          <span className="dungeon-calc-time">{formatSeconds(c.timeMs, locale)}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -1678,6 +1686,8 @@ export function DungeonSummaryView({ summary, me, children }: { summary: Dungeon
   const locale = useLocale();
   const mine = summary.players.find((p) => p.id === me);
   const won = summary.outcome === "won";
+  // Les parts ne sont fiables que si chacun a son détail (pas les expéditions d'avant le partage du score).
+  const shared = summary.players.every((p) => p.pointsDetail !== null);
   return (
     <div className="stack dungeon-summary" data-testid="dungeon-summary" data-outcome={won ? "won" : "lost"}>
       <div className="dungeon-end-hero">
@@ -1700,7 +1710,7 @@ export function DungeonSummaryView({ summary, me, children }: { summary: Dungeon
         <div className="panel">
           <h2 className="h3">{t("end.mine")}</h2>
           <div className="dungeon-stats">
-            <Stat label={t("end.points")} value={mine.points} />
+            {shared ? <Stat label={t("end.points")} value={mine.points} /> : null}
             <Stat label={t("end.enemies")} value={mine.enemiesDefeated} />
             <Stat label={t("end.bossDamage")} value={mine.bossDamage} />
             <Stat label={t("end.items")} value={mine.itemsFound} />
@@ -1710,11 +1720,11 @@ export function DungeonSummaryView({ summary, me, children }: { summary: Dungeon
           </div>
         </div>
       ) : null}
+      {shared ? <DungeonScoreTable summary={summary} me={me} /> : null}
       <table className="dungeon-table">
         <thead>
           <tr>
             <th>{t("end.player")}</th>
-            <th>{t("end.points")}</th>
             <th>{t("end.enemies")}</th>
             <th>{t("end.bossDamage")}</th>
             <th>{t("end.livesLeft")}</th>
@@ -1725,7 +1735,6 @@ export function DungeonSummaryView({ summary, me, children }: { summary: Dungeon
           {summary.players.map((p) => (
             <tr key={p.id} className={p.id === me ? "me" : undefined}>
               <td>{p.name || t("end.deleted")}</td>
-              <td>{p.points}</td>
               <td>{p.enemiesDefeated}</td>
               <td>{p.bossDamage}</td>
               <td>{p.lives}</td>
@@ -1736,7 +1745,152 @@ export function DungeonSummaryView({ summary, me, children }: { summary: Dungeon
           ))}
         </tbody>
       </table>
+      {summary.journeys ? <DungeonJourneys summary={summary} journeys={summary.journeys} me={me} /> : null}
     </div>
+  );
+}
+
+/** D'où vient le score : la part de chacun par source, et l'équipe en dernière ligne, qui en est la somme. */
+function DungeonScoreTable({ summary, me }: { summary: DungeonSummary; me: string | null }) {
+  const t = useTranslations("dungeon");
+  const sources = ["rooms", "boss", "lives", "purses"] as const;
+  const labels = { rooms: "end.pointsRooms", boss: "end.pointsBoss", lives: "end.pointsLives", purses: "end.pointsPurses" } as const;
+  const sum = (key: (typeof sources)[number]) => summary.players.reduce((total, p) => total + (p.pointsDetail?.[key] ?? 0), 0);
+  return (
+    <div className="stack" data-testid="dungeon-score-table">
+      <h2 className="h3">{t("end.scoreTitle")}</h2>
+      <p className="muted">{t("end.scoreHint")}</p>
+      <table className="dungeon-table dungeon-score-table">
+        <thead>
+          <tr>
+            <th>{t("end.player")}</th>
+            {sources.map((s) => (
+              <th key={s}>{t(labels[s])}</th>
+            ))}
+            <th>{t("end.pointsTotal")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {summary.players.map((p) => (
+            <tr key={p.id} className={p.id === me ? "me" : undefined}>
+              <td>{p.name || t("end.deleted")}</td>
+              {sources.map((s) => (
+                <td key={s}>{p.pointsDetail?.[s] ?? 0}</td>
+              ))}
+              <td>{p.points}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>{t("end.team")}</td>
+            {sources.map((s) => (
+              <td key={s}>{sum(s)}</td>
+            ))}
+            <td>{summary.score}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
+/**
+ * Récap de l'expédition, joueur par joueur (soi d'abord) : chaque manche avec la salle affrontée, tous ses calculs,
+ * le butin gardé, donné ou reçu, les objets utilisés, puis le boss. On y voit pourquoi une série a échoué.
+ */
+function DungeonJourneys({
+  summary,
+  journeys,
+  me,
+}: {
+  summary: DungeonSummary;
+  journeys: Record<string, DungeonJourneyStep[]>;
+  me: string | null;
+}) {
+  const t = useTranslations("dungeon");
+  const nameOf = (id: string) => summary.players.find((p) => p.id === id)?.name || t("end.deleted");
+  const seatOf = (id: string) => Math.max(0, summary.players.findIndex((p) => p.id === id));
+  const players = [...summary.players].sort((a, b) => (a.id === me ? -1 : b.id === me ? 1 : seatOf(a.id) - seatOf(b.id)));
+  // Manches où l'équipe a joué : un joueur sans étape à l'une d'elles était à terre (ou parti).
+  const lastRound = Math.max(-1, ...Object.values(journeys).flatMap((steps) => steps.map((s) => s.round)));
+
+  const roomName = (s: DungeonJourneyStep) =>
+    s.boss ? t("boss.name") : s.enemy ? t(`enemies.${s.enemy}.name`) : s.roomKind ? t("kinds.chest") : t("journey.noFight");
+  const outcome = (s: DungeonJourneyStep) => {
+    if (s.status === null) return null;
+    if (s.boss) return s.status === "won" ? t("journey.bossWon") : t("journey.bossHeld");
+    if (!s.enemy) return t("chestOpened");
+    return s.status === "won" ? t("seriesWon") : t("seriesFailed");
+  };
+  const lootLine = (playerId: string, l: DungeonJourneyStep["loot"][number]) => {
+    const item = t(`items.${l.item}.name`);
+    if (l.fromId !== playerId) return t("journey.lootReceived", { item, from: nameOf(l.fromId) });
+    if (l.toId === null) return t("journey.lootLeft", { item });
+    if (l.toId === playerId) return t("journey.lootKept", { item });
+    return t("journey.lootGiven", { item, to: nameOf(l.toId) });
+  };
+
+  return (
+    <section className="dungeon-journeys" data-testid="dungeon-journeys">
+      <h2 className="h3">{t("journey.title")}</h2>
+      <p className="note">{t("journey.hint")}</p>
+      {players.map((p) => {
+        const steps = journeys[p.id] ?? [];
+        const rounds = Array.from({ length: lastRound + 1 }, (_, round) => steps.find((s) => s.round === round) ?? round);
+        return (
+          <details key={p.id} className={`dungeon-journey${p.id === me ? " me" : ""}`} data-player={p.id} open>
+            <summary>
+              <Token name={nameOf(p.id)} seat={seatOf(p.id)} />
+              <strong>{p.id === me ? t("reviewYou") : nameOf(p.id)}</strong>
+              <Lives lives={p.lives} />
+            </summary>
+            <ol className="dungeon-journey-steps">
+              {rounds.map((s) =>
+                typeof s === "number" ? (
+                  <li key={s} className="dungeon-journey-step none">
+                    <p className="dungeon-journey-head">
+                      <span className="dungeon-journey-round">{t("journey.round", { n: s + 1 })}</span>
+                      <span className="muted">{t("journey.noFight")}</span>
+                    </p>
+                  </li>
+                ) : (
+                  <li key={s.round} className={`dungeon-journey-step ${s.status ?? "none"}`}>
+                    <div className="dungeon-journey-who">
+                      <span className="dungeon-review-face">
+                        {s.boss ? <EnemyArt enemy="boss" /> : s.enemy ? <EnemyArt enemy={s.enemy} /> : s.roomKind ? <ChestIcon /> : null}
+                      </span>
+                      <p className="dungeon-journey-head">
+                        <span className="dungeon-journey-round">{s.boss ? t("journey.bossRound") : t("journey.round", { n: s.round + 1 })}</span>
+                        <strong>{roomName(s)}</strong>
+                        {s.roomKind === "seal" ? <span className="muted"> · {t("kinds.seal")}</span> : null}
+                        {outcome(s) ? <span className={s.status === "won" ? "ok" : "ko"}>{outcome(s)}</span> : null}
+                      </p>
+                      <Lives lives={s.lives} />
+                    </div>
+                    {s.calcs.length ? <CalcList calcs={s.calcs} /> : s.enemy || s.boss ? <p className="note">{t("reviewNoCalc")}</p> : null}
+                    {s.used.length ? (
+                      <p className="dungeon-journey-used">
+                        {t("journey.used", { items: s.used.map((i) => t(`items.${i}.name`)).join(", ") })}
+                      </p>
+                    ) : null}
+                    {s.loot.length ? (
+                      <ul className="dungeon-loot">
+                        {s.loot.map((l, i) => (
+                          <li key={i}>
+                            <ItemIcon item={l.item} /> {lootLine(p.id, l)}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </li>
+                ),
+              )}
+            </ol>
+          </details>
+        );
+      })}
+    </section>
   );
 }
 

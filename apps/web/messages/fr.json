@@ -1764,7 +1764,8 @@
       "positioning": "Il faut ouvrir la salle du boss avant la fin de la 4e manche, sinon l’expédition est perdue. À plusieurs dans la même salle, vous avez plusieurs chances.",
       "perfect": "Un ennemi, c’est une série de calculs à réussir en entier (sauf l’hydre et la horde, qui ont leurs règles).",
       "lives": "Trois vies chacun. Les coffres sont rares mais valent le détour : deux objets et des points, sans combat. Les ennemis redoutables laissent aussi un objet.",
-      "boss": "Les sceaux brisés affaiblissent le boss, qu’on affronte toute l’équipe ensemble à la 5e manche, contre la montre."
+      "boss": "Les sceaux brisés affaiblissent le boss, qu’on affronte toute l’équipe ensemble à la 5e manche, contre la montre.",
+      "score": "Le score de l’équipe est la somme des points de chacun : une salle se partage entre ceux qui l’ont vaincue, le boss selon les coups portés, et chaque vie restante ou bourse d’or rapporte à qui l’a."
     },
     "createTitle": "Ouvrir une expédition",
     "createText": "Tu choisis la difficulté, puis tu invites tes amis ou tu leur donnes le code.",
@@ -1861,7 +1862,15 @@
       "seals": "sceaux brisés",
       "items": "objets trouvés",
       "toDungeons": "Retour aux donjons",
-      "toHome": "Retour au menu principal"
+      "toHome": "Retour au menu principal",
+      "scoreTitle": "D’où vient le score",
+      "scoreHint": "Le score de l’équipe est la somme des parts de chacun : une salle se partage entre ceux qui l’ont vaincue, le boss selon les coups portés, et chaque vie restante ou bourse d’or rapporte à qui l’a.",
+      "pointsRooms": "salles",
+      "pointsBoss": "boss",
+      "pointsLives": "vies",
+      "pointsPurses": "bourses",
+      "pointsTotal": "total",
+      "team": "Équipe"
     },
     "enemies": {
       "elf": {
@@ -2009,6 +2018,23 @@
       "close": "Fermer",
       "tier": "{count, plural, one {# étoile} other {# étoiles}}"
     },
+    "board": {
+      "open": "Voir le classement",
+      "title": "Classement des expéditions",
+      "lede": "Un classement des expéditions gagnées par taille d’équipe : celles en Légende d’abord, puis Expert, Difficile, Moyen et Facile, et dans chaque difficulté le meilleur score en tête.",
+      "teamLabel": "Taille de l’équipe",
+      "team": "{count, plural, =2 {Duo} =3 {Trio} other {# joueurs}}",
+      "allDifficulties": "Toutes",
+      "topTitle": "Les {count} meilleures expéditions",
+      "players": "Équipe",
+      "score": "Score",
+      "correct": "Calculs réussis",
+      "date": "Date",
+      "reportHead": "Récap",
+      "report": "Voir le récap",
+      "empty": "Aucune expédition gagnée dans ce classement pour l’instant.",
+      "back": "Retour aux donjons"
+    },
     "intro": "Prépare-toi…",
     "introBoss": "Le boss se réveille…",
     "useBomb": "Lancer la bombe",
@@ -2029,7 +2055,21 @@
     "lootDiscard": "Le laisser",
     "lootWaiting": "{names} répartit le butin…",
     "lootLeft": "{name} a laissé : {item}.",
-    "lootTimeout": "Au bout d’une minute, ce qui n’a pas été réparti est distribué d’office."
+    "lootTimeout": "Au bout d’une minute, ce qui n’a pas été réparti est distribué d’office.",
+    "journey": {
+      "title": "Récap de l’expédition",
+      "hint": "Le parcours de chacun, manche par manche : la salle affrontée, tous les calculs, et ce qui s’est passé avec les objets.",
+      "round": "Manche {n}",
+      "bossRound": "Boss",
+      "noFight": "Pas de combat (à terre ou parti)",
+      "bossWon": "boss vaincu !",
+      "bossHeld": "le boss a tenu",
+      "lootKept": "{item} : gardé",
+      "lootGiven": "{item} : donné à {to}",
+      "lootReceived": "{item} : reçu de {from}",
+      "lootLeft": "{item} : laissé",
+      "used": "Utilisé : {items}"
+    }
   },
   "banned": {
     "title": "Compte suspendu",

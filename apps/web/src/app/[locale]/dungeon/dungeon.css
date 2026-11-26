@@ -162,6 +162,8 @@
 .dungeon-entry { display: grid; gap: 24px; }
 /* Le livre des monstres : un bouton en bas de l'entrée, une modale aux pages de pierre. */
 .dungeon-book-open { justify-self: center; margin-top: 8px; }
+/* Le lien vers le classement, juste sous le livre. */
+.dungeon-board-open { justify-self: center; margin-top: -12px; }
 .dungeon-book {
   position: fixed; inset: 0; margin: auto; width: min(760px, calc(100vw - 32px)); height: fit-content; max-height: min(86vh, 900px); padding: 0; overflow: auto;
   color: var(--dg-text); border: 1.5px solid var(--dg-edge); border-radius: 18px;
@@ -488,6 +490,21 @@
 .dungeon-table th { font-family: var(--font-engraved); color: var(--dg-torch); font-size: 13px; text-align: left; }
 .dungeon-table th, .dungeon-table td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--dg-edge); }
 .dungeon-table tr.me td { color: var(--dg-gold); font-weight: 700; }
+/* Répartition du score : les nombres alignés à droite, la ligne de l'équipe (la somme) bien marquée. */
+.dungeon-score-table th:not(:first-child), .dungeon-score-table td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.dungeon-score-table tfoot td { font-family: var(--font-engraved); color: var(--dg-torch-hi); border-top: 2px solid var(--dg-edge); border-bottom: none; }
+
+/* ---------- Classement des expéditions ---------- */
+
+.dungeon-board { display: grid; gap: 20px; max-width: 900px; }
+/* La couleur des liens du décor l'emporterait sur le texte du filtre choisi, illisible sur l'or. */
+.dungeon-world .seg a[aria-current="page"] { color: var(--dg-shadow); }
+.dungeon-board-table { max-width: none; }
+.dungeon-board-table td { vertical-align: top; }
+/* La date et le lien du récap ne se coupent pas : le tableau défile plutôt (`.scroll-x`). */
+.dungeon-board-table td:nth-last-child(-n+2) { white-space: nowrap; }
+.dungeon-board-table .rk { font-family: var(--font-engraved); color: var(--dg-torch-hi); }
+.dungeon-board-players { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 
 /* ---------- Téléphone ---------- */
 
@@ -588,6 +605,25 @@
 .dungeon-calc-time { font-size: 13px; color: var(--dg-muted); font-variant-numeric: tabular-nums; }
 .dungeon-review-next { position: sticky; bottom: 0; z-index: 5; display: grid; justify-items: center; gap: 6px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, transparent, var(--dg-night) 35%); }
 .dungeon-review-next .btn { min-width: 200px; }
+
+/* Récap de fin : le parcours de chaque joueur, manche par manche, avec tous ses calculs. */
+.dungeon-journeys { display: grid; gap: 12px; max-width: 820px; }
+.dungeon-journeys h2, .dungeon-journeys > .note { margin: 0; }
+.dungeon-journey { border-radius: 14px; border: 1px solid var(--dg-edge); background: rgba(0, 0, 0, .25); }
+.dungeon-journey.me { border-color: var(--dg-torch); }
+.dungeon-journey > summary { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; list-style-position: inside; }
+.dungeon-journey > summary .dungeon-lives { margin-left: auto; }
+.dungeon-journey-steps { display: grid; gap: 10px; padding: 0 12px 12px; margin: 0; list-style: none; }
+.dungeon-journey-step { display: grid; gap: 8px; padding: 10px; border-radius: 12px; border-left: 3px solid var(--dg-edge); background: rgba(255, 255, 255, .03); }
+.dungeon-journey-step.won { border-left-color: var(--dg-heal); }
+.dungeon-journey-step.failed { border-left-color: var(--dg-blood); }
+.dungeon-journey-who { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.dungeon-journey-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0; }
+.dungeon-journey-round { font-family: var(--font-engraved); font-size: 13px; color: var(--dg-torch); }
+.dungeon-journey-step .ok { color: var(--dg-heal); font-weight: 700; }
+.dungeon-journey-step .ko { color: var(--dg-blood); font-weight: 700; }
+.dungeon-journey-used { margin: 0; font-size: 14px; color: var(--dg-muted); }
+.dungeon-journey-step .dungeon-loot { margin: 0; }
 
 /* Phase des objets : toucher un objet montre ce qu'il fait. */
 .dungeon-loot-toggle { grid-column: 1 / -1; display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: center; gap: 12px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }

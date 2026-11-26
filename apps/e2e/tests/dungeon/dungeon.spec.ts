@@ -117,7 +117,7 @@ test.describe("donjons : accès", () => {
     }
   });
 
-  test("le bilan d'une expédition n'est visible que de ses membres", async ({ page, user }) => {
+  test("le bilan d'une expédition est visible des autres comptes", async ({ page, user }) => {
     void user;
     const code = await openExpedition(page);
     const bot = await DungeonBot.join(code);
@@ -130,12 +130,14 @@ test.describe("donjons : accès", () => {
       await expect.poll(async () => (await dungeonRunsOf(user.email)).length).toBe(1);
       const [run] = await dungeonRunsOf(user.email);
       const href = `/fr/dungeon/report/${run!.id}`;
-      // Un autre compte reçoit la même page qu'une expédition inexistante.
+      // Un compte qui n'en était pas voit le bilan (le classement y mène) ; une expédition inconnue reste une 404.
       const outsider = await page.context().browser()!.newContext();
       const other = await outsider.newPage();
       await signUp(other.request);
       const res = await other.goto(href);
-      expect(res?.status()).toBe(404);
+      expect(res?.status()).toBe(200);
+      await expect(other.getByTestId("dungeon-score-table").getByRole("cell", { name: user.name })).toBeVisible();
+      expect((await other.goto("/fr/dungeon/report/inconnu"))?.status()).toBe(404);
       await outsider.close();
     } finally {
       await bot.leave();
@@ -196,13 +198,19 @@ test.describe("donjons : expédition", () => {
       expect(run!.outcome).toBe("won");
       expect(run!.roundsPlayed).toBe(5);
       expect(run!.players.map((p) => p.displayName)).toEqual([user.name, bot.user.name]);
+      // Le score de l'équipe est la somme des parts, chacune détaillée par source.
+      expect(run!.score).toBe(run!.players.reduce((sum, p) => sum + p.points, 0));
+      for (const p of run!.players) expect(p.points).toBe((p.roomPoints ?? -1) + (p.bossPoints ?? 0) + (p.lifePoints ?? 0) + (p.pursePoints ?? 0));
       // Les suites sont sous le résultat : rejouer (l'hôte), retour aux donjons, retour au menu principal.
       await expect(page.getByRole("button", { name: t("dungeon.end.again") })).toBeEnabled();
       await expect(page.getByRole("button", { name: t("dungeon.end.toDungeons") })).toBeVisible();
       await expect(page.getByRole("button", { name: t("dungeon.end.toHome") })).toBeVisible();
       await page.goto(`/fr/dungeon/report/${run!.id}`);
       await expect(page.getByRole("heading", { name: t("dungeon.end.reportTitle") }).or(page.getByRole("heading", { name: t("dungeon.end.won") }))).toBeVisible();
-      await expect(page.getByRole("cell", { name: user.name })).toBeVisible();
+      const scoreTable = page.getByTestId("dungeon-score-table");
+      await expect(scoreTable.getByRole("cell", { name: user.name })).toBeVisible();
+      await expect(scoreTable.getByRole("cell", { name: t("dungeon.end.team") })).toBeVisible();
+      await expect(scoreTable.getByRole("cell", { name: String(run!.score), exact: true }).last()).toBeVisible();
     } finally {
       await bot.leave();
     }

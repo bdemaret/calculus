@@ -1767,7 +1767,8 @@
       "positioning": "You must open the boss room before the end of round 4, or the expedition is lost. Several of you in the same room means several chances.",
       "perfect": "An enemy is a series of calculations to get entirely right (except the hydra and the horde, which have their own rules).",
       "lives": "Three lives each. Chests are rare but worth the detour: two items and points, no fight. Fearsome enemies drop an item too.",
-      "boss": "Broken seals weaken the boss, which the whole team fights together in round 5, against the clock."
+      "boss": "Broken seals weaken the boss, which the whole team fights together in round 5, against the clock.",
+      "score": "The team score is the sum of everyone’s points: a room is split between those who defeated it, the boss by hits landed, and each life left or gold purse counts for whoever has it."
     },
     "createTitle": "Start an expedition",
     "createText": "You pick the difficulty, then invite your friends or give them the code.",
@@ -1864,7 +1865,15 @@
       "seals": "seals broken",
       "items": "items found",
       "toDungeons": "Back to dungeons",
-      "toHome": "Back to main menu"
+      "toHome": "Back to main menu",
+      "scoreTitle": "Where the score comes from",
+      "scoreHint": "The team score is the sum of everyone’s share: a room is split between those who defeated it, the boss by hits landed, and each life left or gold purse counts for whoever has it.",
+      "pointsRooms": "rooms",
+      "pointsBoss": "boss",
+      "pointsLives": "lives",
+      "pointsPurses": "purses",
+      "pointsTotal": "total",
+      "team": "Team"
     },
     "enemies": {
       "elf": {
@@ -2012,6 +2021,23 @@
       "close": "Close",
       "tier": "{count, plural, one {# star} other {# stars}}"
     },
+    "board": {
+      "open": "See the leaderboard",
+      "title": "Expedition leaderboard",
+      "lede": "One leaderboard of won expeditions per team size: Legend ones first, then Expert, Hard, Medium and Easy, with the best score on top within each difficulty.",
+      "teamLabel": "Team size",
+      "team": "{count, plural, =2 {Duo} =3 {Trio} other {# players}}",
+      "allDifficulties": "All",
+      "topTitle": "The {count} best expeditions",
+      "players": "Team",
+      "score": "Score",
+      "correct": "Correct answers",
+      "date": "Date",
+      "reportHead": "Recap",
+      "report": "See the recap",
+      "empty": "No won expedition on this leaderboard yet.",
+      "back": "Back to the dungeons"
+    },
     "intro": "Get ready…",
     "introBoss": "The boss awakens…",
     "useBomb": "Throw the bomb",
@@ -2032,7 +2058,21 @@
     "lootDiscard": "Leave it",
     "lootWaiting": "{names} is sharing out the loot…",
     "lootLeft": "{name} left behind: {item}.",
-    "lootTimeout": "After one minute, anything not shared out is handed out automatically."
+    "lootTimeout": "After one minute, anything not shared out is handed out automatically.",
+    "journey": {
+      "title": "Expedition recap",
+      "hint": "Everyone’s path, round by round: the room they faced, every calculation, and what happened with the items.",
+      "round": "Round {n}",
+      "bossRound": "Boss",
+      "noFight": "No fight (down or gone)",
+      "bossWon": "boss defeated!",
+      "bossHeld": "the boss held out",
+      "lootKept": "{item}: kept",
+      "lootGiven": "{item}: given to {to}",
+      "lootReceived": "{item}: received from {from}",
+      "lootLeft": "{item}: left behind",
+      "used": "Used: {items}"
+    }
   },
   "banned": {
     "title": "Account suspended",

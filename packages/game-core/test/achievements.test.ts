@@ -272,6 +272,7 @@ describe("donjons", () => {
         livesLost: 1,
         enemiesDefeated: 2,
         points: 900,
+        pointsDetail: null,
         bossDamage: 7,
         heartsGiven: 0,
         heartsReceived: 0,
@@ -282,7 +283,7 @@ describe("donjons", () => {
         gone: false,
         ...player,
       },
-      { id: "b", name: "Bob", lives: 3, livesLost: 0, enemiesDefeated: 2, points: 800, bossDamage: 6, heartsGiven: 0, heartsReceived: 0, itemsFound: 0, correct: 15, answered: 15, avgTimeMs: 3000 },
+      { id: "b", name: "Bob", lives: 3, livesLost: 0, enemiesDefeated: 2, points: 800, pointsDetail: null, bossDamage: 6, heartsGiven: 0, heartsReceived: 0, itemsFound: 0, correct: 15, answered: 15, avgTimeMs: 3000 },
     ],
     ...over,
   });
