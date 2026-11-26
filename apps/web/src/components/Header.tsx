@@ -5,6 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { isAdminUser } from "@/lib/admin";
 import { getSession } from "@/lib/auth";
 import { Avatar } from "./PlayerChips";
+import { DungeonReturnNotice } from "./DungeonReturnNotice";
 import { InviteNotice } from "./InviteNotice";
 import { LobbyBanner } from "./LobbyBanner";
 import { ReleaseNotice } from "./ReleaseNotice";
@@ -71,6 +72,7 @@ export async function Header() {
         </nav>
       </header>
       <LobbyBanner />
+      {session ? <DungeonReturnNotice /> : null}
       {session ? <InviteNotice /> : null}
       <ReleaseNotice />
     </>

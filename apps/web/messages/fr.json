@@ -1765,6 +1765,11 @@
     "backToToday": "Retour au calcul du jour"
   },
   "dungeon": {
+    "return": {
+      "text": "Ta place t’attend dans le donjon {code}.",
+      "rejoin": "Revenir dans la partie",
+      "quit": "Quitter"
+    },
     "title": "Donjons",
     "pageTitle": "Donjon {code}",
     "margin": "coop",

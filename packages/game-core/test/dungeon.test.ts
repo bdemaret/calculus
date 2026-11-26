@@ -775,6 +775,40 @@ describe("donjon : bilan des combats et phase des objets", () => {
   });
 });
 
+describe("donjon : retour d'un joueur parti", () => {
+  it("pendant le positionnement, il reprend aussitôt sa place, avec ses vies", () => {
+    const g = engine(3, 1, "retour");
+    g.leave("p2", 0);
+    expect(g.view("", 0).players.find((p) => p.id === "p2")!.standing).toBe(false);
+    expect(g.rejoin("p2")).toEqual({ ok: true });
+    const back = g.view("", 0).players.find((p) => p.id === "p2")!;
+    expect(back.gone).toBe(false);
+    expect(back.standing).toBe(true);
+    expect(g.allLocked).toBe(false);
+  });
+
+  it("en cours de manche, il attend le prochain positionnement ; un nouveau départ annule son retour", () => {
+    const g = engine(3, 1, "retour2");
+    const key = bestRoom(g).key;
+    for (const id of ["p0", "p1", "p2"]) g.pick(id, key);
+    g.closePositioning(0);
+    g.leave("p2", 10);
+    expect(g.rejoin("p2")).toEqual({ ok: true });
+    expect(g.view("", 10).players.find((p) => p.id === "p2")!.gone).toBe(true);
+    let t = 10;
+    for (const id of ["p0", "p1"]) t = Math.max(t, clearSeries(g, id, 10));
+    g.closeCombat(t);
+    endRound(g, t);
+    expect(g.phase).toBe("positioning");
+    expect(g.view("", t).players.find((p) => p.id === "p2")!.standing).toBe(true);
+
+    // Reparti avant le positionnement suivant : il ne revient pas.
+    winRound(g, t);
+    g.leave("p2", t);
+    expect(g.rejoin("p1")).toEqual({ ok: false });
+  });
+});
+
 describe("donjon : récap de fin (parcours de chaque joueur)", () => {
   it("garde chaque salle, ses calculs, le butin reçu ou donné et le boss, joueur par joueur", () => {
     for (let s = 0; s < 500; s++) {

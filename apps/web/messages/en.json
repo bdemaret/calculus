@@ -1768,6 +1768,11 @@
     "backToToday": "Back to the daily calc"
   },
   "dungeon": {
+    "return": {
+      "text": "Your spot is waiting in dungeon {code}.",
+      "rejoin": "Back to the game",
+      "quit": "Leave"
+    },
     "title": "Dungeons",
     "pageTitle": "Dungeon {code}",
     "margin": "co-op",

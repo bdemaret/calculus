@@ -393,6 +393,8 @@ export class DungeonEngine {
   private locked = new Set<string>();
   /** Bilan des combats : joueurs qui ont cliqué sur « Suivant ». */
   private ready = new Set<string>();
+  /** Joueurs partis puis revenus : ils reprennent leur place au prochain positionnement (`rejoin`). */
+  private returning = new Set<string>();
   private fights = new Map<string, Fight>();
   private pools = new Map<string, SharedPool>();
   private bossFights = new Map<string, BossFight>();
@@ -463,6 +465,12 @@ export class DungeonEngine {
   /* -------------------------------------------------------------- */
 
   private startPositioning(now: number): void {
+    // Les joueurs revenus pendant la manche précédente reprennent leur place, avec les vies qu'ils avaient.
+    for (const id of this.returning) {
+      const p = this.player(id);
+      if (p) p.gone = false;
+    }
+    this.returning.clear();
     this.phase = "positioning";
     this.phaseEndsAt = now + DUNGEON_POSITIONING_MS;
     this.picks = new Map();
@@ -1109,6 +1117,7 @@ export class DungeonEngine {
 
   /** Départ définitif d'un joueur : sa série en cours est ratée, son choix retiré. */
   leave(playerId: string, now: number): void {
+    this.returning.delete(playerId);
     const p = this.player(playerId);
     if (!p || p.gone || this.isOver) return;
     p.gone = true;
@@ -1121,6 +1130,18 @@ export class DungeonEngine {
     // Phase des objets : ce qu'il avait à distribuer est réparti d'office, pour ne bloquer personne.
     if (this.phase === "loot") for (const entry of this.loot) if (entry.holderId === playerId) this.settleLoot(entry);
     if (this.standing().length === 0) this.finish("lost", "team-down");
+  }
+
+  /**
+   * Retour d'un joueur parti (`leave`) : pendant le positionnement il reprend aussitôt sa place, sinon au prochain.
+   * Il garde ses vies et son sac ; le boss une fois lancé, il ne fait que regarder.
+   */
+  rejoin(playerId: string): { ok: boolean } {
+    const p = this.player(playerId);
+    if (!p || !p.gone || this.isOver) return { ok: false };
+    if (this.phase === "positioning") p.gone = false;
+    else this.returning.add(playerId);
+    return { ok: true };
   }
 
   private finish(outcome: DungeonOutcome, reason: DungeonLossReason | null, now?: number): void {

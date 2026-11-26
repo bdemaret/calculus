@@ -216,6 +216,42 @@ test.describe("donjons : expédition", () => {
     }
   });
 
+  test("un joueur parti en pleine expédition y revient (rechargement, bandeau) ou la quitte pour de bon", async ({ page, user }) => {
+    void user;
+    test.setTimeout(90_000);
+    const code = await openExpedition(page);
+    const bot = await DungeonBot.join(code);
+    try {
+      await page.getByRole("button", { name: t("dungeon.start") }).click();
+      const game = page.getByTestId("dungeon-game");
+      await expect(game).toBeVisible({ timeout: 10_000 });
+
+      // Page rechargée : on retrouve l'expédition.
+      await page.reload();
+      await expect(game).toBeVisible({ timeout: 15_000 });
+      await bot.waitFor((s) => s.members.length === 2 && s.members.every((m) => m.connected));
+
+      // Partie quittée sans le vouloir : l'accueil propose d'y revenir, comme une invitation.
+      await page.goto("/fr");
+      const notice = page.getByText(t("dungeon.return.text", { code }));
+      await expect(notice).toBeVisible();
+      await page.getByRole("button", { name: t("dungeon.return.rejoin") }).click();
+      await expect(page).toHaveURL(new RegExp(`/fr/dungeon/${code}$`));
+      await expect(game).toBeVisible({ timeout: 15_000 });
+      await bot.waitFor((s) => s.members.length === 2 && s.members.every((m) => m.connected));
+
+      // « Quitter » rend la place pour de bon : l'équipe ne l'attend plus, le bandeau disparaît.
+      await page.goto("/fr");
+      await page.getByRole("button", { name: t("dungeon.return.quit") }).click();
+      await expect(notice).toBeHidden();
+      await bot.waitFor((s) => s.members.length === 1);
+      await page.reload();
+      await expect(page.getByRole("button", { name: t("dungeon.return.rejoin") })).toHaveCount(0);
+    } finally {
+      await bot.leave();
+    }
+  });
+
   test("défaite : le boss ne peut plus être atteint à temps", async ({ page, user }) => {
     void user;
     const code = await openExpedition(page);

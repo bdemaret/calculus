@@ -225,6 +225,13 @@ export class DungeonRoom extends Room {
   }
 
   onJoin(client: Client, _options: unknown, auth: GameIdentity) {
+    const known = this.members.get(auth.id);
+    // Un membre déconnecté revient avec son compte (page rechargée, onglet fermé, réseau perdu) : il reprend sa place,
+    // même en pleine expédition et même après le délai de reconnexion.
+    if (known && !known.connected && this.phase !== "lobby") {
+      this.welcomeBack(known, client);
+      return;
+    }
     if (this.phase !== "lobby") throw new ServerError(JOIN_ERRORS.inProgress, "in-progress");
     if (this.members.has(auth.id)) throw new ServerError(JOIN_ERRORS.duplicate, "duplicate");
     if (this.members.size >= DUNGEON_MAX_PLAYERS) throw new ServerError(JOIN_ERRORS.full, "full");
@@ -246,8 +253,8 @@ export class DungeonRoom extends Room {
     try {
       const back = await this.allowReconnection(client, RECONNECT_SECONDS);
       // Entre-temps, le lancement d'une partie ou le retour au lobby a retiré ce membre absent (et le même compte
-      // a pu revenir) : cette ancienne place n'existe plus, on ferme la connexion reprise.
-      if (this.members.get(m.id) !== m) {
+      // a pu revenir), ou il est revenu par son code sur une autre connexion : on ferme la connexion reprise.
+      if (this.members.get(m.id) !== m || m.client !== client) {
         back.leave(4000);
         return;
       }
@@ -256,9 +263,50 @@ export class DungeonRoom extends Room {
       back.send("welcome", { playerId: m.id });
       this.broadcastSnapshot();
     } catch {
-      // Seulement si c'est toujours lui : un joueur revenu sous le même compte ne doit pas être retiré à sa place.
-      if (this.members.get(m.id) === m) this.removeMember(m.id);
+      // Seulement si c'est toujours lui, toujours absent : un joueur revenu (même compte, ou par son code) garde sa place.
+      if (this.members.get(m.id) !== m || m.client !== client) return;
+      if (this.inExpedition()) this.setAway(m);
+      else this.removeMember(m.id);
     }
+  }
+
+  /** Expédition en cours ou terminée (bilan à l'écran) : un absent y garde sa place pour pouvoir revenir. */
+  private inExpedition(): boolean {
+    return this.phase !== "lobby" && this.phase !== "countdown";
+  }
+
+  /**
+   * Délai de reconnexion écoulé en pleine expédition : le joueur ne bloque plus personne (départ pour le moteur,
+   * série ratée), mais reste membre, déconnecté, pour revenir par le bandeau « Revenir dans la partie ».
+   * Un départ voulu (« Quitter ») le retire pour de bon.
+   */
+  private setAway(m: Member) {
+    m.draft = null;
+    const engine = this.engine;
+    if (engine && this.phase !== "finished") {
+      this.step(() => {
+        engine.leave(m.id, Date.now());
+        this.advanceIfReady(engine);
+      });
+    }
+    if (m.id === this.hostId) {
+      const next = [...this.members.values()].find((x) => x.connected);
+      if (next) this.hostId = next.id;
+    }
+    this.broadcastSnapshot();
+  }
+
+  /** Retour d'un membre déconnecté sur une nouvelle connexion (entrée par le code avec le même compte). */
+  private welcomeBack(m: Member, client: Client) {
+    m.client = client;
+    m.connected = true;
+    m.rateWindowStart = 0;
+    m.rateCount = 0;
+    if (!this.hostId || !this.members.get(this.hostId)?.connected) this.hostId = m.id;
+    client.send("welcome", { playerId: m.id });
+    const engine = this.engine;
+    if (engine && this.phase !== "finished") this.step(() => engine.rejoin(m.id));
+    else this.broadcastSnapshot();
   }
 
   onDispose() {
@@ -358,7 +406,7 @@ export class DungeonRoom extends Room {
     this.startedAt = Date.now();
     this.phase = "countdown";
     this.countdownEndsAt = this.startedAt + COUNTDOWN_MS;
-    void this.lock();
+    // Pas de `lock()` : un membre déconnecté doit pouvoir revenir par son code ; `onJoin` refuse tous les autres.
     clearInvites(this.code);
     this.broadcastSnapshot();
     this.timer = this.clock.setTimeout(() => {
@@ -495,7 +543,6 @@ export class DungeonRoom extends Room {
     this.unlocks = null;
     this.countdownEndsAt = null;
     this.phase = "lobby";
-    void this.unlock();
     this.broadcastSnapshot();
   }
 
